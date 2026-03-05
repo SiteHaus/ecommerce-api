@@ -103,7 +103,7 @@ pnpm dev
 
 ## Contributing
 
-Pull requests are welcome. For significant changes, open an issue first.
+Pull requests are welcome. For significant changes, open an issue first. Please read [docs/standards.md](./docs/standards.md) before contributing code.
 
 ## License
 
