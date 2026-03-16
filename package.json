@@ -19,6 +19,6 @@
     "node": ">=20"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["@nestjs/core", "@swc/core"]
+    "onlyBuiltDependencies": ["@nestjs/core", "@swc/core", "esbuild"]
   }
 }
