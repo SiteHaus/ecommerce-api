@@ -8,6 +8,8 @@ import { SiteHausAuthModule } from '@sitehaus/client-sdk/nestjs';
 import { validateEnv } from './config/env';
 import { RpcExceptionFilter } from './filters/rpc-exception.filter';
 import { SmartThrottlerGuard } from './throttler/smart-throttler.guard';
+import { AnonSessionModule } from './anon-session/anon-session.module';
+import { AnonSessionModule } from './anon-session/anon-session.module';
 
 // TODO SIT-69: import SharedModule
 // TODO SIT-70: import StoreAuthModule
@@ -71,6 +73,8 @@ import { SmartThrottlerGuard } from './throttler/smart-throttler.guard';
         inject: [ConfigService],
       },
     ]),
+
+    AnonSessionModule,
   ],
   providers: [
     // Map RpcException from TCP services → HTTP responses
