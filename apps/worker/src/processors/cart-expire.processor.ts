@@ -3,7 +3,7 @@ import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 
 // TODO SIT-84: inject CartService and call expireStale()
-@Processor('ecom:orders')
+@Processor('ecom-orders')
 export class CartExpireProcessor extends WorkerHost {
   private readonly logger = new Logger(CartExpireProcessor.name);
 

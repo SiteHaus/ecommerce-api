@@ -3,7 +3,7 @@ import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 
 // TODO SIT-82: inject ReservationService and call expireStale()
-@Processor('ecom:inventory')
+@Processor('ecom-inventory')
 export class ReservationExpireProcessor extends WorkerHost {
   private readonly logger = new Logger(ReservationExpireProcessor.name);
 

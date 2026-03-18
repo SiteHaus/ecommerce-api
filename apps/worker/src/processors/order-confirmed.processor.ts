@@ -3,7 +3,7 @@ import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 
 // TODO SIT-92: inject EmailService and send order confirmation email
-@Processor('ecom:notifications')
+@Processor('ecom-notifications')
 export class OrderConfirmedProcessor extends WorkerHost {
   private readonly logger = new Logger(OrderConfirmedProcessor.name);
 

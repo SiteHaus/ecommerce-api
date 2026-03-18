@@ -28,9 +28,9 @@ import { OrderShippedProcessor } from './processors/order-shipped.processor';
       }),
     }),
     BullModule.registerQueue(
-      { name: 'ecom:inventory' },
-      { name: 'ecom:orders' },
-      { name: 'ecom:notifications' },
+      { name: 'ecom-inventory' },
+      { name: 'ecom-orders' },
+      { name: 'ecom-notifications' },
     ),
   ],
   providers: [
