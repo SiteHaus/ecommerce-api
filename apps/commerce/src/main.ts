@@ -1,17 +1,20 @@
-import 'reflect-metadata';
-import { NestFactory } from '@nestjs/core';
-import { MicroserviceOptions, Transport } from '@nestjs/microservices';
-import { Logger } from '@nestjs/common';
-import { AppModule } from './app.module';
+import { Logger } from "@nestjs/common";
+import { NestFactory } from "@nestjs/core";
+import { MicroserviceOptions, Transport } from "@nestjs/microservices";
+import "reflect-metadata";
+import { AppModule } from "./app.module";
 
 async function bootstrap() {
-  const app = await NestFactory.createMicroservice<MicroserviceOptions>(AppModule, {
-    transport: Transport.TCP,
-    options: { host: '0.0.0.0', port: 7021 },
-  });
+  const app = await NestFactory.createMicroservice<MicroserviceOptions>(
+    AppModule,
+    {
+      transport: Transport.TCP,
+      options: { host: "0.0.0.0", port: 7021 },
+    },
+  );
 
   await app.listen();
-  Logger.log('Commerce service listening on :7021', 'Bootstrap');
+  Logger.log("Commerce service listening on :7021", "Bootstrap");
 }
 
 bootstrap();
