@@ -1,13 +1,14 @@
-import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { APP_FILTER, APP_GUARD } from '@nestjs/core';
-import { ClientsModule, Transport } from '@nestjs/microservices';
-import { ThrottlerModule } from '@nestjs/throttler';
-import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
-import { SiteHausAuthModule } from '@sitehaus/client-sdk/nestjs';
-import { validateEnv } from './config/env';
-import { RpcExceptionFilter } from './filters/rpc-exception.filter';
-import { SmartThrottlerGuard } from './throttler/smart-throttler.guard';
+import { Module } from "@nestjs/common";
+import { ConfigModule, ConfigService } from "@nestjs/config";
+import { APP_FILTER, APP_GUARD } from "@nestjs/core";
+import { ClientsModule, Transport } from "@nestjs/microservices";
+import { ThrottlerModule } from "@nestjs/throttler";
+import { ThrottlerStorageRedisService } from "@nest-lab/throttler-storage-redis";
+import { SiteHausAuthModule } from "@sitehaus/client-sdk/nestjs";
+import { validateEnv } from "./config/env";
+import { RpcExceptionFilter } from "./filters/rpc-exception.filter";
+import { SmartThrottlerGuard } from "./throttler/smart-throttler.guard";
+import { AnonSessionModule } from "./anon-session/anon-session.module";
 import { StoreModule } from './store/store.module';
 
 // TODO SIT-69: import SharedModule
@@ -24,8 +25,8 @@ import { StoreModule } from './store/store.module';
     SiteHausAuthModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (config: ConfigService) => ({
-        iamUrl: config.getOrThrow('IAM_URL'),
-        clientKey: config.getOrThrow('IAM_CLIENT_KEY'),
+        iamUrl: config.getOrThrow("IAM_URL"),
+        clientKey: config.getOrThrow("IAM_CLIENT_KEY"),
         cacheTtlMs: 30_000,
       }),
       inject: [ConfigService],
@@ -37,9 +38,11 @@ import { StoreModule } from './store/store.module';
       useFactory: (config: ConfigService) => ({
         throttlers: [
           // Defaults — individual routes override via @Throttle()
-          { name: 'default', ttl: 60_000, limit: 120 },
+          { name: "default", ttl: 60_000, limit: 120 },
         ],
-        storage: new ThrottlerStorageRedisService(config.getOrThrow('REDIS_URL')),
+        storage: new ThrottlerStorageRedisService(
+          config.getOrThrow("REDIS_URL"),
+        ),
       }),
       inject: [ConfigService],
     }),
@@ -50,30 +53,32 @@ import { StoreModule } from './store/store.module';
     // TCP connections to internal services
     ClientsModule.registerAsync([
       {
-        name: 'COMMERCE_SERVICE',
+        name: "COMMERCE_SERVICE",
         imports: [ConfigModule],
         useFactory: (config: ConfigService) => ({
           transport: Transport.TCP,
           options: {
-            host: config.get('COMMERCE_HOST', 'localhost'),
+            host: config.get("COMMERCE_HOST", "localhost"),
             port: 7021,
           },
         }),
         inject: [ConfigService],
       },
       {
-        name: 'PAYMENTS_SERVICE',
+        name: "PAYMENTS_SERVICE",
         imports: [ConfigModule],
         useFactory: (config: ConfigService) => ({
           transport: Transport.TCP,
           options: {
-            host: config.get('PAYMENTS_HOST', 'localhost'),
+            host: config.get("PAYMENTS_HOST", "localhost"),
             port: 7022,
           },
         }),
         inject: [ConfigService],
       },
     ]),
+
+    AnonSessionModule,
   ],
   providers: [
     // Map RpcException from TCP services → HTTP responses
