@@ -1,0 +1,24 @@
+{
+  "name": "@sitehaus-ecom/contracts",
+  "version": "0.0.1",
+  "private": true,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc -w"
+  },
+  "dependencies": {
+    "@ts-rest/core": "3.53.0-rc.1",
+    "@sitehaus-ecom/validation": "workspace:*"
+  },
+  "devDependencies": {
+    "@sitehaus-ecom/typescript-config": "workspace:*",
+    "@types/node": "^22.10.7",
+    "typescript": "^5.7.3"
+  }
+}

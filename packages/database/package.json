@@ -11,9 +11,9 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc -w",
-    "db:gen": "drizzle-kit generate --config ./drizzle.config.ts",
-    "db:migrate": "drizzle-kit migrate --config ./drizzle.config.ts",
-    "db:push": "drizzle-kit push --config ./drizzle.config.ts"
+    "db:gen": "tsc --noEmit false && drizzle-kit generate --config ./drizzle.config.ts",
+    "db:migrate": "tsc --noEmit false && drizzle-kit migrate --config ./drizzle.config.ts",
+    "db:push": "tsc --noEmit false && drizzle-kit push --config ./drizzle.config.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.44.0",

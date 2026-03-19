@@ -9,9 +9,9 @@ import { validateEnv } from "./config/env";
 import { RpcExceptionFilter } from "./filters/rpc-exception.filter";
 import { SmartThrottlerGuard } from "./throttler/smart-throttler.guard";
 import { AnonSessionModule } from "./anon-session/anon-session.module";
+import { StoreModule } from './store/store.module';
 
 // TODO SIT-69: import SharedModule
-// TODO SIT-70: import StoreAuthModule
 // TODO SIT-67+: import HTTP controller modules as they are built
 
 @Module({
@@ -46,6 +46,9 @@ import { AnonSessionModule } from "./anon-session/anon-session.module";
       }),
       inject: [ConfigService],
     }),
+
+    // Store model, resolution middleware, and admin endpoints (SIT-70)
+    StoreModule,
 
     // TCP connections to internal services
     ClientsModule.registerAsync([

@@ -114,6 +114,21 @@ importers:
       '@nestjs/throttler':
         specifier: ^6.5.0
         version: 6.5.0(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.16)(reflect-metadata@0.2.2)
+      '@sitehaus-ecom/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
+      '@sitehaus-ecom/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      '@sitehaus-ecom/database':
+        specifier: workspace:*
+        version: link:../../packages/database
+      '@sitehaus-ecom/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      '@sitehaus-ecom/validation':
+        specifier: workspace:*
+        version: link:../../packages/validation
       '@sitehaus/client-sdk':
         specifier: ^0.2.0
         version: 0.2.0(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.16)
@@ -123,6 +138,9 @@ importers:
       '@ts-rest/nest':
         specifier: 3.53.0-rc.1
         version: 3.53.0-rc.1(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.16)(@ts-rest/core@3.53.0-rc.1(@types/node@22.19.13))(rxjs@7.8.2)
+      '@ts-rest/open-api':
+        specifier: 3.53.0-rc.1
+        version: 3.53.0-rc.1(@ts-rest/core@3.53.0-rc.1(@types/node@22.19.13))(zod@4.3.6)
       cookie-parser:
         specifier: ^1.4.7
         version: 1.4.7
@@ -264,6 +282,53 @@ importers:
         specifier: ^5.7.3
         version: 5.8.3
 
+  packages/auth:
+    dependencies:
+      '@nestjs/common':
+        specifier: ^11.0.17
+        version: 11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/config':
+        specifier: ^4.0.3
+        version: 4.0.3(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(rxjs@7.8.2)
+      '@nestjs/core':
+        specifier: ^11.0.1
+        version: 11.1.16(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/microservices@11.1.16)(@nestjs/platform-express@11.1.16)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      reflect-metadata:
+        specifier: ^0.2.2
+        version: 0.2.2
+      rxjs:
+        specifier: ^7.8.1
+        version: 7.8.2
+    devDependencies:
+      '@sitehaus-ecom/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      '@types/node':
+        specifier: ^22.10.7
+        version: 22.19.13
+      typescript:
+        specifier: ^5.7.3
+        version: 5.8.3
+
+  packages/contracts:
+    dependencies:
+      '@sitehaus-ecom/validation':
+        specifier: workspace:*
+        version: link:../validation
+      '@ts-rest/core':
+        specifier: 3.53.0-rc.1
+        version: 3.53.0-rc.1(@types/node@22.19.13)
+    devDependencies:
+      '@sitehaus-ecom/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      '@types/node':
+        specifier: ^22.10.7
+        version: 22.19.13
+      typescript:
+        specifier: ^5.7.3
+        version: 5.8.3
+
   packages/database:
     dependencies:
       drizzle-orm:
@@ -343,7 +408,29 @@ importers:
 
   packages/typescript-config: {}
 
+  packages/validation:
+    dependencies:
+      zod:
+        specifier: ^4.3.6
+        version: 4.3.6
+    devDependencies:
+      '@sitehaus-ecom/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      '@types/node':
+        specifier: ^22.10.7
+        version: 22.19.13
+      typescript:
+        specifier: ^5.7.3
+        version: 5.8.3
+
 packages:
+
+  '@anatine/zod-openapi@1.14.2':
+    resolution: {integrity: sha512-q0qHfnuNYVKu0Swrnnvfj9971AEyW7c8v9jCOZGCl5ZbyGMNG4RPyJkRcMi/JC8CRfdOe0IDfNm1nNsi2avprg==}
+    peerDependencies:
+      openapi3-ts: ^2.0.0 || ^3.0.0
+      zod: ^3.20.0
 
   '@angular-devkit/core@19.2.17':
     resolution: {integrity: sha512-Ah008x2RJkd0F+NLKqIpA34/vUGwjlprRCkvddjDopAWRzYn6xCkz1Tqwuhn0nR1Dy47wTLKYD999TYl5ONOAQ==}
@@ -1961,6 +2048,12 @@ packages:
       '@nestjs/core': ^9.0.0 || ^10.0.0 || ^11.0.0
       '@ts-rest/core': 3.53.0-rc.1
       rxjs: ^7.1.0
+
+  '@ts-rest/open-api@3.53.0-rc.1':
+    resolution: {integrity: sha512-JqmmdwFP2AHlyK9T4dwgsFL3QGNRppV9JIBh0G9mbJE7m7Kj403VsxJZ5X128E3XqwH7JIgJ4wsyGRX4Zbtqvw==}
+    peerDependencies:
+      '@ts-rest/core': 3.53.0-rc.1
+      zod: ^3.22.3
 
   '@tsconfig/node10@1.0.12':
     resolution: {integrity: sha512-UCYBaeFvM11aU2y3YPZ//O5Rhj+xKyzy7mvcIoAjASbigy8mHMryP5cK7dgjlz2hWxh1g5pLw084E0a/wlUSFQ==}
@@ -3631,6 +3724,9 @@ packages:
     resolution: {integrity: sha512-kbpaSSGJTWdAY5KPVeMOKXSrPtr8C8C7wodJbcsd51jRnmD+GZu8Y0VoU6Dm5Z4vWr0Ig/1NKuWRKf7j5aaYSg==}
     engines: {node: '>=6'}
 
+  openapi3-ts@2.0.2:
+    resolution: {integrity: sha512-TxhYBMoqx9frXyOgnRHufjQfPXomTIHYKhSKJ6jHfj13kS8OEIhvmE8CTuQyKtjjWttAjX5DPxM1vmalEpo8Qw==}
+
   ora@5.4.1:
     resolution: {integrity: sha512-5b6Y85tPxZZ7QytO+BQzysW31HJku27cRIlkbAXaNx+BdcVi+LlRFmVXzeF6a7JCwJpyw5c4b+YSVImQIrBpuQ==}
     engines: {node: '>=10'}
@@ -4172,6 +4268,10 @@ packages:
     resolution: {integrity: sha512-dRXchy+C0IgK8WPC6xvCHFRIWYUbqqdEIKPaKo/AcTUNzwLTK6AH7RjdLWsEZcAN/TBdtfUw3PYEgPr5VPr6ww==}
     engines: {node: '>=14.16'}
 
+  ts-deepmerge@6.2.1:
+    resolution: {integrity: sha512-8CYSLazCyj0DJDpPIxOFzJG46r93uh6EynYjuey+bxcLltBeqZL7DMfaE5ZPzZNFlav7wx+2TDa/mBl8gkTYzw==}
+    engines: {node: '>=14.13.1'}
+
   ts-jest@29.4.6:
     resolution: {integrity: sha512-fSpWtOO/1AjSNQguk43hb/JCo16oJDnMJf3CdEGNkqsEX3t0KX96xvyX1D7PfLCpVoKu4MfVrqUkFyblYoY4lA==}
     engines: {node: ^14.15.0 || ^16.10.0 || ^18.0.0 || >=20.0.0}
@@ -4407,6 +4507,10 @@ packages:
   yallist@3.1.1:
     resolution: {integrity: sha512-a4UGQaWPH59mOXUYnAG2ewncQS4i4F43Tv3JoAM+s2VDAmS9NsK8GpDMLrCHPksFT7h3K6TOoUNn2pb7RoXx4g==}
 
+  yaml@1.10.2:
+    resolution: {integrity: sha512-r3vXyErRCYJ7wg28yvBY5VSoAF8ZvlcW9/BwUzEtUsjvX/DKs24dIkuwjtuprwJJHsbyUbLApepYTR1BN4uHrg==}
+    engines: {node: '>= 6'}
+
   yargs-parser@21.1.1:
     resolution: {integrity: sha512-tVpsJW7DdjecAiFpbIB1e3qxIQsE6NoPc5/eTdrbbIC4h0LVsWhnoa3g+m2HclBIujHzsxZ4VJVA+GUuc2/LBw==}
     engines: {node: '>=12'}
@@ -4435,6 +4539,12 @@ packages:
     resolution: {integrity: sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg==}
 
 snapshots:
+
+  '@anatine/zod-openapi@1.14.2(openapi3-ts@2.0.2)(zod@4.3.6)':
+    dependencies:
+      openapi3-ts: 2.0.2
+      ts-deepmerge: 6.2.1
+      zod: 4.3.6
 
   '@angular-devkit/core@19.2.17(chokidar@4.0.3)':
     dependencies:
@@ -6397,6 +6507,13 @@ snapshots:
       '@ts-rest/core': 3.53.0-rc.1(@types/node@22.19.13)
       rxjs: 7.8.2
 
+  '@ts-rest/open-api@3.53.0-rc.1(@ts-rest/core@3.53.0-rc.1(@types/node@22.19.13))(zod@4.3.6)':
+    dependencies:
+      '@anatine/zod-openapi': 1.14.2(openapi3-ts@2.0.2)(zod@4.3.6)
+      '@ts-rest/core': 3.53.0-rc.1(@types/node@22.19.13)
+      openapi3-ts: 2.0.2
+      zod: 4.3.6
+
   '@tsconfig/node10@1.0.12': {}
 
   '@tsconfig/node12@1.0.11': {}
@@ -8327,6 +8444,10 @@ snapshots:
     dependencies:
       mimic-fn: 2.1.0
 
+  openapi3-ts@2.0.2:
+    dependencies:
+      yaml: 1.10.2
+
   ora@5.4.1:
     dependencies:
       bl: 4.1.0
@@ -8859,6 +8980,8 @@ snapshots:
       '@tokenizer/token': 0.3.0
       ieee754: 1.2.1
 
+  ts-deepmerge@6.2.1: {}
+
   ts-jest@29.4.6(@babel/core@7.29.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.29.0))(jest-util@29.7.0)(jest@29.7.0(@types/node@22.19.13)(ts-node@10.9.2(@swc/core@1.15.18)(@types/node@22.19.13)(typescript@5.8.3)))(typescript@5.8.3):
     dependencies:
       bs-logger: 0.2.6
@@ -9087,6 +9210,8 @@ snapshots:
   y18n@5.0.8: {}
 
   yallist@3.1.1: {}
+
+  yaml@1.10.2: {}
 
   yargs-parser@21.1.1: {}
 
