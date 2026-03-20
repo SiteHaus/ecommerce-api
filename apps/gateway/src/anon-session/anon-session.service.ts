@@ -22,7 +22,9 @@ export class AnonSessionService {
     }
 
     const sub = nanoid() as unknown as string;
-    const newToken = jwt.sign({ sub }, process.env.SESSION_SECRET!);
+    const newToken = jwt.sign({ sub }, process.env.SESSION_SECRET!, {
+      expiresIn: '7d'
+    });
     res.cookie("store_session", newToken, {
       httpOnly: true,
       sameSite: "lax",

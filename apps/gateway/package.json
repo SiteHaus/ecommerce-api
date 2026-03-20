@@ -26,7 +26,6 @@
     "@ts-rest/core": "3.53.0-rc.1",
     "@ts-rest/nest": "3.53.0-rc.1",
     "@ts-rest/open-api": "3.53.0-rc.1",
-    "@sitehaus/client-sdk": "^0.2.0",
     "@sitehaus-ecom/auth": "workspace:*",
     "@sitehaus-ecom/contracts": "workspace:*",
     "@sitehaus-ecom/database": "workspace:*",
