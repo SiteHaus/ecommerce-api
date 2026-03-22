@@ -38,6 +38,12 @@ importers:
       '@sitehaus-ecom/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@sitehaus-ecom/validation':
+        specifier: workspace:*
+        version: link:../../packages/validation
+      ioredis:
+        specifier: ^5.10.0
+        version: 5.10.0
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
