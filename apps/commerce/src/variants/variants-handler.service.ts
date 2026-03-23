@@ -12,31 +12,18 @@ import {
   ordersTable,
   productVariantsTable,
 } from "@sitehaus-ecom/database";
-import type { Redis } from "ioredis";
 import { and, eq, notInArray } from "@sitehaus-ecom/database";
-
-export const REDIS_TOKEN = "STORE_REDIS";
+import { CreateVariantDto, UpdateVariantDto } from "@sitehaus-ecom/validation";
 
 @Injectable()
 export class VariantsHandlerService {
   constructor(
     @Inject(DB_TOKEN) private readonly db: Db,
-    @Inject(REDIS_TOKEN) private readonly redis: Redis,
 
     private readonly audit: AuditService,
   ) {}
 
-  async create(data: {
-    productId: string;
-    storeId: string;
-    name: string;
-    sku?: string;
-    priceCents: number;
-    compareAtCents?: number;
-    weightGrams?: number;
-    sortOrder?: number;
-    isActive?: boolean;
-  }) {
+  async create(data: CreateVariantDto) {
     const product = await this.db.query.productsTable.findFirst({
       where: (p) => and(eq(p.id, data.productId), eq(p.storeId, data.storeId)),
     });
@@ -88,17 +75,7 @@ export class VariantsHandlerService {
       inventory: inv,
     };
   }
-  async update(data: {
-    id: string;
-    storeId: string;
-    name?: string;
-    sku?: string;
-    priceCents?: number;
-    compareAtCents?: number;
-    weightGrams?: number;
-    sortOrder?: number;
-    isActive?: boolean;
-  }) {
+  async update(data: UpdateVariantDto) {
     // verify variant belongs to store
     const existing = await this.db.query.productVariantsTable.findFirst({
       where: (v) => and(eq(v.id, data.id), eq(v.storeId, data.storeId)),

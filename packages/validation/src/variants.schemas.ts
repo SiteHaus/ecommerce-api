@@ -8,9 +8,6 @@ export const inventorySchema = z.object({
 });
 
 export const variantItem = z.object({
-  id: z.uuid(),
-  productId: z.uuid(),
-  storeId: z.uuid(),
   name: z.string(),
   sku: z.string().nullable(),
   priceCents: z.number().int(),
@@ -18,8 +15,6 @@ export const variantItem = z.object({
   weightGrams: z.number().int().nullable(),
   sortOrder: z.number().int(),
   isActive: z.boolean(),
-  createdAt: z.date(),
-  updatedAt: z.date(),
   inventory: inventorySchema,
 });
 
@@ -36,6 +31,8 @@ export const deleteVariantSchema = z.object({
 });
 
 export const createVariantSchema = z.object({
+  productId: z.uuid(),
+  storeId: z.uuid(),
   name: z.string().min(1),
   sku: z.string().optional(),
   priceCents: z.number().int().min(1),
@@ -47,6 +44,9 @@ export const createVariantSchema = z.object({
 
 export const updateVariantSchema = z
   .object({
+    id: z.uuid(),
+    productId: z.uuid(),
+    storeId: z.uuid(),
     name: z.string().min(1).optional(),
     sku: z.string().optional(),
     priceCents: z.number().int().min(1).optional(),

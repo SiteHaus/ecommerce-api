@@ -6,7 +6,7 @@ import type { Request } from "express";
 import { firstValueFrom } from "rxjs";
 import { ClientProxy } from "@nestjs/microservices";
 
-@Controller("variants")
+@Controller()
 @UseGuards(StoreOwnerGuard)
 export class VariantsController {
   constructor(

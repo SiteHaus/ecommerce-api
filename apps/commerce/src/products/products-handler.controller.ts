@@ -1,0 +1,56 @@
+import { Controller } from "@nestjs/common";
+import { ProductsHandlerService } from "./products-handler.service";
+import { MessagePattern, Payload } from "@nestjs/microservices";
+import {
+  CreateProductDto,
+  PublicQueryParams,
+  Status,
+  VariantItem,
+} from "@sitehaus-ecom/validation";
+import { UpdateProductDto } from "@sitehaus-ecom/validation";
+import { VariantsHandlerService } from "src/variants/variants-handler.service";
+
+@Controller("products")
+export class ProductsHandlerController {
+  constructor(private readonly productService: ProductsHandlerService) {}
+
+  @MessagePattern("catalog.products.create")
+  async create(@Payload() data: CreateProductDto & { storeId: string }) {
+    return this.productService.create(data);
+  }
+  @MessagePattern("catalog.products.update")
+  update(
+    @Payload()
+    data: UpdateProductDto & { id: string },
+  ) {
+    return this.productService.update(data);
+  }
+
+  @MessagePattern("catalog.products.archive")
+  delete(@Payload() data: { id: string; storeId: string }) {
+    return this.productService.delete(data);
+  }
+
+  @MessagePattern("catalog.products.list")
+  listProducts(
+    @Payload()
+    data: {
+      limit: number;
+      offset: number;
+      status: Status;
+      storeId: string;
+    },
+  ) {
+    return this.productService.listProducts(data);
+  }
+
+  @MessagePattern("catalog.products.get")
+  getProduct(@Payload() data: { id: string; storeId: string }) {
+    return this.productService.getProduct(data);
+  }
+
+  @MessagePattern("catalog.products.listPublic")
+  listPublic(@Payload() data: PublicQueryParams & { storeId: string }) {
+    return this.productService.listPublic(data);
+  }
+}

@@ -13,9 +13,7 @@ import { CartHandlersModule } from "./cart/cart-handlers.module";
 import { OrdersHandlersModule } from "./orders/orders-handlers.module";
 import { ShippingHandlersModule } from "./shipping/shipping-handlers.module";
 import { VariantsHandlerModule } from "./variants/variants-handler.module";
-import { VariantsHandlerService } from "./variants/variants-handler.service";
-import { VariantsHandlerController } from "./variants/variants-handler.controller";
-import { ProductsModule } from "./products/products.module";
+import { ProductsHandlerModule } from "./products/products-handler.module";
 
 @Module({
   imports: [
@@ -34,9 +32,7 @@ import { ProductsModule } from "./products/products.module";
     OrdersHandlersModule,
     ShippingHandlersModule,
     VariantsHandlerModule,
-    ProductsModule,
+    ProductsHandlerModule,
   ],
-  controllers: [VariantsHandlerController],
-  providers: [VariantsHandlerService],
 })
 export class AppModule {}
