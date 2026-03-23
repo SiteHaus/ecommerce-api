@@ -11,9 +11,7 @@ describe("ConnectHandler", () => {
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ConnectHandler],
-      providers: [
-        { provide: ConnectService, useValue: mockConnectService },
-      ],
+      providers: [{ provide: ConnectService, useValue: mockConnectService }],
     }).compile();
 
     handler = module.get(ConnectHandler);
@@ -41,7 +39,9 @@ describe("ConnectHandler", () => {
   });
 
   it("passes null stripeAccountId through correctly", async () => {
-    mockConnectService.initiateConnect.mockResolvedValue({ url: "https://..." });
+    mockConnectService.initiateConnect.mockResolvedValue({
+      url: "https://...",
+    });
 
     await handler.initiateConnect({
       storeId: "store-1",

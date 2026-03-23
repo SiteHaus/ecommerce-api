@@ -1,7 +1,11 @@
-import { Module } from '@nestjs/common';
+import { Module } from "@nestjs/common";
+import { ReservationHandler } from "./reservation.handler";
+import { ReservationService } from "./reservation.service";
 
 // TODO SIT-80: wire InventoryHandlerController (@MessagePattern inventory.get, inventory.adjust, inventory.availability)
-// TODO SIT-81: wire reservation patterns (inventory.reserve, inventory.release, inventory.commit)
 
-@Module({})
+@Module({
+  controllers: [ReservationHandler],
+  providers: [ReservationService],
+})
 export class InventoryHandlersModule {}
