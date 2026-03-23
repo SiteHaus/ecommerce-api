@@ -15,6 +15,7 @@ import { ShippingHandlersModule } from "./shipping/shipping-handlers.module";
 import { VariantsHandlerModule } from "./variants/variants-handler.module";
 import { VariantsHandlerService } from "./variants/variants-handler.service";
 import { VariantsHandlerController } from "./variants/variants-handler.controller";
+import { ProductsModule } from "./products/products.module";
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { VariantsHandlerController } from "./variants/variants-handler.controlle
     OrdersHandlersModule,
     ShippingHandlersModule,
     VariantsHandlerModule,
+    ProductsModule,
   ],
   controllers: [VariantsHandlerController],
   providers: [VariantsHandlerService],
