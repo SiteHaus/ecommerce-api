@@ -39,5 +39,21 @@ export const storeItem = z.object({
   reservationTtlMinutes: z.number(),
 });
 
+export const connectStripeSchema = z.object({
+  returnUrl: z.string().url(),
+});
+
+export const connectStripeResponse = z.object({
+  url: z.string().url(),
+});
+
+export const stripeStatusItem = z.object({
+  connected: z.boolean(),
+  chargesEnabled: z.boolean(),
+  payoutsEnabled: z.boolean(),
+  detailsSubmitted: z.boolean(),
+});
+
 export type CreateStoreDto = z.infer<typeof createStoreSchema>;
 export type UpdateStoreDto = z.infer<typeof updateStoreSchema>;
+export type ConnectStripeDto = z.infer<typeof connectStripeSchema>;

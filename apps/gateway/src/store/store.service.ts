@@ -1,11 +1,11 @@
-import { Inject, Injectable } from '@nestjs/common';
-import type { Redis } from 'ioredis';
-import { DB_TOKEN } from '@sitehaus-ecom/shared';
-import { storesTable, eq, and, type Db } from '@sitehaus-ecom/database';
-import type { ResolvedStore } from '@sitehaus-ecom/auth';
-import type { CreateStoreDto, UpdateStoreDto } from '@sitehaus-ecom/validation';
+import { Inject, Injectable } from "@nestjs/common";
+import type { ResolvedStore } from "@sitehaus-ecom/auth";
+import { and, eq, storesTable, type Db } from "@sitehaus-ecom/database";
+import { DB_TOKEN } from "@sitehaus-ecom/shared";
+import type { CreateStoreDto, UpdateStoreDto } from "@sitehaus-ecom/validation";
+import type { Redis } from "ioredis";
 
-export const REDIS_TOKEN = 'STORE_REDIS';
+export const REDIS_TOKEN = "STORE_REDIS";
 
 const CACHE_TTL = 60; // seconds
 
@@ -24,7 +24,9 @@ export class StoreService {
     const [row] = await this.db
       .select()
       .from(storesTable)
-      .where(and(eq(storesTable.domain, domain), eq(storesTable.isActive, true)))
+      .where(
+        and(eq(storesTable.domain, domain), eq(storesTable.isActive, true)),
+      )
       .limit(1);
 
     if (!row) return null;
@@ -54,7 +56,9 @@ export class StoreService {
     const [row] = await this.db
       .select()
       .from(storesTable)
-      .where(and(eq(storesTable.clientId, clientId), eq(storesTable.isActive, true)))
+      .where(
+        and(eq(storesTable.clientId, clientId), eq(storesTable.isActive, true)),
+      )
       .limit(1);
 
     return row ? toContext(row) : null;

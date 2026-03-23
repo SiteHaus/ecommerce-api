@@ -1,7 +1,10 @@
 import {
   apiError,
+  connectStripeResponse,
+  connectStripeSchema,
   createStoreSchema,
   storeItem,
+  stripeStatusItem,
   updateStoreSchema,
 } from "@sitehaus-ecom/validation";
 import { initContract } from "@ts-rest/core";
@@ -35,6 +38,23 @@ export const storeContract = c.router({
     responses: {
       200: storeItem,
       409: apiError,
+    },
+    metadata: { openApiTags: ["Stores"] } as const,
+  },
+  connectStripe: {
+    method: "POST",
+    path: "/v1/admin/stores/connect-stripe",
+    body: connectStripeSchema,
+    responses: {
+      200: connectStripeResponse,
+    },
+    metadata: { openApiTags: ["Stores"] } as const,
+  },
+  stripeStatus: {
+    method: "GET",
+    path: "/v1/admin/stores/stripe-status",
+    responses: {
+      200: stripeStatusItem,
     },
     metadata: { openApiTags: ["Stores"] } as const,
   },
