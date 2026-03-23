@@ -10,6 +10,7 @@ import { RpcExceptionFilter } from "./filters/rpc-exception.filter";
 import { SmartThrottlerGuard } from "./throttler/smart-throttler.guard";
 import { AnonSessionModule } from "./anon-session/anon-session.module";
 import { StoreModule } from './store/store.module';
+import { VariantsModule } from './variants/variants.module';
 
 // TODO SIT-69: import SharedModule
 // TODO SIT-67+: import HTTP controller modules as they are built
@@ -79,6 +80,8 @@ import { StoreModule } from './store/store.module';
     ]),
 
     AnonSessionModule,
+
+    VariantsModule,
   ],
   providers: [
     // Map RpcException from TCP services → HTTP responses
