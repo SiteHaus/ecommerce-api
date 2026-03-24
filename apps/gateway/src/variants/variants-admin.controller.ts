@@ -9,13 +9,11 @@ import { ClientProxy } from "@nestjs/microservices";
 @Controller("variants")
 @UseGuards(StoreOwnerGuard)
 export class VariantsController {
-  constructor(
-    @Inject("COMMERCE_SERVICE") private readonly commerce: ClientProxy,
-  ) {}
+  constructor(@Inject("COMMERCE_SERVICE") private readonly commerce: ClientProxy) {}
 
-  @TsRestHandler(contract.variant.create)
+  @TsRestHandler(contract.variant.createVariant)
   async create(@Req() req: Request) {
-    return tsRestHandler(contract.variant.create, async ({ body, params }) => {
+    return tsRestHandler(contract.variant.createVariant, async ({ body, params }) => {
       const result = await firstValueFrom(
         this.commerce.send("catalog.variants.create", {
           productId: params.productId,

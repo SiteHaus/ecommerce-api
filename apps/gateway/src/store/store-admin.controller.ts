@@ -23,9 +23,9 @@ export class StoreAdminController {
     });
   }
 
-  @TsRestHandler(contract.store.create)
+  @TsRestHandler(contract.store.createStore)
   async create(@Req() req: Request) {
-    return tsRestHandler(contract.store.create, async ({ body }) => {
+    return tsRestHandler(contract.store.createStore, async ({ body }) => {
       try {
         const store = await this.storeService.create(req.user!.clientId, body);
         return { status: 201 as const, body: store };
@@ -36,9 +36,9 @@ export class StoreAdminController {
   }
 
   @UseGuards(StoreOwnerGuard)
-  @TsRestHandler(contract.store.update)
+  @TsRestHandler(contract.store.updateStore)
   async update(@Req() req: Request) {
-    return tsRestHandler(contract.store.update, async ({ body }) => {
+    return tsRestHandler(contract.store.updateStore, async ({ body }) => {
       const store = req.store!;
       try {
         const result = await this.storeService.update(store.id, store.slug, store.domain, body);

@@ -21,7 +21,7 @@ export const storeContract = c.router({
     },
     metadata: { openApiTags: ["Stores"] } as const,
   },
-  create: {
+  createStore: {
     method: "POST",
     path: "/v1/admin/stores",
     body: createStoreSchema,
@@ -31,7 +31,7 @@ export const storeContract = c.router({
     },
     metadata: { openApiTags: ["Stores"] } as const,
   },
-  update: {
+  updateStore: {
     method: "PATCH",
     path: "/v1/admin/stores",
     body: updateStoreSchema,
