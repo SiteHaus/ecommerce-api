@@ -1,5 +1,5 @@
 import { Module } from "@nestjs/common";
-import { VariantsHandlerController } from "src/variants/variants-handler.controller";
+import { VariantsHandlerModule } from "src/variants/variants-handler.module";
 
 // TODO SIT-74: wire ProductsHandlerController (@MessagePattern catalog.products.*)
 // TODO SIT-75: wire VariantsHandlerController (@MessagePattern catalog.variants.*)
@@ -7,6 +7,6 @@ import { VariantsHandlerController } from "src/variants/variants-handler.control
 // TODO SIT-77: wire ImagesHandlerController (@MessagePattern catalog.images.*)
 
 @Module({
-  controllers: [VariantsHandlerController],
+  imports: [VariantsHandlerModule],
 })
 export class CatalogHandlersModule {}

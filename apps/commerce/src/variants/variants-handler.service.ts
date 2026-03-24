@@ -1,8 +1,4 @@
-import {
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from "@nestjs/common";
+import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { AuditService, DB_TOKEN } from "@sitehaus-ecom/shared";
 import { Inject } from "@nestjs/common";
 import {
@@ -12,16 +8,12 @@ import {
   ordersTable,
   productVariantsTable,
 } from "@sitehaus-ecom/database";
-import type { Redis } from "ioredis";
 import { and, eq, notInArray } from "@sitehaus-ecom/database";
-
-export const REDIS_TOKEN = "STORE_REDIS";
 
 @Injectable()
 export class VariantsHandlerService {
   constructor(
     @Inject(DB_TOKEN) private readonly db: Db,
-    @Inject(REDIS_TOKEN) private readonly redis: Redis,
 
     private readonly audit: AuditService,
   ) {}
@@ -122,10 +114,7 @@ export class VariantsHandlerService {
         updatedAt: new Date(),
       })
       .where(
-        and(
-          eq(productVariantsTable.id, data.id),
-          eq(productVariantsTable.storeId, data.storeId),
-        ),
+        and(eq(productVariantsTable.id, data.id), eq(productVariantsTable.storeId, data.storeId)),
       )
       .returning();
 
@@ -159,18 +148,13 @@ export class VariantsHandlerService {
       .limit(1);
 
     if (activeOrders.length > 0) {
-      throw new ConflictException(
-        "Variant has active orders — deactivate instead of deleting",
-      );
+      throw new ConflictException("Variant has active orders — deactivate instead of deleting");
     }
 
     await this.db
       .delete(productVariantsTable)
       .where(
-        and(
-          eq(productVariantsTable.id, data.id),
-          eq(productVariantsTable.storeId, data.storeId),
-        ),
+        and(eq(productVariantsTable.id, data.id), eq(productVariantsTable.storeId, data.storeId)),
       );
     // inventory + cart_items cascade via FK
 
