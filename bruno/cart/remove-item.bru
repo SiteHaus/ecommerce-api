@@ -1,0 +1,22 @@
+meta {
+  name: Remove Cart Item
+  type: http
+  seq: 4
+}
+
+delete {
+  url: {{baseUrl}}/v1/cart/items/{{variantMag}}
+  body: none
+  auth: none
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("item removed from cart", function() {
+    const item = res.body.items.find(i => i.variantId === bru.getVar("variantMag"));
+    expect(item).to.be.undefined;
+  });
+}
