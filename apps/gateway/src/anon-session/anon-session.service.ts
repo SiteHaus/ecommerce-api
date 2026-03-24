@@ -1,19 +1,22 @@
 import { Injectable } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { randomUUID } from "crypto";
 import { Request, Response } from "express";
 import * as jwt from "jsonwebtoken";
-import { nanoid } from "zod";
 
 @Injectable()
 export class AnonSessionService {
+  constructor(private readonly config: ConfigService) {}
+
   async getOrCreate(req: Request, res: Response): Promise<string> {
+    const secret = this.config.getOrThrow<string>("SESSION_SECRET");
+
     if (req.cookies["store_session"]) {
       const token = req.cookies["store_session"];
 
       if (token) {
         try {
-          const decoded = jwt.verify(token, process.env.SESSION_SECRET!) as {
-            sub: string;
-          };
+          const decoded = jwt.verify(token, secret) as { sub: string };
           return decoded.sub;
         } catch {
           // invalid or expired, fall through to create new
@@ -21,15 +24,13 @@ export class AnonSessionService {
       }
     }
 
-    const sub = nanoid() as unknown as string;
-    const newToken = jwt.sign({ sub }, process.env.SESSION_SECRET!, {
-      expiresIn: '7d'
-    });
+    const sub = randomUUID();
+    const newToken = jwt.sign({ sub }, secret, { expiresIn: "7d" });
     res.cookie("store_session", newToken, {
       httpOnly: true,
       sameSite: "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      secure: process.env.NODE_ENV === "production",
+      secure: this.config.get("NODE_ENV") === "production",
     });
     return sub;
   }

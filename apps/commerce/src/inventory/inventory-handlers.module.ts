@@ -1,11 +1,11 @@
 import { Module } from "@nestjs/common";
+import { InventoryHandlerController } from "./inventory-handler.controller";
+import { InventoryHandlerService } from "./inventory-handler.service";
 import { ReservationHandler } from "./reservation.handler";
 import { ReservationService } from "./reservation.service";
 
-// TODO SIT-80: wire InventoryHandlerController (@MessagePattern inventory.get, inventory.adjust, inventory.availability)
-
 @Module({
-  controllers: [ReservationHandler],
-  providers: [ReservationService],
+  controllers: [ReservationHandler, InventoryHandlerController],
+  providers: [ReservationService, InventoryHandlerService],
 })
 export class InventoryHandlersModule {}
