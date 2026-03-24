@@ -43,5 +43,6 @@ export const variantContract = c.router({
       200: deleteVariantSchema,
       409: apiError,
     },
+    metadata: { openApiTags: ["Variants"] } as const,
   },
 });

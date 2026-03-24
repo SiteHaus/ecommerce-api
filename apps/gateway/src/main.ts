@@ -1,22 +1,22 @@
-import 'reflect-metadata';
-import { NestFactory } from '@nestjs/core';
-import { VersioningType, Logger } from '@nestjs/common';
-import { SwaggerModule } from '@nestjs/swagger';
-import { generateOpenApi } from '@ts-rest/open-api';
-import { contract } from '@sitehaus-ecom/contracts';
-import cookieParser from 'cookie-parser';
-import helmet from 'helmet';
-import { NestExpressApplication } from '@nestjs/platform-express';
-import { AppModule } from './app.module';
+import "reflect-metadata";
+import { NestFactory } from "@nestjs/core";
+import { VersioningType, Logger } from "@nestjs/common";
+import { SwaggerModule } from "@nestjs/swagger";
+import { generateOpenApi } from "@ts-rest/open-api";
+import { contract } from "@sitehaus-ecom/contracts";
+import cookieParser from "cookie-parser";
+import helmet from "helmet";
+import { NestExpressApplication } from "@nestjs/platform-express";
+import { AppModule } from "./app.module";
 
 function hasOpenApiTags(
   metadata: unknown,
 ): metadata is { openApiTags: string[] } {
   return (
     !!metadata &&
-    typeof metadata === 'object' &&
-    'openApiTags' in metadata &&
-    Array.isArray((metadata as Record<string, unknown>)['openApiTags'])
+    typeof metadata === "object" &&
+    "openApiTags" in metadata &&
+    Array.isArray((metadata as Record<string, unknown>)["openApiTags"])
   );
 }
 
@@ -27,7 +27,7 @@ async function bootstrap() {
   });
 
   // Trust reverse proxy headers (X-Forwarded-For etc.) — required for rate limiting by real IP
-  app.set('trust proxy', 1);
+  app.set("trust proxy", 1);
 
   app.use(helmet());
   app.use(cookieParser());
@@ -43,23 +43,23 @@ async function bootstrap() {
     contract,
     {
       info: {
-        title: 'SiteHaus Commerce API',
-        description: 'Multi-tenant ecommerce API',
-        version: '1.0.0',
+        title: "SiteHaus Commerce API",
+        description: "Multi-tenant ecommerce API",
+        version: "1.0.0",
       },
       components: {
         securitySchemes: {
           bearerAuth: {
-            type: 'http',
-            scheme: 'bearer',
-            bearerFormat: 'JWT',
+            type: "http",
+            scheme: "bearer",
+            bearerFormat: "JWT",
           },
         },
       },
       security: [{ bearerAuth: [] }],
     },
     {
-      setOperationId: true,
+      setOperationId: false,
       operationMapper: (operation, appRoute) => ({
         ...operation,
         ...(hasOpenApiTags(appRoute.metadata)
@@ -70,13 +70,13 @@ async function bootstrap() {
   );
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  SwaggerModule.setup('docs', app, document as any);
+  SwaggerModule.setup("docs", app, document as any);
 
   const port = process.env.PORT ?? 7020;
   await app.listen(port);
 
-  Logger.log(`Gateway running on :${port}`, 'Bootstrap');
-  Logger.log(`Swagger docs at http://localhost:${port}/docs`, 'Bootstrap');
+  Logger.log(`Gateway running on :${port}`, "Bootstrap");
+  Logger.log(`Swagger docs at http://localhost:${port}/docs`, "Bootstrap");
 }
 
 bootstrap();
