@@ -1,0 +1,40 @@
+meta {
+  name: Create Product
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/v1/admin/products
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+body:json {
+  {
+    "name": "Vitamin D3 + K2",
+    "description": "Synergistic D3 and K2 for bone and immune health.",
+    "status": "draft"
+  }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    bru.setEnvVar("newProductId", res.body.id);
+  }
+}
+
+tests {
+  test("status is 201", function() {
+    expect(res.status).to.equal(201);
+  });
+
+  test("returns product with id", function() {
+    expect(res.body.id).to.be.a("string");
+    expect(res.body.name).to.equal("Vitamin D3 + K2");
+  });
+}

@@ -1,0 +1,32 @@
+meta {
+  name: Update Product
+  type: http
+  seq: 3
+}
+
+patch {
+  url: {{baseUrl}}/v1/admin/products/{{newProductId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+body:json {
+  {
+    "id": "{{newProductId}}",
+    "status": "active"
+  }
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("status updated to active", function() {
+    expect(res.body.status).to.equal("active");
+  });
+}
