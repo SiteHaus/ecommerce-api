@@ -106,6 +106,11 @@ export class VariantsHandlerService {
       )
       .returning();
 
+    // Fetch inventory to include in response
+    const inventory = await this.db.query.inventoryTable.findFirst({
+      where: (inv) => eq(inv.variantId, variant.id),
+    });
+
     await this.audit.log({
       storeId: data.storeId,
       action: "variant.updated",
@@ -113,7 +118,10 @@ export class VariantsHandlerService {
       targetId: data.id,
     });
 
-    return variant;
+    return {
+      ...variant,
+      inventory: inventory!,
+    };
   }
 
   async delete(data: { id: string; storeId: string }) {

@@ -8,6 +8,9 @@ export const inventorySchema = z.object({
 });
 
 export const variantItem = z.object({
+  id: z.string().uuid(),
+  productId: z.string().uuid(),
+  storeId: z.string().uuid(),
   name: z.string(),
   sku: z.string().nullable(),
   priceCents: z.number().int(),
@@ -15,6 +18,8 @@ export const variantItem = z.object({
   weightGrams: z.number().int().nullable(),
   sortOrder: z.number().int(),
   isActive: z.boolean(),
+  createdAt: z.string().datetime({ offset: true }),
+  updatedAt: z.string().datetime({ offset: true }),
   inventory: inventorySchema,
 });
 
