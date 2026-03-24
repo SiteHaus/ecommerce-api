@@ -9,7 +9,7 @@ import { initContract } from "@ts-rest/core";
 const c = initContract();
 
 export const inventoryContract = c.router({
-  get: {
+  getInventory: {
     method: "GET",
     path: "/v1/admin/inventory/:variantId",
     pathParams: inventoryVariantParam,

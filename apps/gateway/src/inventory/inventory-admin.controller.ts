@@ -11,9 +11,9 @@ import { firstValueFrom } from "rxjs";
 export class InventoryAdminController {
   constructor(@Inject("COMMERCE_SERVICE") private readonly commerce: ClientProxy) {}
 
-  @TsRestHandler(contract.inventory.get)
+  @TsRestHandler(contract.inventory.getInventory)
   get(@Req() req: Request) {
-    return tsRestHandler(contract.inventory.get, async ({ params }) => {
+    return tsRestHandler(contract.inventory.getInventory, async ({ params }) => {
       const result = await firstValueFrom(
         this.commerce.send("inventory.get", {
           variantId: params.variantId,

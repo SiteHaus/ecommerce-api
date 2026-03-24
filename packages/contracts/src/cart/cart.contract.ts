@@ -10,7 +10,7 @@ import { initContract } from "@ts-rest/core";
 const c = initContract();
 
 export const cartContract = c.router({
-  get: {
+  getCart: {
     method: "GET",
     path: "/v1/cart",
     responses: {

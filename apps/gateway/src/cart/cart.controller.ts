@@ -31,9 +31,9 @@ export class CartController {
     }
   }
 
-  @TsRestHandler(contract.cart.get)
+  @TsRestHandler(contract.cart.getCart)
   get(@Req() req: Request) {
-    return tsRestHandler(contract.cart.get, async () => {
+    return tsRestHandler(contract.cart.getCart, async () => {
       await this.mergeIfNeeded(req);
       const result = await firstValueFrom(this.commerce.send("cart.get", this.identity(req)));
       return { status: 200 as const, body: result };
