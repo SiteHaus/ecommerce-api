@@ -1,0 +1,11 @@
+meta {
+  name: Get Order (Anonymous)
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/v1/orders/{{orderId}}?email={{orderEmail}}
+  body: none
+  auth: none
+}
