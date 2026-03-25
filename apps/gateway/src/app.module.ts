@@ -12,6 +12,7 @@ import { AnonSessionModule } from "./anon-session/anon-session.module";
 import { CartModule } from "./cart/cart.module";
 import { CheckoutModule } from "./checkout/checkout.module";
 import { InventoryModule } from "./inventory/inventory.module";
+import { OrdersModule } from "./orders/orders.module";
 import { ProductsModule } from "./products/products.module";
 import { StoreModule } from "./store/store.module";
 import { VariantsModule } from "./variants/variants.module";
@@ -86,6 +87,7 @@ import { CollectionsModule } from "./collections/collections.module";
     CartModule,
     CheckoutModule,
     InventoryModule,
+    OrdersModule,
     ProductsModule,
     VariantsModule,
     CollectionsModule,

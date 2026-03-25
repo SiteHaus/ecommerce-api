@@ -1,9 +1,9 @@
-import { Controller, Inject, Req } from "@nestjs/common";
+import { Controller, Headers, Inject, Post, RawBodyRequest, Req, Res } from "@nestjs/common";
 import { ClientProxy } from "@nestjs/microservices";
 import { contract } from "@sitehaus-ecom/contracts";
 import { Public } from "@sitehaus/client-sdk/nestjs";
 import { TsRestHandler, tsRestHandler } from "@ts-rest/nest";
-import type { Request } from "express";
+import type { Request, Response } from "express";
 import { firstValueFrom } from "rxjs";
 
 @Public()
@@ -40,6 +40,7 @@ export class CheckoutController {
       const { checkoutUrl } = await firstValueFrom(
         this.payments.send("stripe.intent.create", {
           orderId: order.orderId,
+          cartId: order.cartId,
           successUrl: body.successUrl,
           cancelUrl: body.cancelUrl,
         }),
@@ -56,5 +57,16 @@ export class CheckoutController {
         },
       };
     });
+  }
+
+  @Post("v1/checkout/webhook")
+  webhook(
+    @Req() req: RawBodyRequest<Request>,
+    @Res() res: Response,
+    @Headers("stripe-signature") signature: string,
+  ) {
+    const rawBody = req.rawBody?.toString("base64") ?? "";
+    this.payments.emit("payments.webhook.stripe", { rawBody, signature });
+    res.status(200).json({ received: true });
   }
 }
