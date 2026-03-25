@@ -3,6 +3,7 @@ import { cartContract } from "./cart/cart.contract.js";
 import { inventoryContract } from "./inventory/inventory.contract.js";
 import { storeContract } from "./store/store.contract.js";
 import { variantContract } from "./variants/variants.contract.js";
+import { collectionContract } from "./collection/collection.contract.js";
 
 const c = initContract();
 
@@ -11,6 +12,7 @@ export const contract = c.router({
   inventory: inventoryContract,
   store: storeContract,
   variant: variantContract,
+  collection: collectionContract,
 });
 
-export { cartContract, inventoryContract, storeContract, variantContract };
+export { cartContract, inventoryContract, storeContract, variantContract, collectionContract };

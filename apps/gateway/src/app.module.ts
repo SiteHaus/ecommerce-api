@@ -13,7 +13,7 @@ import { CartModule } from "./cart/cart.module";
 import { InventoryModule } from "./inventory/inventory.module";
 import { StoreModule } from "./store/store.module";
 import { VariantsModule } from "./variants/variants.module";
-
+import { CollectionsModule } from "./collections/collections.module";
 // TODO SIT-69: import SharedModule
 // TODO SIT-67+: import HTTP controller modules as they are built
 
@@ -84,6 +84,7 @@ import { VariantsModule } from "./variants/variants.module";
     CartModule,
     InventoryModule,
     VariantsModule,
+    CollectionsModule,
   ],
   providers: [
     // Map RpcException from TCP services → HTTP responses
