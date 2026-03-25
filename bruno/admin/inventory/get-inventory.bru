@@ -1,0 +1,28 @@
+meta {
+  name: Get Inventory
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/v1/admin/inventory/{{variantVitC90}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("returns inventory shape", function() {
+    expect(res.body).to.have.property("stock");
+    expect(res.body).to.have.property("reserved");
+    expect(res.body).to.have.property("available");
+    expect(res.body).to.have.property("allowBackorder");
+  });
+}

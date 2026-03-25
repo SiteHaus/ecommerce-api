@@ -1,0 +1,34 @@
+meta {
+  name: Add Item to Cart
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/v1/cart/items
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "variantId": "{{variantVitC90}}",
+    "quantity": 2
+  }
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("cart contains the added item", function() {
+    const item = res.body.items.find(i => i.variantId === bru.getVar("variantVitC90"));
+    expect(item).to.not.be.undefined;
+    expect(item.quantity).to.equal(2);
+  });
+
+  test("subtotalCents is correct", function() {
+    expect(res.body.subtotalCents).to.equal(4998); // 2499 * 2
+  });
+}

@@ -1,0 +1,40 @@
+meta {
+  name: Create Intent (out-of-stock item)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/v1/checkout/intent
+  body: json
+  auth: none
+}
+
+docs {
+  First add variantOmega120 (stock = 0) to the cart, then run this.
+  Expects a 400 with an out-of-stock error.
+}
+
+body:json {
+  {
+    "email": "patient@onehealthclinics.com",
+    "address": {
+      "name": "Alex Johnson",
+      "line1": "100 Wellness Way",
+      "city": "Vancouver",
+      "state": "BC",
+      "zip": "V6B 2R4",
+      "country": "CA"
+    }
+  }
+}
+
+tests {
+  test("status is 400", function() {
+    expect(res.status).to.equal(400);
+  });
+
+  test("error message mentions out of stock", function() {
+    expect(res.body.message.toLowerCase()).to.include("out of stock");
+  });
+}

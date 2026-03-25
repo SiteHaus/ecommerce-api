@@ -12,7 +12,7 @@ import { initContract } from "@ts-rest/core";
 const c = initContract();
 
 export const variantContract = c.router({
-  create: {
+  createVariant: {
     method: "POST",
     path: "/v1/admin/products/:productId/variants",
     body: createVariantSchema,
@@ -23,7 +23,7 @@ export const variantContract = c.router({
     },
     metadata: { openApiTags: ["Variants"] } as const,
   },
-  update: {
+  updateVariant: {
     method: "PATCH",
     path: "/v1/admin/variants/:id",
     body: updateVariantSchema,
@@ -34,7 +34,7 @@ export const variantContract = c.router({
     },
     metadata: { openApiTags: ["Variants"] } as const,
   },
-  delete: {
+  deleteVariant: {
     method: "DELETE",
     path: "/v1/admin/variants/:id",
     pathParams: variantIdParams,
@@ -43,5 +43,6 @@ export const variantContract = c.router({
       200: deleteVariantSchema,
       409: apiError,
     },
+    metadata: { openApiTags: ["Variants"] } as const,
   },
 });

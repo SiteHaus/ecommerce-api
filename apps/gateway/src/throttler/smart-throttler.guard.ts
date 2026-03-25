@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import { UserContext } from "@sitehaus-ecom/auth";
 import { ThrottlerGuard } from "@nestjs/throttler";
 import { Request } from "express";
 
@@ -10,10 +11,10 @@ import { Request } from "express";
 @Injectable()
 export class SmartThrottlerGuard extends ThrottlerGuard {
   protected async getTracker(req: Request): Promise<string> {
-    const authed = (req as any).user as { userId?: string } | undefined;
+    const authed = (req as any).user as UserContext | undefined;
     if (authed?.userId) return `user:${authed.userId}`;
 
-    const session = (req as any).session as { sub?: string } | undefined;
+    const session = (req as any).anonSession as { sub?: string } | undefined;
     if (session?.sub) return `session:${session.sub}`;
 
     return req.ip ?? "unknown";

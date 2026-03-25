@@ -6,16 +6,14 @@ import type { Request } from "express";
 import { firstValueFrom } from "rxjs";
 import { ClientProxy } from "@nestjs/microservices";
 
-@Controller("variants")
+@Controller()
 @UseGuards(StoreOwnerGuard)
 export class VariantsController {
-  constructor(
-    @Inject("COMMERCE_SERVICE") private readonly commerce: ClientProxy,
-  ) {}
+  constructor(@Inject("COMMERCE_SERVICE") private readonly commerce: ClientProxy) {}
 
-  @TsRestHandler(contract.variant.create)
+  @TsRestHandler(contract.variant.createVariant)
   async create(@Req() req: Request) {
-    return tsRestHandler(contract.variant.create, async ({ body, params }) => {
+    return tsRestHandler(contract.variant.createVariant, async ({ body, params }) => {
       const result = await firstValueFrom(
         this.commerce.send("catalog.variants.create", {
           productId: params.productId,
@@ -24,6 +22,33 @@ export class VariantsController {
         }),
       );
       return { status: 201 as const, body: result };
+    });
+  }
+
+  @TsRestHandler(contract.variant.updateVariant)
+  async update(@Req() req: Request) {
+    return tsRestHandler(contract.variant.updateVariant, async ({ body, params }) => {
+      const result = await firstValueFrom(
+        this.commerce.send("catalog.variants.update", {
+          id: params.id,
+          storeId: req.store!.id,
+          ...body,
+        }),
+      );
+      return { status: 200 as const, body: result };
+    });
+  }
+
+  @TsRestHandler(contract.variant.deleteVariant)
+  async delete(@Req() req: Request) {
+    return tsRestHandler(contract.variant.deleteVariant, async ({ params }) => {
+      const result = await firstValueFrom(
+        this.commerce.send("catalog.variants.delete", {
+          id: params.id,
+          storeId: req.store!.id,
+        }),
+      );
+      return { status: 200 as const, body: result };
     });
   }
 }

@@ -1,0 +1,54 @@
+meta {
+  name: Create Checkout Intent
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/v1/checkout/intent
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "patient@onehealthclinics.com",
+    "successUrl": "http://localhost:3000/checkout/success?orderId={CHECKOUT_SESSION_ID}",
+    "cancelUrl": "http://localhost:3000/checkout/cancel",
+    "address": {
+      "name": "Alex Johnson",
+      "line1": "100 Wellness Way",
+      "city": "Vancouver",
+      "state": "BC",
+      "zip": "V6B 2R4",
+      "country": "CA"
+    }
+  }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    bru.setEnvVar("orderId", res.body.orderId);
+    bru.setEnvVar("checkoutUrl", res.body.checkoutUrl);
+  }
+}
+
+tests {
+  test("status is 201", function() {
+    expect(res.status).to.equal(201);
+  });
+
+  test("returns orderId", function() {
+    expect(res.body.orderId).to.be.a("string");
+  });
+
+  test("returns checkoutUrl", function() {
+    expect(res.body.checkoutUrl).to.be.a("string");
+    expect(res.body.checkoutUrl).to.include("stripe.com");
+  });
+
+  test("totalCents matches cart subtotal", function() {
+    expect(res.body.totalCents).to.be.a("number");
+    expect(res.body.totalCents).to.be.greaterThan(0);
+  });
+}

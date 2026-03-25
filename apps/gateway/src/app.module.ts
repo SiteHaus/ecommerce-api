@@ -9,8 +9,12 @@ import { validateEnv } from "./config/env";
 import { RpcExceptionFilter } from "./filters/rpc-exception.filter";
 import { SmartThrottlerGuard } from "./throttler/smart-throttler.guard";
 import { AnonSessionModule } from "./anon-session/anon-session.module";
-import { StoreModule } from './store/store.module';
-import { VariantsModule } from './variants/variants.module';
+import { CartModule } from "./cart/cart.module";
+import { CheckoutModule } from "./checkout/checkout.module";
+import { InventoryModule } from "./inventory/inventory.module";
+import { ProductsModule } from "./products/products.module";
+import { StoreModule } from "./store/store.module";
+import { VariantsModule } from "./variants/variants.module";
 
 // TODO SIT-69: import SharedModule
 // TODO SIT-67+: import HTTP controller modules as they are built
@@ -41,9 +45,7 @@ import { VariantsModule } from './variants/variants.module';
           // Defaults — individual routes override via @Throttle()
           { name: "default", ttl: 60_000, limit: 120 },
         ],
-        storage: new ThrottlerStorageRedisService(
-          config.getOrThrow("REDIS_URL"),
-        ),
+        storage: new ThrottlerStorageRedisService(config.getOrThrow("REDIS_URL")),
       }),
       inject: [ConfigService],
     }),
@@ -81,6 +83,10 @@ import { VariantsModule } from './variants/variants.module';
 
     AnonSessionModule,
 
+    CartModule,
+    CheckoutModule,
+    InventoryModule,
+    ProductsModule,
     VariantsModule,
   ],
   providers: [

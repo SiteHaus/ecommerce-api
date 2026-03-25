@@ -1,6 +1,9 @@
-import { Module } from '@nestjs/common';
+import { Module } from "@nestjs/common";
+import { CartHandlerController } from "./cart-handler.controller";
+import { CartHandlerService } from "./cart-handler.service";
 
-// TODO SIT-83: wire CartHandlerController (@MessagePattern cart.get, cart.addItem, cart.updateItem, cart.removeItem)
-
-@Module({})
+@Module({
+  controllers: [CartHandlerController],
+  providers: [CartHandlerService],
+})
 export class CartHandlersModule {}

@@ -1,0 +1,33 @@
+meta {
+  name: Get Product (with variants)
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/v1/admin/products/{{variantVitC90ProductId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("returns product with variants", function() {
+    expect(res.body.id).to.be.a("string");
+    expect(res.body.variants).to.be.an("array");
+    expect(res.body.variants.length).to.be.greaterThan(0);
+  });
+
+  test("variants have inventory data", function() {
+    const v = res.body.variants[0];
+    expect(v.stock).to.be.a("number");
+    expect(v.availability).to.be.a("string");
+  });
+}

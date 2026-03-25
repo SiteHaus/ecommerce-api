@@ -3,5 +3,6 @@ import { AnonSessionService } from "./anon-session.service";
 
 @Module({
   providers: [AnonSessionService],
+  exports: [AnonSessionService],
 })
 export class AnonSessionModule {}

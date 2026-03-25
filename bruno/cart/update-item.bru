@@ -1,0 +1,28 @@
+meta {
+  name: Update Cart Item
+  type: http
+  seq: 3
+}
+
+patch {
+  url: {{baseUrl}}/v1/cart/items/{{variantVitC90}}
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "quantity": 1
+  }
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("quantity updated", function() {
+    const item = res.body.items.find(i => i.variantId === bru.getVar("variantVitC90"));
+    expect(item.quantity).to.equal(1);
+  });
+}
