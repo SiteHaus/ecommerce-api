@@ -4,10 +4,20 @@ import { OrdersHandlerService } from "./orders-handler.service";
 
 describe("OrdersHandlerController", () => {
   let controller: OrdersHandlerController;
-  let service: { getForCustomer: jest.Mock; listForCustomer: jest.Mock };
+  let service: {
+    getForCustomer: jest.Mock;
+    listForCustomer: jest.Mock;
+    adminGet: jest.Mock;
+    adminList: jest.Mock;
+  };
 
   beforeEach(async () => {
-    service = { getForCustomer: jest.fn(), listForCustomer: jest.fn() };
+    service = {
+      getForCustomer: jest.fn(),
+      listForCustomer: jest.fn(),
+      adminGet: jest.fn(),
+      adminList: jest.fn(),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [OrdersHandlerController],
@@ -33,5 +43,30 @@ describe("OrdersHandlerController", () => {
     await controller.listForCustomer(payload);
 
     expect(service.listForCustomer).toHaveBeenCalledWith(payload);
+  });
+
+  it("delegates adminGet with storeId and orderId", async () => {
+    service.adminGet.mockResolvedValue({ id: "order-1" });
+    const payload = { storeId: "store-1", orderId: "order-1" };
+
+    await controller.adminGet(payload);
+
+    expect(service.adminGet).toHaveBeenCalledWith(payload);
+  });
+
+  it("delegates adminList with full payload", async () => {
+    service.adminList.mockResolvedValue({ items: [], total: 0 });
+    const payload = {
+      storeId: "store-1",
+      status: ["confirmed"],
+      email: "test@example.com",
+      limit: 20,
+      offset: 0,
+      sort: "newest" as const,
+    };
+
+    await controller.adminList(payload);
+
+    expect(service.adminList).toHaveBeenCalledWith(payload);
   });
 });

@@ -1,4 +1,7 @@
 import {
+  adminListOrdersQuerySchema,
+  adminOrderDetailSchema,
+  adminOrderListSchema,
   apiError,
   getOrderQuerySchema,
   listOrdersQuerySchema,
@@ -31,5 +34,24 @@ export const ordersContract = c.router({
       200: orderListSchema,
     },
     metadata: { openApiTags: ["Orders"] } as const,
+  },
+  adminGetOrder: {
+    method: "GET",
+    path: "/v1/admin/orders/:orderId",
+    pathParams: z.object({ orderId: z.string().uuid() }),
+    responses: {
+      200: adminOrderDetailSchema,
+      404: apiError,
+    },
+    metadata: { openApiTags: ["Orders Admin"] } as const,
+  },
+  adminListOrders: {
+    method: "GET",
+    path: "/v1/admin/orders",
+    query: adminListOrdersQuerySchema,
+    responses: {
+      200: adminOrderListSchema,
+    },
+    metadata: { openApiTags: ["Orders Admin"] } as const,
   },
 });

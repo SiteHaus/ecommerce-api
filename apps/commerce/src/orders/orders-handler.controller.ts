@@ -19,4 +19,24 @@ export class OrdersHandlerController {
   ) {
     return this.orders.listForCustomer(data);
   }
+
+  @MessagePattern("orders.adminGet")
+  adminGet(@Payload() data: { storeId: string; orderId: string }) {
+    return this.orders.adminGet(data);
+  }
+
+  @MessagePattern("orders.adminList")
+  adminList(
+    @Payload()
+    data: {
+      storeId: string;
+      status?: string[];
+      email?: string;
+      limit: number;
+      offset: number;
+      sort: "newest" | "oldest";
+    },
+  ) {
+    return this.orders.adminList(data);
+  }
 }
