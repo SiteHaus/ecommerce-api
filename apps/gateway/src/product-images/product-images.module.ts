@@ -22,4 +22,4 @@ import { ImagesController } from "./product-images.controller";
   ],
   controllers: [ImagesController],
 })
-export class InventoryModule {}
+export class ImagesModule {}
