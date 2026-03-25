@@ -59,6 +59,32 @@ function countChain(n: number) {
   };
 }
 
+function subqueryChain() {
+  return {
+    from: jest.fn().mockReturnValue({
+      groupBy: jest.fn().mockReturnValue({
+        as: jest.fn().mockReturnValue({ __sq: true }),
+      }),
+    }),
+  };
+}
+
+function adminListChain(rows: any[]) {
+  return {
+    from: jest.fn().mockReturnValue({
+      leftJoin: jest.fn().mockReturnValue({
+        where: jest.fn().mockReturnValue({
+          orderBy: jest.fn().mockReturnValue({
+            limit: jest.fn().mockReturnValue({
+              offset: jest.fn().mockResolvedValue(rows),
+            }),
+          }),
+        }),
+      }),
+    }),
+  };
+}
+
 describe("OrdersHandlerService", () => {
   let service: OrdersHandlerService;
   let db: any;
@@ -241,6 +267,104 @@ describe("OrdersHandlerService", () => {
 
       expect(result.total).toBe(0);
       expect(result.items).toHaveLength(0);
+    });
+  });
+
+  // ─── adminGet ─────────────────────────────────────────────────────────────
+
+  describe("adminGet", () => {
+    it("returns full admin detail including stripe and shipping fields", async () => {
+      db.query.ordersTable.findFirst.mockResolvedValue({
+        ...mockOrder,
+        stripePaymentIntentId: "pi_abc123",
+        notes: "VIP customer",
+      });
+      db.select
+        .mockReturnValueOnce(selectChain([{ itemCount: 2 }]))
+        .mockReturnValueOnce(selectChain(mockItems));
+
+      const result = await service.adminGet({ storeId: STORE_ID, orderId: ORDER_ID });
+
+      expect(result.stripePaymentIntentId).toBe("pi_abc123");
+      expect(result.notes).toBe("VIP customer");
+      expect(result.itemCount).toBe(2);
+      expect(result.items).toHaveLength(1);
+      expect(result.shippingName).toBe("Jane Doe");
+    });
+
+    it("throws NotFoundException when order not found", async () => {
+      db.query.ordersTable.findFirst.mockResolvedValue(null);
+
+      await expect(service.adminGet({ storeId: STORE_ID, orderId: ORDER_ID })).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it("throws NotFoundException when order belongs to a different store", async () => {
+      db.query.ordersTable.findFirst.mockResolvedValue({ ...mockOrder, storeId: "other" });
+
+      await expect(service.adminGet({ storeId: STORE_ID, orderId: ORDER_ID })).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
+  // ─── adminList ────────────────────────────────────────────────────────────
+
+  describe("adminList", () => {
+    const adminRow = {
+      ...mockOrder,
+      itemCount: 1,
+    };
+
+    function adminListMocks(count: number, rows: any[]) {
+      db.select
+        .mockReturnValueOnce(subqueryChain())
+        .mockReturnValueOnce(countChain(count))
+        .mockReturnValueOnce(adminListChain(rows));
+    }
+
+    it("returns paginated list with itemCount", async () => {
+      adminListMocks(3, [adminRow, adminRow, adminRow]);
+
+      const result = await service.adminList({
+        storeId: STORE_ID,
+        limit: 20,
+        offset: 0,
+        sort: "newest",
+      });
+
+      expect(result.total).toBe(3);
+      expect(result.items).toHaveLength(3);
+      expect(result.items[0].itemCount).toBe(1);
+    });
+
+    it("returns empty list when no orders", async () => {
+      adminListMocks(0, []);
+
+      const result = await service.adminList({
+        storeId: STORE_ID,
+        limit: 20,
+        offset: 0,
+        sort: "newest",
+      });
+
+      expect(result.total).toBe(0);
+      expect(result.items).toHaveLength(0);
+    });
+
+    it("items do not include items array or shipping address detail", async () => {
+      adminListMocks(1, [adminRow]);
+
+      const result = await service.adminList({
+        storeId: STORE_ID,
+        limit: 20,
+        offset: 0,
+        sort: "newest",
+      });
+
+      expect(result.items[0]).not.toHaveProperty("items");
+      expect(result.items[0]).not.toHaveProperty("shippingName");
     });
   });
 });

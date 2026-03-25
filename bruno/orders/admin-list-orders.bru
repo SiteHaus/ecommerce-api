@@ -1,0 +1,15 @@
+meta {
+  name: Admin List Orders
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/v1/admin/orders?limit=20&offset=0
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
