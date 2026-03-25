@@ -30,6 +30,8 @@ const validBody = {
     zip: "V6B 1A1",
     country: "CA",
   },
+  successUrl: "https://example.com/success",
+  cancelUrl: "https://example.com/cancel",
 };
 
 const mockOrderResult = {
@@ -40,7 +42,7 @@ const mockOrderResult = {
   currency: "usd",
 };
 
-const mockIntentResult = { clientSecret: "pi_test_secret_xyz" };
+const mockIntentResult = { checkoutUrl: "https://checkout.stripe.com/pay/test_session_xyz" };
 
 describe("CheckoutController", () => {
   let app: INestApplication;
@@ -71,7 +73,7 @@ describe("CheckoutController", () => {
 
   afterEach(() => app.close());
 
-  it("POST /v1/checkout/intent — returns 201 with orderId and clientSecret", async () => {
+  it("POST /v1/checkout/intent — returns 201 with orderId and checkoutUrl", async () => {
     mockCommerceClient.send.mockReturnValue(of(mockOrderResult));
     mockPaymentsClient.send.mockReturnValue(of(mockIntentResult));
 
@@ -81,7 +83,7 @@ describe("CheckoutController", () => {
       .expect(201);
 
     expect(res.body.orderId).toBe("order-uuid-1");
-    expect(res.body.clientSecret).toBe("pi_test_secret_xyz");
+    expect(res.body.checkoutUrl).toBe("https://checkout.stripe.com/pay/test_session_xyz");
     expect(res.body.totalCents).toBe(4000);
   });
 
@@ -105,7 +107,7 @@ describe("CheckoutController", () => {
     );
   });
 
-  it("passes orderId from commerce to payments service", async () => {
+  it("passes orderId, successUrl, and cancelUrl to payments service", async () => {
     mockCommerceClient.send.mockReturnValue(of(mockOrderResult));
     mockPaymentsClient.send.mockReturnValue(of(mockIntentResult));
 
@@ -113,6 +115,8 @@ describe("CheckoutController", () => {
 
     expect(mockPaymentsClient.send).toHaveBeenCalledWith("stripe.intent.create", {
       orderId: "order-uuid-1",
+      successUrl: "https://example.com/success",
+      cancelUrl: "https://example.com/cancel",
     });
   });
 

@@ -1,6 +1,5 @@
 import { BadRequestException } from "@nestjs/common";
-import { Test, TestingModule } from "@nestjs/testing";
-import { DB_TOKEN } from "@sitehaus-ecom/shared";
+import { AuditService, DB_TOKEN } from "@sitehaus-ecom/shared";
 import { CheckoutService } from "./checkout.service";
 import { ReservationService } from "../inventory/reservation.service";
 
@@ -103,19 +102,6 @@ describe("CheckoutService", () => {
 
     audit = { log: jest.fn() };
 
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        CheckoutService,
-        { provide: DB_TOKEN, useValue: db },
-        { provide: ReservationService, useValue: reservations },
-        { provide: "AuditService", useValue: audit },
-      ],
-    })
-      .overrideProvider("AuditService")
-      .useValue(audit)
-      .compile();
-
-    // Manually construct since AuditService isn't a token we control directly
     service = new (CheckoutService as any)(db, reservations, audit);
   });
 
