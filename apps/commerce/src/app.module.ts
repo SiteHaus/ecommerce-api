@@ -1,11 +1,6 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
-import {
-  DbModule,
-  R2Module,
-  EmailModule,
-  AuditModule,
-} from "@sitehaus-ecom/shared";
+import { DbModule, R2Module, EmailModule, AuditModule } from "@sitehaus-ecom/shared";
 import { validateCommerceEnv } from "./config/env";
 import { CatalogHandlersModule } from "./catalog/catalog-handlers.module";
 import { InventoryHandlersModule } from "./inventory/inventory-handlers.module";
@@ -15,6 +10,7 @@ import { ShippingHandlersModule } from "./shipping/shipping-handlers.module";
 import { VariantsHandlerModule } from "./variants/variants-handler.module";
 import { VariantsHandlerService } from "./variants/variants-handler.service";
 import { VariantsHandlerController } from "./variants/variants-handler.controller";
+import { CollectionsHandlerModule } from "./collections/collections-handler.module";
 
 @Module({
   imports: [
@@ -33,6 +29,7 @@ import { VariantsHandlerController } from "./variants/variants-handler.controlle
     OrdersHandlersModule,
     ShippingHandlersModule,
     VariantsHandlerModule,
+    CollectionsHandlerModule,
   ],
   controllers: [VariantsHandlerController],
   providers: [VariantsHandlerService],
