@@ -10,7 +10,9 @@ import { RpcExceptionFilter } from "./filters/rpc-exception.filter";
 import { SmartThrottlerGuard } from "./throttler/smart-throttler.guard";
 import { AnonSessionModule } from "./anon-session/anon-session.module";
 import { CartModule } from "./cart/cart.module";
+import { CheckoutModule } from "./checkout/checkout.module";
 import { InventoryModule } from "./inventory/inventory.module";
+import { ProductsModule } from "./products/products.module";
 import { StoreModule } from "./store/store.module";
 import { VariantsModule } from "./variants/variants.module";
 import { CollectionsModule } from "./collections/collections.module";
@@ -82,7 +84,9 @@ import { CollectionsModule } from "./collections/collections.module";
     AnonSessionModule,
 
     CartModule,
+    CheckoutModule,
     InventoryModule,
+    ProductsModule,
     VariantsModule,
     CollectionsModule,
   ],

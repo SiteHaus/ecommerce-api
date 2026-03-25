@@ -1,0 +1,47 @@
+meta {
+  name: Create Commerce Client (run once)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{iamUrl}}/clients
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+headers {
+  x-client-key: {{iamClientKey}}
+}
+
+body:json {
+  {
+    "key": "sitehaus-commerce",
+    "name": "SiteHaus Commerce",
+    "type": "confidential",
+    "audience": "sitehaus-commerce",
+    "firstParty": true,
+    "requiresConsent": false
+  }
+}
+
+docs {
+  Run this ONCE to register the commerce platform as a first-party IAM client.
+  After running, copy the returned `key` value into:
+    - apps/gateway/.env → IAM_CLIENT_KEY=sitehaus-commerce
+    - Bruno local env  → iamClientKey=sitehaus-commerce
+}
+
+tests {
+  test("status is 201", function() {
+    expect(res.status).to.equal(201);
+  });
+
+  test("client is first party", function() {
+    expect(res.body.client.firstParty).to.equal(true);
+  });
+}

@@ -1,0 +1,26 @@
+meta {
+  name: Get My Store
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/v1/admin/stores/me
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("returns store with id", function() {
+    expect(res.body.id).to.be.a("string");
+    expect(res.body.slug).to.be.a("string");
+  });
+}

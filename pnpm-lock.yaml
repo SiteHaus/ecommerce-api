@@ -8,12 +8,18 @@ importers:
 
   .:
     devDependencies:
+      '@types/pg':
+        specifier: ^8.18.0
+        version: 8.18.0
       husky:
         specifier: ^9.1.7
         version: 9.1.7
       lint-staged:
         specifier: ^16.4.0
         version: 16.4.0
+      pg:
+        specifier: ^8.20.0
+        version: 8.20.0
       prettier:
         specifier: ^3.6.2
         version: 3.8.1

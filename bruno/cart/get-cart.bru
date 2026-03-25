@@ -1,0 +1,32 @@
+meta {
+  name: Get Cart
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/v1/cart
+  body: none
+  auth: none
+}
+
+script:post-response {
+  // Capture the session cookie for subsequent requests
+  const cookie = res.headers["set-cookie"];
+  if (cookie) {
+    const match = cookie.join(";").match(/store_session=([^;]+)/);
+    if (match) bru.setEnvVar("sessionToken", match[1]);
+  }
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("response has cart shape", function() {
+    expect(res.body).to.have.property("items");
+    expect(res.body).to.have.property("subtotalCents");
+    expect(res.body).to.have.property("itemCount");
+  });
+}

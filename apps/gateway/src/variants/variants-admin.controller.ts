@@ -24,4 +24,31 @@ export class VariantsController {
       return { status: 201 as const, body: result };
     });
   }
+
+  @TsRestHandler(contract.variant.updateVariant)
+  async update(@Req() req: Request) {
+    return tsRestHandler(contract.variant.updateVariant, async ({ body, params }) => {
+      const result = await firstValueFrom(
+        this.commerce.send("catalog.variants.update", {
+          id: params.id,
+          storeId: req.store!.id,
+          ...body,
+        }),
+      );
+      return { status: 200 as const, body: result };
+    });
+  }
+
+  @TsRestHandler(contract.variant.deleteVariant)
+  async delete(@Req() req: Request) {
+    return tsRestHandler(contract.variant.deleteVariant, async ({ params }) => {
+      const result = await firstValueFrom(
+        this.commerce.send("catalog.variants.delete", {
+          id: params.id,
+          storeId: req.store!.id,
+        }),
+      );
+      return { status: 200 as const, body: result };
+    });
+  }
 }

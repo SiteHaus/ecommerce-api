@@ -232,9 +232,12 @@ export class CartHandlerService {
     const cart = await this.findCart(identity);
     if (!cart) throw new NotFoundException("Cart not found");
 
-    await this.db
+    const deleted = await this.db
       .delete(cartItemsTable)
-      .where(and(eq(cartItemsTable.cartId, cart.id), eq(cartItemsTable.variantId, variantId)));
+      .where(and(eq(cartItemsTable.cartId, cart.id), eq(cartItemsTable.variantId, variantId)))
+      .returning();
+
+    if (deleted.length === 0) throw new NotFoundException("Item not in cart");
 
     await this.db
       .update(cartsTable)

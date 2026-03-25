@@ -9,5 +9,6 @@ import { ReservationService } from "./reservation.service";
   imports: [AuditModule],
   controllers: [ReservationHandler, InventoryHandlerController],
   providers: [ReservationService, InventoryHandlerService],
+  exports: [ReservationService],
 })
 export class InventoryHandlersModule {}

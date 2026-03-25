@@ -1,0 +1,45 @@
+meta {
+  name: Create Variant
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/v1/admin/products/{{variantVitC90ProductId}}/variants
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+body:json {
+  {
+    "name": "270 Capsules",
+    "sku": "VIT-C-270",
+    "priceCents": 7999,
+    "compareAtCents": 9999,
+    "isActive": true
+  }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    bru.setEnvVar("newVariantId", res.body.id);
+  }
+}
+
+tests {
+  test("status is 201", function() {
+    expect(res.status).to.equal(201);
+  });
+
+  test("returns variant with id", function() {
+    expect(res.body.id).to.be.a("string");
+  });
+
+  test("inventory row created", function() {
+    expect(res.body.inventory).to.be.an("object");
+  });
+}

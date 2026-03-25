@@ -1,0 +1,31 @@
+meta {
+  name: Adjust Inventory
+  type: http
+  seq: 2
+}
+
+patch {
+  url: {{baseUrl}}/v1/admin/inventory/{{variantVitC90}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+body:json {
+  {
+    "stock": 100
+  }
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("stock updated", function() {
+    expect(res.body.stock).to.equal(100);
+  });
+}

@@ -1,10 +1,12 @@
 import { Controller, Inject, Req } from "@nestjs/common";
 import { ClientProxy } from "@nestjs/microservices";
 import { contract } from "@sitehaus-ecom/contracts";
+import { Public } from "@sitehaus/client-sdk/nestjs";
 import { TsRestHandler, tsRestHandler } from "@ts-rest/nest";
 import type { Request } from "express";
 import { firstValueFrom } from "rxjs";
 
+@Public()
 @Controller()
 export class CartController {
   constructor(@Inject("COMMERCE_SERVICE") private readonly commerce: ClientProxy) {}

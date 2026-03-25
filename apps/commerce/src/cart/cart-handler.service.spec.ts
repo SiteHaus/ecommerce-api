@@ -84,6 +84,14 @@ function deleteChain() {
   };
 }
 
+function deleteReturningChain(rows: any[] = [{ id: "deleted" }]) {
+  return {
+    where: jest.fn().mockReturnValue({
+      returning: jest.fn().mockResolvedValue(rows),
+    }),
+  };
+}
+
 // ─── fixtures ────────────────────────────────────────────────────────────────
 
 const cartRow = {
@@ -397,7 +405,7 @@ describe("CartHandlerService", () => {
         .mockResolvedValueOnce(cartRow) // findCart
         .mockResolvedValueOnce(cartRow); // enrichCart
 
-      mockDeleteFn.mockReturnValueOnce(deleteChain());
+      mockDeleteFn.mockReturnValueOnce(deleteReturningChain([{ id: "deleted" }]));
       mockUpdateFn.mockReturnValue(updateNoReturningChain());
       mockSelectFn.mockReturnValueOnce(selectChain([], true));
       mockSelectDistinctOnFn.mockReturnValueOnce(selectDistinctOnChain([]));

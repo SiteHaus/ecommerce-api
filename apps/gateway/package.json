@@ -75,6 +75,9 @@
         }
       ]
     },
+    "moduleNameMapper": {
+      "^@sitehaus/client-sdk/nestjs$": "<rootDir>/__mocks__/sitehaus-client-sdk-nestjs.ts"
+    },
     "collectCoverageFrom": [
       "**/*.(t|j)s"
     ],

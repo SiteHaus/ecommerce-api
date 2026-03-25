@@ -29,6 +29,9 @@ yarn-error.log*
 .DS_Store
 *.pem
 
+# Bruno — local environment contains credentials
+bruno/environments/local.bru
+
 # Editor
 .vscode
 .idea
