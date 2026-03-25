@@ -1,12 +1,20 @@
-import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { DbModule, R2Module, EmailModule, AuditModule } from '@sitehaus-ecom/shared';
-import { validateCommerceEnv } from './config/env';
-import { CatalogHandlersModule } from './catalog/catalog-handlers.module';
-import { InventoryHandlersModule } from './inventory/inventory-handlers.module';
-import { CartHandlersModule } from './cart/cart-handlers.module';
-import { OrdersHandlersModule } from './orders/orders-handlers.module';
-import { ShippingHandlersModule } from './shipping/shipping-handlers.module';
+import { Module } from "@nestjs/common";
+import { ConfigModule } from "@nestjs/config";
+import {
+  DbModule,
+  R2Module,
+  EmailModule,
+  AuditModule,
+} from "@sitehaus-ecom/shared";
+import { validateCommerceEnv } from "./config/env";
+import { CatalogHandlersModule } from "./catalog/catalog-handlers.module";
+import { InventoryHandlersModule } from "./inventory/inventory-handlers.module";
+import { CartHandlersModule } from "./cart/cart-handlers.module";
+import { OrdersHandlersModule } from "./orders/orders-handlers.module";
+import { ShippingHandlersModule } from "./shipping/shipping-handlers.module";
+import { VariantsHandlerModule } from "./variants/variants-handler.module";
+import { VariantsHandlerService } from "./variants/variants-handler.service";
+import { VariantsHandlerController } from "./variants/variants-handler.controller";
 
 @Module({
   imports: [
@@ -24,6 +32,9 @@ import { ShippingHandlersModule } from './shipping/shipping-handlers.module';
     CartHandlersModule,
     OrdersHandlersModule,
     ShippingHandlersModule,
+    VariantsHandlerModule,
   ],
+  controllers: [VariantsHandlerController],
+  providers: [VariantsHandlerService],
 })
 export class AppModule {}
