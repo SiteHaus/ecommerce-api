@@ -149,6 +149,7 @@ export class CheckoutService {
 
     return {
       orderId: order.id,
+      cartId: cart.id,
       subtotalCents,
       shippingCents,
       totalCents,

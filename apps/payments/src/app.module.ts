@@ -4,6 +4,7 @@ import { DbModule } from "@sitehaus-ecom/shared";
 import { validatePaymentsEnv } from "./config/env";
 import { ConnectModule } from "./connect/connect.module";
 import { IntentModule } from "./intent/intent.module";
+import { WebhookModule } from "./webhook/webhook.module";
 
 @Module({
   imports: [
@@ -11,6 +12,7 @@ import { IntentModule } from "./intent/intent.module";
     DbModule,
     ConnectModule,
     IntentModule,
+    WebhookModule,
   ],
 })
 export class AppModule {}

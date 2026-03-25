@@ -48,6 +48,7 @@ if (!DATABASE_URL) {
 
 const STORE_ID = "00000000-0000-4000-8000-000000000001";
 const CLIENT_ID = "a43e7247-3aae-4477-ae5e-2c7a883f7e8b"; // fake SiteHaus clientId
+const STRIPE_ACCOUNT_ID = process.env.SEED_STRIPE_ACCOUNT_ID ?? "";
 
 const products = [
   {
@@ -133,8 +134,8 @@ try {
       stripe_payouts_enabled, stripe_details_submitted,
       currency, reservation_ttl_minutes)
     VALUES ($1, $2, 'OneHealth Dev', 'onehealth-dev', 'localhost',
-      'acct_test_replace_me', false,
-      false, false,
+      ${STRIPE_ACCOUNT_ID ? `'${STRIPE_ACCOUNT_ID}'` : "NULL"}, ${STRIPE_ACCOUNT_ID ? "true" : "false"},
+      ${STRIPE_ACCOUNT_ID ? "true, true," : "false, false,"}
       'cad', 15)
     ON CONFLICT (id) DO NOTHING
   `,

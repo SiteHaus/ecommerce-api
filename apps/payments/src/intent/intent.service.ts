@@ -20,6 +20,7 @@ export class IntentService {
     orderId: string,
     successUrl: string,
     cancelUrl: string,
+    cartId?: string,
   ): Promise<{ checkoutUrl: string }> {
     const order = await this.db.query.ordersTable.findFirst({
       where: eq(ordersTable.id, orderId),
@@ -70,7 +71,7 @@ export class IntentService {
           transfer_data: { destination: store.stripeAccountId },
           metadata: { orderId: order.id, storeId: order.storeId },
         },
-        metadata: { orderId: order.id, storeId: order.storeId },
+        metadata: { orderId: order.id, storeId: order.storeId, ...(cartId ? { cartId } : {}) },
         success_url: successUrl,
         cancel_url: cancelUrl,
       });

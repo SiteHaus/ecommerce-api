@@ -1,19 +1,19 @@
-import { Test, TestingModule } from "@nestjs/testing";
 import { ConfigService } from "@nestjs/config";
 import { RpcException } from "@nestjs/microservices";
 import { DB_TOKEN } from "@sitehaus-ecom/shared";
 import { IntentService } from "./intent.service";
 
-const ORDER_ID = "aaaaaaaa-0000-0000-0000-000000000001";
-const STORE_ID = "aaaaaaaa-0000-0000-0000-000000000002";
+const ORDER_ID = "aaaaaaaa-0000-4000-8000-000000000001";
+const STORE_ID = "aaaaaaaa-0000-4000-8000-000000000002";
 const STRIPE_ACCOUNT_ID = "acct_test123";
-const CLIENT_SECRET = "pi_test_secret_abc";
-const INTENT_ID = "pi_test123";
+const CHECKOUT_URL = "https://checkout.stripe.com/pay/test_session_xyz";
+const SUCCESS_URL = "https://example.com/success";
+const CANCEL_URL = "https://example.com/cancel";
 
 const mockOrder = {
   id: ORDER_ID,
   storeId: STORE_ID,
-  totalCents: 5000,
+  email: "customer@example.com",
   currency: "usd",
 };
 
@@ -23,12 +23,20 @@ const mockStore = {
   currency: "usd",
 };
 
-const mockIntent = {
-  id: INTENT_ID,
-  client_secret: CLIENT_SECRET,
+const mockSession = {
+  id: "cs_test123",
+  url: CHECKOUT_URL,
 };
 
-// ── helpers ───────────────────────────────────────────────────────────────────
+const mockOrderItems = [
+  {
+    productName: "Vitamin C",
+    variantName: "90 Capsules",
+    sku: "VIT-C-90",
+    unitPriceCents: 2500,
+    quantity: 2,
+  },
+];
 
 function updateChain() {
   return {
@@ -38,52 +46,56 @@ function updateChain() {
   };
 }
 
+function selectChain(rows: any[]) {
+  return {
+    from: jest.fn().mockReturnValue({
+      where: jest.fn().mockResolvedValue(rows),
+    }),
+  };
+}
+
 describe("IntentService", () => {
   let service: IntentService;
   let db: any;
-  let mockStripeCreate: jest.Mock;
+  let mockSessionsCreate: jest.Mock;
 
-  beforeEach(async () => {
-    mockStripeCreate = jest.fn().mockResolvedValue(mockIntent);
+  beforeEach(() => {
+    mockSessionsCreate = jest.fn().mockResolvedValue(mockSession);
 
     db = {
       query: {
         ordersTable: { findFirst: jest.fn() },
         storesTable: { findFirst: jest.fn() },
       },
+      select: jest.fn(),
       update: jest.fn(),
     };
 
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        IntentService,
-        { provide: DB_TOKEN, useValue: db },
-        { provide: ConfigService, useValue: { getOrThrow: () => "sk_test_dummy" } },
-      ],
-    }).compile();
+    service = new (IntentService as any)(
+      { getOrThrow: () => "sk_test_dummy" } as unknown as ConfigService,
+      db,
+    );
 
-    service = module.get(IntentService);
-
-    // Stub out the Stripe instance after construction
     (service as any).stripe = {
-      paymentIntents: { create: mockStripeCreate },
+      checkout: { sessions: { create: mockSessionsCreate } },
     };
   });
 
   describe("createIntent", () => {
-    it("creates a Stripe PaymentIntent, stores the ID, and returns clientSecret", async () => {
+    it("creates a Stripe Checkout Session and returns checkoutUrl", async () => {
       db.query.ordersTable.findFirst.mockResolvedValue(mockOrder);
       db.query.storesTable.findFirst.mockResolvedValue(mockStore);
+      db.select.mockReturnValue(selectChain(mockOrderItems));
       db.update.mockReturnValue(updateChain());
 
-      const result = await service.createIntent(ORDER_ID);
+      const result = await service.createIntent(ORDER_ID, SUCCESS_URL, CANCEL_URL);
 
-      expect(result.clientSecret).toBe(CLIENT_SECRET);
-      expect(mockStripeCreate).toHaveBeenCalledWith(
+      expect(result.checkoutUrl).toBe(CHECKOUT_URL);
+      expect(mockSessionsCreate).toHaveBeenCalledWith(
         expect.objectContaining({
-          amount: 5000,
-          currency: "usd",
-          transfer_data: { destination: STRIPE_ACCOUNT_ID },
+          mode: "payment",
+          success_url: SUCCESS_URL,
+          cancel_url: CANCEL_URL,
           metadata: expect.objectContaining({ orderId: ORDER_ID }),
         }),
       );
@@ -92,16 +104,18 @@ describe("IntentService", () => {
 
     it("throws RpcException when order is not found", async () => {
       db.query.ordersTable.findFirst.mockResolvedValue(null);
-      await expect(service.createIntent(ORDER_ID)).rejects.toThrow(RpcException);
+      await expect(service.createIntent(ORDER_ID, SUCCESS_URL, CANCEL_URL)).rejects.toThrow(
+        RpcException,
+      );
     });
 
     it("throws RpcException when store has no Stripe account", async () => {
       db.query.ordersTable.findFirst.mockResolvedValue(mockOrder);
-      db.query.storesTable.findFirst.mockResolvedValue({
-        ...mockStore,
-        stripeAccountId: null,
-      });
-      await expect(service.createIntent(ORDER_ID)).rejects.toThrow(RpcException);
+      db.query.storesTable.findFirst.mockResolvedValue({ ...mockStore, stripeAccountId: null });
+      db.select.mockReturnValue(selectChain(mockOrderItems));
+      await expect(service.createIntent(ORDER_ID, SUCCESS_URL, CANCEL_URL)).rejects.toThrow(
+        RpcException,
+      );
     });
 
     it("throws RpcException when store charges are not enabled", async () => {
@@ -110,15 +124,21 @@ describe("IntentService", () => {
         ...mockStore,
         stripeChargesEnabled: false,
       });
-      await expect(service.createIntent(ORDER_ID)).rejects.toThrow(RpcException);
+      db.select.mockReturnValue(selectChain(mockOrderItems));
+      await expect(service.createIntent(ORDER_ID, SUCCESS_URL, CANCEL_URL)).rejects.toThrow(
+        RpcException,
+      );
     });
 
     it("wraps Stripe API errors in RpcException", async () => {
       db.query.ordersTable.findFirst.mockResolvedValue(mockOrder);
       db.query.storesTable.findFirst.mockResolvedValue(mockStore);
-      mockStripeCreate.mockRejectedValue(new Error("Your card was declined"));
+      db.select.mockReturnValue(selectChain(mockOrderItems));
+      mockSessionsCreate.mockRejectedValue(new Error("Your card was declined"));
 
-      await expect(service.createIntent(ORDER_ID)).rejects.toThrow(RpcException);
+      await expect(service.createIntent(ORDER_ID, SUCCESS_URL, CANCEL_URL)).rejects.toThrow(
+        RpcException,
+      );
     });
   });
 });

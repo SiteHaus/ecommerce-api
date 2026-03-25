@@ -16,13 +16,22 @@ describe("IntentHandler", () => {
     service = module.get(IntentService) as jest.Mocked<IntentService>;
   });
 
-  it("delegates createIntent to the service", async () => {
-    const mockResult = { clientSecret: "pi_test_secret" };
+  it("delegates createIntent to the service with all args", async () => {
+    const mockResult = { checkoutUrl: "https://checkout.stripe.com/pay/test" };
     service.createIntent.mockResolvedValue(mockResult);
 
-    const result = await handler.createIntent({ orderId: "order-uuid-1" });
+    const result = await handler.createIntent({
+      orderId: "order-uuid-1",
+      successUrl: "https://example.com/success",
+      cancelUrl: "https://example.com/cancel",
+    });
 
     expect(result).toEqual(mockResult);
-    expect(service.createIntent).toHaveBeenCalledWith("order-uuid-1");
+    expect(service.createIntent).toHaveBeenCalledWith(
+      "order-uuid-1",
+      "https://example.com/success",
+      "https://example.com/cancel",
+      undefined,
+    );
   });
 });

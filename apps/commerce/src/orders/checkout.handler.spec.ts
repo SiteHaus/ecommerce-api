@@ -4,6 +4,7 @@ import { CheckoutService } from "./checkout.service";
 
 const mockResult = {
   orderId: "order-uuid-1",
+  cartId: "cart-uuid-1",
   subtotalCents: 2000,
   shippingCents: 0,
   totalCents: 2000,
