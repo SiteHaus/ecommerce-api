@@ -13,8 +13,9 @@
     "dev": "tsc -w"
   },
   "dependencies": {
+    "@sitehaus-ecom/validation": "workspace:*",
     "@ts-rest/core": "3.53.0-rc.1",
-    "@sitehaus-ecom/validation": "workspace:*"
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@sitehaus-ecom/typescript-config": "workspace:*",

@@ -3,7 +3,6 @@ import {
   apiError,
   createProductSchema,
   deleteProductResponse,
-  productDetail,
   productIdParams,
   productItem,
   productList,
@@ -15,28 +14,28 @@ import { initContract } from "@ts-rest/core";
 const c = initContract();
 
 export const productContract = c.router({
-  list: {
+  listProducts: {
     method: "GET",
     path: "/v1/admin/products",
     query: adminQueryParams,
     responses: { 200: productList, 404: apiError },
     metadata: { openApiTags: ["Products"] } as const,
   },
-  create: {
+  createProduct: {
     method: "POST",
     path: "/v1/admin/products",
     body: createProductSchema,
     responses: { 201: productItem, 409: apiError },
     metadata: { openApiTags: ["Products"] } as const,
   },
-  get: {
+  getProduct: {
     method: "GET",
     path: "/v1/admin/products/:id",
     pathParams: productIdParams,
     responses: { 200: productItem, 404: apiError },
     metadata: { openApiTags: ["Products"] } as const,
   },
-  update: {
+  updateProduct: {
     method: "PATCH",
     path: "/v1/admin/products/:id",
     pathParams: productIdParams,
@@ -44,7 +43,7 @@ export const productContract = c.router({
     responses: { 200: productItem, 409: apiError },
     metadata: { openApiTags: ["Products"] } as const,
   },
-  delete: {
+  deleteProduct: {
     method: "DELETE",
     path: "/v1/admin/products/:id",
     pathParams: productIdParams,

@@ -25,9 +25,9 @@ export class ImagesController {
     });
   }
 
-  @TsRestHandler(contract.image.confirm)
+  @TsRestHandler(contract.image.confirmImage)
   async confirm(@Req() req: Request) {
-    return tsRestHandler(contract.image.confirm, async ({ body, params }) => {
+    return tsRestHandler(contract.image.confirmImage, async ({ body, params }) => {
       const result = await firstValueFrom(
         this.commerce.send("catalog.images.confirm", {
           productId: params.id,
@@ -39,9 +39,9 @@ export class ImagesController {
     });
   }
 
-  @TsRestHandler(contract.image.delete)
+  @TsRestHandler(contract.image.deleteImage)
   async delete(@Req() req: Request) {
-    return tsRestHandler(contract.image.delete, async ({ params }) => {
+    return tsRestHandler(contract.image.deleteImage, async ({ params }) => {
       const result = await firstValueFrom(
         this.commerce.send("catalog.images.delete", {
           productId: params.id,
@@ -53,9 +53,9 @@ export class ImagesController {
     });
   }
 
-  @TsRestHandler(contract.image.reorder)
+  @TsRestHandler(contract.image.reorderImages)
   async reorder(@Req() req: Request) {
-    return tsRestHandler(contract.image.reorder, async ({ body, params }) => {
+    return tsRestHandler(contract.image.reorderImages, async ({ body, params }) => {
       const result = await firstValueFrom(
         this.commerce.send("catalog.images.reorder", {
           productId: params.id,

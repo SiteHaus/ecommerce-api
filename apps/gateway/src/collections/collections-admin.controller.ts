@@ -43,7 +43,7 @@ export class CollectionsAdminController {
     return tsRestHandler(contract.collection.deleteCollection, async ({ params }) => {
       const result = await firstValueFrom(
         this.commerce.send("catalog.collections.delete", {
-          collectionId: params.collectionId,
+          collectionId: params.id,
           storeId: req.store!.id,
         }),
       );
@@ -57,7 +57,7 @@ export class CollectionsAdminController {
       const result = await firstValueFrom(
         this.commerce.send("catalog.collections.verify", {
           storeId: req.store!.id,
-          collectionId: params.collectionId,
+          collectionId: params.id,
           ...body,
         }),
       );
@@ -71,7 +71,7 @@ export class CollectionsAdminController {
       const result = await firstValueFrom(
         this.commerce.send("catalog.collections.reorderProducts", {
           storeId: req.store!.id,
-          collectionId: params.collectionId,
+          collectionId: params.id,
           ...body,
         }),
       );

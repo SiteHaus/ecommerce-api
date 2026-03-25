@@ -14,18 +14,7 @@ export const createProductSchema = z.object({
   goesLiveAt: z.string().datetime({ offset: true }).nullable().optional(),
 });
 
-export const updateProductSchema = z
-  .object({
-    id: z.string().uuid(),
-    name: z.string().min(1).optional(),
-    description: z.string().optional(),
-    status: StatusEnum.optional(),
-    goesLiveAt: z.string().datetime({ offset: true }).nullable().optional(),
-  })
-  .refine(
-    (data) => Object.entries(data).some(([key, value]) => key !== "id" && value !== undefined),
-    { message: "At least one field must be provided" },
-  );
+export const updateProductSchema = createProductSchema.partial();
 
 export const adminQueryParams = z.object({
   status: StatusEnum.optional(),

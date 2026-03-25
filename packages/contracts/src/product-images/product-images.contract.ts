@@ -23,7 +23,7 @@ export const imagesContract = c.router({
     responses: { 201: uploadUrlResponse, 404: apiError },
     metadata: { openApiTags: ["Images"] } as const,
   },
-  confirm: {
+  confirmImage: {
     method: "POST",
     path: "/v1/admin/products/:id/images/confirm",
     pathParams: productImageParams,
@@ -31,7 +31,7 @@ export const imagesContract = c.router({
     responses: { 201: productImageItem, 404: apiError, 422: apiError },
     metadata: { openApiTags: ["Images"] } as const,
   },
-  delete: {
+  deleteImage: {
     method: "DELETE",
     path: "/v1/admin/products/:id/images/:imageId",
     pathParams: productImageWithImageParams,
@@ -39,7 +39,7 @@ export const imagesContract = c.router({
     responses: { 200: deleteImageResponse, 404: apiError },
     metadata: { openApiTags: ["Images"] } as const,
   },
-  reorder: {
+  reorderImages: {
     method: "PATCH",
     path: "/v1/admin/products/:id/images/reorder",
     pathParams: productImageParams,

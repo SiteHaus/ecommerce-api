@@ -12,9 +12,9 @@ export class ProductsController {
   constructor(@Inject("COMMERCE_SERVICE") private readonly commerce: ClientProxy) {}
 
   @UseGuards(StoreOwnerGuard)
-  @TsRestHandler(contract.product.list)
+  @TsRestHandler(contract.product.listProducts)
   listProducts(@Req() req: Request) {
-    return tsRestHandler(contract.product.list, async ({ query }) => {
+    return tsRestHandler(contract.product.listProducts, async ({ query }) => {
       const result = await firstValueFrom(
         this.commerce.send("catalog.products.list", { ...query, storeId: req.store!.id }),
       );
@@ -23,9 +23,9 @@ export class ProductsController {
   }
 
   @UseGuards(StoreOwnerGuard)
-  @TsRestHandler(contract.product.create)
+  @TsRestHandler(contract.product.createProduct)
   create(@Req() req: Request) {
-    return tsRestHandler(contract.product.create, async ({ body }) => {
+    return tsRestHandler(contract.product.createProduct, async ({ body }) => {
       const result = await firstValueFrom(
         this.commerce.send("catalog.products.create", { storeId: req.store!.id, ...body }),
       );
@@ -34,9 +34,9 @@ export class ProductsController {
   }
 
   @UseGuards(StoreOwnerGuard)
-  @TsRestHandler(contract.product.get)
+  @TsRestHandler(contract.product.getProduct)
   getProduct(@Req() req: Request) {
-    return tsRestHandler(contract.product.get, async ({ params }) => {
+    return tsRestHandler(contract.product.getProduct, async ({ params }) => {
       const result = await firstValueFrom(
         this.commerce.send("catalog.products.get", { id: params.id, storeId: req.store!.id }),
       );
@@ -45,9 +45,9 @@ export class ProductsController {
   }
 
   @UseGuards(StoreOwnerGuard)
-  @TsRestHandler(contract.product.update)
+  @TsRestHandler(contract.product.updateProduct)
   update(@Req() req: Request) {
-    return tsRestHandler(contract.product.update, async ({ body, params }) => {
+    return tsRestHandler(contract.product.updateProduct, async ({ body, params }) => {
       const result = await firstValueFrom(
         this.commerce.send("catalog.products.update", {
           id: params.id,
@@ -60,9 +60,9 @@ export class ProductsController {
   }
 
   @UseGuards(StoreOwnerGuard)
-  @TsRestHandler(contract.product.delete)
+  @TsRestHandler(contract.product.deleteProduct)
   delete(@Req() req: Request) {
-    return tsRestHandler(contract.product.delete, async ({ params }) => {
+    return tsRestHandler(contract.product.deleteProduct, async ({ params }) => {
       const result = await firstValueFrom(
         this.commerce.send("catalog.products.archive", { id: params.id, storeId: req.store!.id }),
       );
