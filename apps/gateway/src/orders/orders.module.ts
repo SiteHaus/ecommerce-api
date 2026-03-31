@@ -19,6 +19,18 @@ import { OrdersController } from "./orders.controller";
         }),
         inject: [ConfigService],
       },
+      {
+        name: "PAYMENTS_SERVICE",
+        imports: [ConfigModule],
+        useFactory: (config: ConfigService) => ({
+          transport: Transport.TCP,
+          options: {
+            host: config.get("PAYMENTS_HOST", "localhost"),
+            port: 7022,
+          },
+        }),
+        inject: [ConfigService],
+      },
     ]),
   ],
   controllers: [OrdersController, OrdersAdminController],

@@ -14,8 +14,8 @@ const mockStore: ResolvedStore = {
   slug: "test-store",
   domain: null,
   currency: "usd",
-  stripeAccountId: null,
-  stripeChargesEnabled: false,
+  stripeAccountId: "acct_test123",
+  stripeChargesEnabled: true,
   stripePayoutsEnabled: false,
   stripeDetailsSubmitted: false,
   reservationTtlMinutes: 15,
@@ -77,13 +77,18 @@ const mockOrderDetail = {
 describe("OrdersAdminController", () => {
   let app: INestApplication;
   let mockCommerceClient: { send: jest.Mock };
+  let mockPaymentsClient: { send: jest.Mock };
 
   beforeEach(async () => {
     mockCommerceClient = { send: jest.fn() };
+    mockPaymentsClient = { send: jest.fn() };
 
     const moduleRef: TestingModule = await Test.createTestingModule({
       controllers: [OrdersAdminController],
-      providers: [{ provide: "COMMERCE_SERVICE", useValue: mockCommerceClient }],
+      providers: [
+        { provide: "COMMERCE_SERVICE", useValue: mockCommerceClient },
+        { provide: "PAYMENTS_SERVICE", useValue: mockPaymentsClient },
+      ],
     })
       .overrideGuard(StoreOwnerGuard)
       .useValue({ canActivate: () => true })
@@ -170,6 +175,101 @@ describe("OrdersAdminController", () => {
         storeId: mockStore.id,
         orderId: ORDER_ID,
       });
+    });
+  });
+
+  // ─── PATCH /v1/admin/orders/:orderId/ship ────────────────────────────────────
+
+  describe("PATCH /v1/admin/orders/:orderId/ship", () => {
+    const shippedOrder = {
+      ...mockOrderDetail,
+      status: "shipped",
+      trackingNumber: "1Z999AA1",
+      shippedAt: "2026-01-02T00:00:00.000Z",
+    };
+
+    it("returns 200 with shipped order detail", async () => {
+      mockCommerceClient.send.mockReturnValue(of(shippedOrder));
+
+      const res = await request(app.getHttpServer())
+        .patch(`/v1/admin/orders/${ORDER_ID}/ship`)
+        .send({ trackingNumber: "1Z999AA1" });
+
+      expect(res.status).toBe(200);
+      expect(res.body.status).toBe("shipped");
+      expect(res.body.trackingNumber).toBe("1Z999AA1");
+    });
+
+    it("sends 'orders.ship' to commerce with storeId, orderId, and trackingNumber", async () => {
+      mockCommerceClient.send.mockReturnValue(of(shippedOrder));
+
+      await request(app.getHttpServer())
+        .patch(`/v1/admin/orders/${ORDER_ID}/ship`)
+        .send({ trackingNumber: "1Z999AA1" });
+
+      expect(mockCommerceClient.send).toHaveBeenCalledWith("orders.ship", {
+        storeId: mockStore.id,
+        orderId: ORDER_ID,
+        trackingNumber: "1Z999AA1",
+      });
+    });
+
+    it("returns 400 when commerce throws RpcException 400", async () => {
+      mockCommerceClient.send.mockReturnValue(
+        throwError(
+          () => new RpcException({ status: 400, message: "Only confirmed orders can be shipped" }),
+        ),
+      );
+
+      const res = await request(app.getHttpServer())
+        .patch(`/v1/admin/orders/${ORDER_ID}/ship`)
+        .send({ trackingNumber: "1Z999AA1" });
+
+      expect(res.status).toBe(400);
+    });
+  });
+
+  // ─── POST /v1/admin/orders/:orderId/refund ────────────────────────────────────
+
+  describe("POST /v1/admin/orders/:orderId/refund", () => {
+    const refundedOrder = { ...mockOrderDetail, status: "refunded" };
+
+    it("returns 200 with refunded order detail", async () => {
+      mockPaymentsClient.send.mockReturnValue(of(refundedOrder));
+
+      const res = await request(app.getHttpServer())
+        .post(`/v1/admin/orders/${ORDER_ID}/refund`)
+        .send({});
+
+      expect(res.status).toBe(200);
+      expect(res.body.status).toBe("refunded");
+    });
+
+    it("sends 'payments.refund' to payments with storeId, orderId, and stripeAccountId", async () => {
+      mockPaymentsClient.send.mockReturnValue(of(refundedOrder));
+
+      await request(app.getHttpServer()).post(`/v1/admin/orders/${ORDER_ID}/refund`).send({});
+
+      expect(mockPaymentsClient.send).toHaveBeenCalledWith("payments.refund", {
+        storeId: mockStore.id,
+        orderId: ORDER_ID,
+        store: { stripeAccountId: mockStore.stripeAccountId },
+      });
+    });
+
+    it("returns 502 when Stripe refund fails", async () => {
+      mockPaymentsClient.send.mockReturnValue(
+        throwError(
+          () => new RpcException({ status: 502, message: "Your refund window has expired" }),
+        ),
+      );
+
+      const res = await request(app.getHttpServer())
+        .post(`/v1/admin/orders/${ORDER_ID}/refund`)
+        .send({});
+
+      expect(res.status).toBe(502);
+      expect(res.body.message).toBe("Your refund window has expired");
     });
   });
 

@@ -4,6 +4,7 @@ import { DbModule } from "@sitehaus-ecom/shared";
 import { validatePaymentsEnv } from "./config/env";
 import { ConnectModule } from "./connect/connect.module";
 import { IntentModule } from "./intent/intent.module";
+import { RefundModule } from "./refund/refund.module";
 import { WebhookModule } from "./webhook/webhook.module";
 
 @Module({
@@ -12,6 +13,7 @@ import { WebhookModule } from "./webhook/webhook.module";
     DbModule,
     ConnectModule,
     IntentModule,
+    RefundModule,
     WebhookModule,
   ],
 })

@@ -1,4 +1,6 @@
 import { ForbiddenException, Inject, Injectable, NotFoundException } from "@nestjs/common";
+import { InjectQueue } from "@nestjs/bullmq";
+import { RpcException } from "@nestjs/microservices";
 import {
   and,
   asc,
@@ -11,11 +13,16 @@ import {
   sql,
   type Db,
 } from "@sitehaus-ecom/database";
-import { DB_TOKEN } from "@sitehaus-ecom/shared";
+import { AuditService, DB_TOKEN } from "@sitehaus-ecom/shared";
+import type { Queue } from "bullmq";
 
 @Injectable()
 export class OrdersHandlerService {
-  constructor(@Inject(DB_TOKEN) private readonly db: Db) {}
+  constructor(
+    @Inject(DB_TOKEN) private readonly db: Db,
+    private readonly audit: AuditService,
+    @InjectQueue("ecom-notifications") private readonly notificationsQueue: Queue,
+  ) {}
 
   async getForCustomer(data: {
     storeId: string;
@@ -223,6 +230,45 @@ export class OrdersHandlerService {
       })),
       total: Number(count),
     };
+  }
+
+  async ship(data: { storeId: string; orderId: string; trackingNumber: string }) {
+    const order = await this.db.query.ordersTable.findFirst({
+      where: eq(ordersTable.id, data.orderId),
+    });
+
+    if (!order || order.storeId !== data.storeId) {
+      throw new RpcException({ status: 404, message: "Order not found" });
+    }
+
+    if (order.status !== "confirmed") {
+      throw new RpcException({ status: 400, message: "Only confirmed orders can be shipped" });
+    }
+
+    const now = new Date();
+    await this.db
+      .update(ordersTable)
+      .set({
+        status: "shipped",
+        trackingNumber: data.trackingNumber,
+        shippedAt: now,
+        updatedAt: now,
+      })
+      .where(eq(ordersTable.id, data.orderId));
+
+    void this.notificationsQueue.add("order.shipped", {
+      orderId: data.orderId,
+      storeId: data.storeId,
+    });
+
+    void this.audit.log({
+      storeId: data.storeId,
+      action: "order.shipped",
+      targetType: "order",
+      targetId: data.orderId,
+    });
+
+    return this.adminGet({ storeId: data.storeId, orderId: data.orderId });
   }
 
   async listForCustomer(data: { storeId: string; userId: string; limit: number; offset: number }) {

@@ -9,6 +9,7 @@ describe("OrdersHandlerController", () => {
     listForCustomer: jest.Mock;
     adminGet: jest.Mock;
     adminList: jest.Mock;
+    ship: jest.Mock;
   };
 
   beforeEach(async () => {
@@ -17,6 +18,7 @@ describe("OrdersHandlerController", () => {
       listForCustomer: jest.fn(),
       adminGet: jest.fn(),
       adminList: jest.fn(),
+      ship: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -68,5 +70,14 @@ describe("OrdersHandlerController", () => {
     await controller.adminList(payload);
 
     expect(service.adminList).toHaveBeenCalledWith(payload);
+  });
+
+  it("delegates ship with storeId, orderId, and trackingNumber", async () => {
+    service.ship.mockResolvedValue({ id: "order-1", status: "shipped" });
+    const payload = { storeId: "store-1", orderId: "order-1", trackingNumber: "1Z999AA1" };
+
+    await controller.ship(payload);
+
+    expect(service.ship).toHaveBeenCalledWith(payload);
   });
 });

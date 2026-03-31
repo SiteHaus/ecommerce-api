@@ -1,7 +1,9 @@
 import { ForbiddenException, NotFoundException } from "@nestjs/common";
-import { DB_TOKEN } from "@sitehaus-ecom/shared";
+import { RpcException } from "@nestjs/microservices";
+import { DB_TOKEN, AuditService } from "@sitehaus-ecom/shared";
 import { Test, TestingModule } from "@nestjs/testing";
 import { OrdersHandlerService } from "./orders-handler.service";
+import { getQueueToken } from "@nestjs/bullmq";
 
 const STORE_ID = "aaaaaaaa-0000-4000-8000-000000000001";
 const ORDER_ID = "aaaaaaaa-0000-4000-8000-000000000002";
@@ -88,6 +90,8 @@ function adminListChain(rows: any[]) {
 describe("OrdersHandlerService", () => {
   let service: OrdersHandlerService;
   let db: any;
+  let mockQueue: { add: jest.Mock };
+  let mockAudit: { log: jest.Mock };
 
   beforeEach(async () => {
     db = {
@@ -95,10 +99,19 @@ describe("OrdersHandlerService", () => {
         ordersTable: { findFirst: jest.fn(), findMany: jest.fn() },
       },
       select: jest.fn(),
+      update: jest.fn(),
     };
 
+    mockQueue = { add: jest.fn().mockResolvedValue(undefined) };
+    mockAudit = { log: jest.fn() };
+
     const module: TestingModule = await Test.createTestingModule({
-      providers: [OrdersHandlerService, { provide: DB_TOKEN, useValue: db }],
+      providers: [
+        OrdersHandlerService,
+        { provide: DB_TOKEN, useValue: db },
+        { provide: AuditService, useValue: mockAudit },
+        { provide: getQueueToken("ecom-notifications"), useValue: mockQueue },
+      ],
     }).compile();
 
     service = module.get(OrdersHandlerService);
@@ -306,6 +319,91 @@ describe("OrdersHandlerService", () => {
       await expect(service.adminGet({ storeId: STORE_ID, orderId: ORDER_ID })).rejects.toThrow(
         NotFoundException,
       );
+    });
+  });
+
+  // ─── ship ─────────────────────────────────────────────────────────────────
+
+  describe("ship", () => {
+    function updateChain() {
+      return {
+        set: jest.fn().mockReturnValue({
+          where: jest.fn().mockResolvedValue(undefined),
+        }),
+      };
+    }
+
+    it("marks order as shipped and returns admin detail", async () => {
+      const shippedOrder = {
+        ...mockOrder,
+        status: "shipped",
+        trackingNumber: "1Z999AA1",
+        shippedAt: new Date(),
+      };
+      db.query.ordersTable.findFirst
+        .mockResolvedValueOnce(mockOrder) // initial fetch for validation
+        .mockResolvedValueOnce(shippedOrder); // re-fetch inside adminGet
+      db.update.mockReturnValue(updateChain());
+      db.select
+        .mockReturnValueOnce(selectChain([{ itemCount: 1 }]))
+        .mockReturnValueOnce(selectChain(mockItems));
+
+      const result = await service.ship({
+        storeId: STORE_ID,
+        orderId: ORDER_ID,
+        trackingNumber: "1Z999AA1",
+      });
+
+      expect(db.update).toHaveBeenCalled();
+      expect(result.status).toBe("shipped");
+      expect(result.trackingNumber).toBe("1Z999AA1");
+    });
+
+    it("enqueues order.shipped job on ecom-notifications queue", async () => {
+      const shippedOrder = {
+        ...mockOrder,
+        status: "shipped",
+        trackingNumber: "1Z999AA1",
+        shippedAt: new Date(),
+      };
+      db.query.ordersTable.findFirst
+        .mockResolvedValueOnce(mockOrder)
+        .mockResolvedValueOnce(shippedOrder);
+      db.update.mockReturnValue(updateChain());
+      db.select
+        .mockReturnValueOnce(selectChain([{ itemCount: 1 }]))
+        .mockReturnValueOnce(selectChain(mockItems));
+
+      await service.ship({ storeId: STORE_ID, orderId: ORDER_ID, trackingNumber: "1Z999AA1" });
+
+      expect(mockQueue.add).toHaveBeenCalledWith("order.shipped", {
+        orderId: ORDER_ID,
+        storeId: STORE_ID,
+      });
+    });
+
+    it("throws RpcException 404 when order not found", async () => {
+      db.query.ordersTable.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.ship({ storeId: STORE_ID, orderId: ORDER_ID, trackingNumber: "1Z999AA1" }),
+      ).rejects.toThrow(RpcException);
+    });
+
+    it("throws RpcException 404 when order belongs to a different store", async () => {
+      db.query.ordersTable.findFirst.mockResolvedValue({ ...mockOrder, storeId: "other-store" });
+
+      await expect(
+        service.ship({ storeId: STORE_ID, orderId: ORDER_ID, trackingNumber: "1Z999AA1" }),
+      ).rejects.toThrow(RpcException);
+    });
+
+    it("throws RpcException 400 when order is not confirmed", async () => {
+      db.query.ordersTable.findFirst.mockResolvedValue({ ...mockOrder, status: "shipped" });
+
+      await expect(
+        service.ship({ storeId: STORE_ID, orderId: ORDER_ID, trackingNumber: "1Z999AA1" }),
+      ).rejects.toThrow(RpcException);
     });
   });
 

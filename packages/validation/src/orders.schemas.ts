@@ -103,6 +103,10 @@ export const adminOrderListSchema = z.object({
   total: z.number().int(),
 });
 
+export const shipOrderBodySchema = z.object({
+  trackingNumber: z.string().min(1),
+});
+
 export const adminListOrdersQuerySchema = z.object({
   status: z
     .union([orderStatusEnum, z.array(orderStatusEnum)])
