@@ -14,6 +14,7 @@
     "test:cov": "jest --coverage --passWithNoTests"
   },
   "dependencies": {
+    "@nestjs/bullmq": "^10.2.3",
     "@nestjs/common": "^11.0.17",
     "@nestjs/config": "^4.0.3",
     "@nestjs/core": "^11.0.1",
@@ -21,6 +22,7 @@
     "@sitehaus-ecom/database": "workspace:*",
     "@sitehaus-ecom/shared": "workspace:*",
     "@sitehaus-ecom/validation": "workspace:*",
+    "bullmq": "^5.71.0",
     "ioredis": "^5.10.0",
     "nanoid": "^3.3.11",
     "reflect-metadata": "^0.2.2",

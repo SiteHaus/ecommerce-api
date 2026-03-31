@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
-import { ConfigModule } from "@nestjs/config";
+import { ConfigModule, ConfigService } from "@nestjs/config";
+import { BullModule } from "@nestjs/bullmq";
 import { DbModule, R2Module, EmailModule, AuditModule } from "@sitehaus-ecom/shared";
 import { validateCommerceEnv } from "./config/env";
 import { CatalogHandlersModule } from "./catalog/catalog-handlers.module";
@@ -21,6 +22,13 @@ import { CollectionsHandlerModule } from "./collections/collections-handler.modu
     R2Module,
     EmailModule,
     AuditModule,
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        connection: { url: config.getOrThrow("REDIS_URL") },
+      }),
+    }),
 
     // TCP message pattern handlers — filled in per-ticket
     CatalogHandlersModule,

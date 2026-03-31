@@ -1,9 +1,7 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 const envSchema = z.object({
-  NODE_ENV: z
-    .enum(['development', 'production', 'test'])
-    .default('development'),
+  NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
 
   DATABASE_URL: z.url(),
 
@@ -18,6 +16,9 @@ const envSchema = z.object({
   R2_BUCKET_NAME: z.string().min(1),
   R2_CDN_URL: z.url(),
 
+  // Redis — used by BullMQ for job queues
+  REDIS_URL: z.string().min(1),
+
   // Transactional email via Resend
   RESEND_API_KEY: z.string().min(1),
   EMAIL_FROM: z.email(),
@@ -29,8 +30,8 @@ export function validateCommerceEnv(config: Record<string, unknown>): Env {
   const result = envSchema.safeParse(config);
   if (!result.success) {
     const formatted = result.error.issues
-      .map((i) => `  ${i.path.join('.')}: ${i.message}`)
-      .join('\n');
+      .map((i) => `  ${i.path.join(".")}: ${i.message}`)
+      .join("\n");
     throw new Error(`Invalid environment variables:\n${formatted}`);
   }
   return result.data;

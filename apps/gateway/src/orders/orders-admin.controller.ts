@@ -9,7 +9,10 @@ import { firstValueFrom } from "rxjs";
 @Controller()
 @UseGuards(StoreOwnerGuard)
 export class OrdersAdminController {
-  constructor(@Inject("COMMERCE_SERVICE") private readonly commerce: ClientProxy) {}
+  constructor(
+    @Inject("COMMERCE_SERVICE") private readonly commerce: ClientProxy,
+    @Inject("PAYMENTS_SERVICE") private readonly payments: ClientProxy,
+  ) {}
 
   @TsRestHandler(contract.orders.adminListOrders)
   adminListOrders(@Req() req: Request) {
@@ -38,6 +41,37 @@ export class OrdersAdminController {
         }),
       );
       return { status: 200 as const, body };
+    });
+  }
+
+  @TsRestHandler(contract.orders.adminShipOrder)
+  adminShipOrder(@Req() req: Request) {
+    return tsRestHandler(contract.orders.adminShipOrder, async ({ params, body }) => {
+      const result = await firstValueFrom(
+        this.commerce.send("orders.ship", {
+          storeId: req.store!.id,
+          orderId: params.orderId,
+          trackingNumber: body.trackingNumber,
+        }),
+      );
+      return { status: 200 as const, body: result };
+    });
+  }
+
+  @TsRestHandler(contract.orders.adminRefundOrder)
+  adminRefundOrder(@Req() req: Request) {
+    return tsRestHandler(contract.orders.adminRefundOrder, async ({ params }) => {
+      if (!req.store!.stripeAccountId) {
+        return { status: 400 as const, body: { message: "Store has no connected Stripe account" } };
+      }
+      const result = await firstValueFrom(
+        this.payments.send("payments.refund", {
+          storeId: req.store!.id,
+          orderId: params.orderId,
+          store: { stripeAccountId: req.store!.stripeAccountId },
+        }),
+      );
+      return { status: 200 as const, body: result };
     });
   }
 }

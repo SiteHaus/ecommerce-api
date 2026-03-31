@@ -1,4 +1,4 @@
-import { Inject, Injectable } from "@nestjs/common";
+import { Inject, Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { RpcException } from "@nestjs/microservices";
 import { eq, storesTable, type Db } from "@sitehaus-ecom/database";
@@ -7,6 +7,7 @@ import Stripe from "stripe";
 
 @Injectable()
 export class ConnectService {
+  private readonly logger = new Logger(ConnectService.name);
   private readonly stripe: Stripe;
 
   constructor(
@@ -42,10 +43,8 @@ export class ConnectService {
 
       return { url: link.url };
     } catch (err: any) {
-      throw new RpcException({
-        status: 500,
-        message: err.message ?? "Stripe error",
-      });
+      this.logger.error(`Stripe connect failed for store ${storeId}: ${err.message}`);
+      throw new RpcException({ status: 500, message: "Stripe error" });
     }
   }
 }

@@ -32,6 +32,9 @@ importers:
 
   apps/commerce:
     dependencies:
+      '@nestjs/bullmq':
+        specifier: ^10.2.3
+        version: 10.2.3(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.16)(bullmq@5.71.0)
       '@nestjs/common':
         specifier: ^11.0.17
         version: 11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -53,6 +56,9 @@ importers:
       '@sitehaus-ecom/validation':
         specifier: workspace:*
         version: link:../../packages/validation
+      bullmq:
+        specifier: ^5.71.0
+        version: 5.71.0
       ioredis:
         specifier: ^5.10.0
         version: 5.10.0

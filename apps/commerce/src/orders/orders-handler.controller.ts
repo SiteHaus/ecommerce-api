@@ -39,4 +39,9 @@ export class OrdersHandlerController {
   ) {
     return this.orders.adminList(data);
   }
+
+  @MessagePattern("orders.ship")
+  ship(@Payload() data: { storeId: string; orderId: string; trackingNumber: string }) {
+    return this.orders.ship(data);
+  }
 }

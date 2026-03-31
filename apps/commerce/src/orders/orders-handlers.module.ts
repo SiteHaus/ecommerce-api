@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { BullModule } from "@nestjs/bullmq";
 import { AuditModule } from "@sitehaus-ecom/shared";
 import { InventoryHandlersModule } from "../inventory/inventory-handlers.module";
 import { CheckoutHandler } from "./checkout.handler";
@@ -7,7 +8,11 @@ import { OrdersHandlerController } from "./orders-handler.controller";
 import { OrdersHandlerService } from "./orders-handler.service";
 
 @Module({
-  imports: [InventoryHandlersModule, AuditModule],
+  imports: [
+    InventoryHandlersModule,
+    AuditModule,
+    BullModule.registerQueue({ name: "ecom-notifications" }),
+  ],
   controllers: [CheckoutHandler, OrdersHandlerController],
   providers: [CheckoutService, OrdersHandlerService],
 })

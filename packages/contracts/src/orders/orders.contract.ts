@@ -7,6 +7,7 @@ import {
   listOrdersQuerySchema,
   orderDetailSchema,
   orderListSchema,
+  shipOrderBodySchema,
 } from "@sitehaus-ecom/validation";
 import { initContract } from "@ts-rest/core";
 import { z } from "zod";
@@ -51,6 +52,31 @@ export const ordersContract = c.router({
     query: adminListOrdersQuerySchema,
     responses: {
       200: adminOrderListSchema,
+    },
+    metadata: { openApiTags: ["Orders Admin"] } as const,
+  },
+  adminShipOrder: {
+    method: "PATCH",
+    path: "/v1/admin/orders/:orderId/ship",
+    pathParams: z.object({ orderId: z.string().uuid() }),
+    body: shipOrderBodySchema,
+    responses: {
+      200: adminOrderDetailSchema,
+      400: apiError,
+      404: apiError,
+    },
+    metadata: { openApiTags: ["Orders Admin"] } as const,
+  },
+  adminRefundOrder: {
+    method: "POST",
+    path: "/v1/admin/orders/:orderId/refund",
+    pathParams: z.object({ orderId: z.string().uuid() }),
+    body: z.object({}),
+    responses: {
+      200: adminOrderDetailSchema,
+      400: apiError,
+      404: apiError,
+      502: apiError,
     },
     metadata: { openApiTags: ["Orders Admin"] } as const,
   },

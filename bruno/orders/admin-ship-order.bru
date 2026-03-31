@@ -1,0 +1,21 @@
+meta {
+  name: Admin Ship Order
+  type: http
+  seq: 6
+}
+
+patch {
+  url: {{baseUrl}}/v1/admin/orders/{{orderId}}/ship
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+body:json {
+  {
+    "trackingNumber": "1Z999AA10123456784"
+  }
+}
