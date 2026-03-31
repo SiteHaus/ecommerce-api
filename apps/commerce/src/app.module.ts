@@ -6,7 +6,7 @@ import { CatalogHandlersModule } from "./catalog/catalog-handlers.module";
 import { InventoryHandlersModule } from "./inventory/inventory-handlers.module";
 import { CartHandlersModule } from "./cart/cart-handlers.module";
 import { OrdersHandlersModule } from "./orders/orders-handlers.module";
-import { ShippingHandlersModule } from "./shipping/shipping-handlers.module";
+import { ShippingHandlersModule } from "./shipping/shipping-handler.module";
 import { VariantsHandlerModule } from "./variants/variants-handler.module";
 import { VariantsHandlerService } from "./variants/variants-handler.service";
 import { VariantsHandlerController } from "./variants/variants-handler.controller";
@@ -31,7 +31,5 @@ import { CollectionsHandlerModule } from "./collections/collections-handler.modu
     VariantsHandlerModule,
     CollectionsHandlerModule,
   ],
-  controllers: [VariantsHandlerController],
-  providers: [VariantsHandlerService],
 })
 export class AppModule {}

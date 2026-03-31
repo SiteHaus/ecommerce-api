@@ -3,14 +3,12 @@ import { VariantsHandlerService } from "./variants-handler.service";
 import { MessagePattern, Payload } from "@nestjs/microservices";
 import { CreateVariantDto, UpdateVariantDto } from "@sitehaus-ecom/validation";
 
-@Controller("variants")
+@Controller()
 export class VariantsHandlerController {
   constructor(private readonly variantService: VariantsHandlerService) {}
 
   @MessagePattern("catalog.variants.create")
-  create(
-    @Payload() data: CreateVariantDto & { productId: string; storeId: string },
-  ) {
+  create(@Payload() data: CreateVariantDto & { productId: string; storeId: string }) {
     return this.variantService.create(data);
   }
 
