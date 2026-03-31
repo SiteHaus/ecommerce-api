@@ -241,12 +241,8 @@ export class OrdersHandlerService {
       throw new RpcException({ status: 404, message: "Order not found" });
     }
 
-    if (order.status !== "confirmed") {
-      throw new RpcException({ status: 400, message: "Only confirmed orders can be shipped" });
-    }
-
     const now = new Date();
-    await this.db
+    const updated = await this.db
       .update(ordersTable)
       .set({
         status: "shipped",
@@ -254,7 +250,18 @@ export class OrdersHandlerService {
         shippedAt: now,
         updatedAt: now,
       })
-      .where(eq(ordersTable.id, data.orderId));
+      .where(
+        and(
+          eq(ordersTable.id, data.orderId),
+          eq(ordersTable.storeId, data.storeId),
+          eq(ordersTable.status, "confirmed"),
+        ),
+      )
+      .returning({ id: ordersTable.id });
+
+    if (updated.length === 0) {
+      throw new RpcException({ status: 400, message: "Only confirmed orders can be shipped" });
+    }
 
     void this.notificationsQueue.add("order.shipped", {
       orderId: data.orderId,

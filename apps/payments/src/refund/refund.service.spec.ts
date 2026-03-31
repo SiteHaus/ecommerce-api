@@ -55,10 +55,12 @@ function selectChain(rows: any[]) {
   };
 }
 
-function updateChain() {
+function updateChain(returnRows: any[] = [{ id: ORDER_ID }]) {
   return {
     set: jest.fn().mockReturnValue({
-      where: jest.fn().mockResolvedValue(undefined),
+      where: jest.fn().mockReturnValue({
+        returning: jest.fn().mockResolvedValue(returnRows),
+      }),
     }),
   };
 }

@@ -273,6 +273,48 @@ describe("OrdersAdminController", () => {
     });
   });
 
+  // ─── stripeAccountId null guard ──────────────────────────────────────────────
+
+  describe("POST /v1/admin/orders/:orderId/refund — null stripeAccountId", () => {
+    let appNoStripe: INestApplication;
+
+    beforeEach(async () => {
+      const moduleRef: TestingModule = await Test.createTestingModule({
+        controllers: [OrdersAdminController],
+        providers: [
+          { provide: "COMMERCE_SERVICE", useValue: mockCommerceClient },
+          { provide: "PAYMENTS_SERVICE", useValue: mockPaymentsClient },
+        ],
+      })
+        .overrideGuard(StoreOwnerGuard)
+        .useValue({ canActivate: () => true })
+        .compile();
+
+      appNoStripe = moduleRef.createNestApplication();
+      appNoStripe.useGlobalFilters(new RpcExceptionFilter());
+      appNoStripe.use((_req: any, _res: any, next: any) => {
+        _req.store = { ...mockStore, stripeAccountId: null };
+        _req.user = mockUser;
+        next();
+      });
+      await appNoStripe.init();
+    });
+
+    afterEach(async () => {
+      await appNoStripe.close();
+    });
+
+    it("returns 400 without calling payments service", async () => {
+      const res = await request(appNoStripe.getHttpServer())
+        .post(`/v1/admin/orders/${ORDER_ID}/refund`)
+        .send({});
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toBe("Store has no connected Stripe account");
+      expect(mockPaymentsClient.send).not.toHaveBeenCalled();
+    });
+  });
+
   // ─── RPC error propagation ───────────────────────────────────────────────────
 
   describe("RPC error propagation", () => {

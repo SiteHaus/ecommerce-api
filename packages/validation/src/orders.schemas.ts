@@ -104,7 +104,7 @@ export const adminOrderListSchema = z.object({
 });
 
 export const shipOrderBodySchema = z.object({
-  trackingNumber: z.string().min(1),
+  trackingNumber: z.string().min(1).max(100),
 });
 
 export const adminListOrdersQuerySchema = z.object({

@@ -72,11 +72,7 @@ describe("ConnectService", () => {
       mockAccountsCreate.mockResolvedValue({ id: FAKE_ACCOUNT_ID });
       mockAccountLinksCreate.mockResolvedValue({ url: FAKE_ONBOARDING_URL });
 
-      const result = await service.initiateConnect(
-        FAKE_STORE_ID,
-        null,
-        FAKE_RETURN_URL,
-      );
+      const result = await service.initiateConnect(FAKE_STORE_ID, null, FAKE_RETURN_URL);
 
       expect(result).toEqual({ url: FAKE_ONBOARDING_URL });
     });
@@ -86,11 +82,7 @@ describe("ConnectService", () => {
     it("skips account creation and DB write, reuses existing accountId", async () => {
       mockAccountLinksCreate.mockResolvedValue({ url: FAKE_ONBOARDING_URL });
 
-      await service.initiateConnect(
-        FAKE_STORE_ID,
-        FAKE_ACCOUNT_ID,
-        FAKE_RETURN_URL,
-      );
+      await service.initiateConnect(FAKE_STORE_ID, FAKE_ACCOUNT_ID, FAKE_RETURN_URL);
 
       expect(mockAccountsCreate).not.toHaveBeenCalled();
       expect(mockUpdate).not.toHaveBeenCalled();
@@ -99,11 +91,7 @@ describe("ConnectService", () => {
     it("creates an account link with the existing accountId and returns the url", async () => {
       mockAccountLinksCreate.mockResolvedValue({ url: FAKE_ONBOARDING_URL });
 
-      const result = await service.initiateConnect(
-        FAKE_STORE_ID,
-        FAKE_ACCOUNT_ID,
-        FAKE_RETURN_URL,
-      );
+      const result = await service.initiateConnect(FAKE_STORE_ID, FAKE_ACCOUNT_ID, FAKE_RETURN_URL);
 
       expect(result).toEqual({ url: FAKE_ONBOARDING_URL });
     });
@@ -181,27 +169,21 @@ describe("ConnectService", () => {
       expect(mockAccountLinksCreate).not.toHaveBeenCalled();
     });
 
-    it("includes the original error message in RpcException", async () => {
+    it("returns generic error message regardless of underlying Stripe error", async () => {
       mockAccountLinksCreate.mockRejectedValue(
         new Error("Your platform account must complete its Stripe onboarding"),
       );
 
       let caught: RpcException | undefined;
       try {
-        await service.initiateConnect(
-          FAKE_STORE_ID,
-          FAKE_ACCOUNT_ID,
-          FAKE_RETURN_URL,
-        );
+        await service.initiateConnect(FAKE_STORE_ID, FAKE_ACCOUNT_ID, FAKE_RETURN_URL);
       } catch (e) {
         caught = e as RpcException;
       }
 
       const error = caught!.getError() as { status: number; message: string };
       expect(error.status).toBe(500);
-      expect(error.message).toBe(
-        "Your platform account must complete its Stripe onboarding",
-      );
+      expect(error.message).toBe("Stripe error");
     });
   });
 });

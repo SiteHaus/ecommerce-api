@@ -325,10 +325,12 @@ describe("OrdersHandlerService", () => {
   // ─── ship ─────────────────────────────────────────────────────────────────
 
   describe("ship", () => {
-    function updateChain() {
+    function updateChain(returnRows: any[] = [{ id: ORDER_ID }]) {
       return {
         set: jest.fn().mockReturnValue({
-          where: jest.fn().mockResolvedValue(undefined),
+          where: jest.fn().mockReturnValue({
+            returning: jest.fn().mockResolvedValue(returnRows),
+          }),
         }),
       };
     }
@@ -400,6 +402,16 @@ describe("OrdersHandlerService", () => {
 
     it("throws RpcException 400 when order is not confirmed", async () => {
       db.query.ordersTable.findFirst.mockResolvedValue({ ...mockOrder, status: "shipped" });
+      db.update.mockReturnValue(updateChain([]));
+
+      await expect(
+        service.ship({ storeId: STORE_ID, orderId: ORDER_ID, trackingNumber: "1Z999AA1" }),
+      ).rejects.toThrow(RpcException);
+    });
+
+    it("throws RpcException 400 when atomic UPDATE matches zero rows (race condition guard)", async () => {
+      db.query.ordersTable.findFirst.mockResolvedValue(mockOrder);
+      db.update.mockReturnValue(updateChain([]));
 
       await expect(
         service.ship({ storeId: STORE_ID, orderId: ORDER_ID, trackingNumber: "1Z999AA1" }),

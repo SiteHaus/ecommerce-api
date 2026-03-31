@@ -61,6 +61,9 @@ export class OrdersAdminController {
   @TsRestHandler(contract.orders.adminRefundOrder)
   adminRefundOrder(@Req() req: Request) {
     return tsRestHandler(contract.orders.adminRefundOrder, async ({ params }) => {
+      if (!req.store!.stripeAccountId) {
+        return { status: 400 as const, body: { message: "Store has no connected Stripe account" } };
+      }
       const result = await firstValueFrom(
         this.payments.send("payments.refund", {
           storeId: req.store!.id,

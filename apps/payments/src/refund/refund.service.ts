@@ -1,12 +1,21 @@
-import { Inject, Injectable } from "@nestjs/common";
+import { Inject, Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { RpcException } from "@nestjs/microservices";
-import { eq, orderItemsTable, ordersTable, sql, type Db } from "@sitehaus-ecom/database";
+import {
+  and,
+  eq,
+  inArray,
+  orderItemsTable,
+  ordersTable,
+  sql,
+  type Db,
+} from "@sitehaus-ecom/database";
 import { AuditService, DB_TOKEN } from "@sitehaus-ecom/shared";
 import Stripe from "stripe";
 
 @Injectable()
 export class RefundService {
+  private readonly logger = new Logger(RefundService.name);
   private readonly stripe: Stripe;
 
   constructor(
@@ -43,17 +52,28 @@ export class RefundService {
         { stripeAccount: data.store.stripeAccountId },
       );
     } catch (err: any) {
-      throw new RpcException({
-        status: 502,
-        message: err.message ?? "Stripe refund failed",
-      });
+      this.logger.error(`Stripe refund failed for order ${data.orderId}: ${err.message}`);
+      throw new RpcException({ status: 502, message: "Stripe refund failed" });
     }
 
     const now = new Date();
-    await this.db
+    const [updated] = await this.db
       .update(ordersTable)
       .set({ status: "refunded", updatedAt: now })
-      .where(eq(ordersTable.id, data.orderId));
+      .where(
+        and(
+          eq(ordersTable.id, data.orderId),
+          eq(ordersTable.storeId, data.storeId),
+          inArray(ordersTable.status, ["confirmed", "shipped"]),
+        ),
+      )
+      .returning({ id: ordersTable.id });
+
+    if (!updated) {
+      this.logger.error(
+        `Refund succeeded on Stripe but order ${data.orderId} status not updated — manual review needed`,
+      );
+    }
 
     void this.audit.log({
       storeId: data.storeId,
