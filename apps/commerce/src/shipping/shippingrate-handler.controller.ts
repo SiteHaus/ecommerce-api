@@ -27,4 +27,9 @@ export class ShippingRatesHandlerController {
   deleteRate(@Payload() data: { storeId: string; zoneId: string; rateId: string }) {
     return this.shippingRatesService.deleteRate(data);
   }
+
+  @MessagePattern("shipping.getRates")
+  getRates(@Payload() data: { storeId: string; country: string; subtotal: number }) {
+    return this.shippingRatesService.getRates(data);
+  }
 }

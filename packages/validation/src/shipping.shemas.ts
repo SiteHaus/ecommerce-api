@@ -40,6 +40,10 @@ export const ShippingRateList = z.object({
   items: z.array(ShippingRateItem),
 });
 
+export const ShippingRateListQuery = z.object({
+  country: z.string().length(2).toUpperCase(),
+  subtotal: z.coerce.number().int().nonnegative(),
+});
 // In your validation package
 export const shippingZoneParam = z.object({
   storeId: z.string(),

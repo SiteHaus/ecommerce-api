@@ -6,6 +6,8 @@ import {
   DeleteResponse,
   shippingParams,
   ShippingRateItem,
+  ShippingRateList,
+  ShippingRateListQuery,
   shippingRateParam,
   ShippingZoneItem,
   ShippingZoneList,
@@ -92,6 +94,17 @@ export const shippingContract = c.router({
     body: createShippingRateSchema,
     responses: {
       200: ShippingRateItem,
+      404: apiError,
+    },
+    metadata: { openApiTags: ["Shipping Rate"] } as const,
+  },
+
+  getRates: {
+    method: "GET",
+    path: "/v1/shipping/rates",
+    query: ShippingRateListQuery,
+    responses: {
+      200: ShippingRateList,
       404: apiError,
     },
     metadata: { openApiTags: ["Shipping Rate"] } as const,
