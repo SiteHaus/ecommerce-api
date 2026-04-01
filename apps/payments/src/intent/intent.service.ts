@@ -73,6 +73,7 @@ export class IntentService {
           metadata: { orderId: order.id, storeId: order.storeId },
         },
         metadata: { orderId: order.id, storeId: order.storeId, ...(cartId ? { cartId } : {}) },
+        automatic_tax: { enabled: true },
         success_url: successUrl,
         cancel_url: cancelUrl,
       });
