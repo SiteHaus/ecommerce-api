@@ -63,6 +63,7 @@ describe("WebhookService", () => {
   let db: any;
   let reservations: jest.Mocked<ReservationService>;
   let audit: { log: jest.Mock };
+  let notificationsQueue: { add: jest.Mock };
   let mockConstructEvent: jest.Mock;
   let mockUpdateFn: jest.Mock;
   let mockDeleteFn: jest.Mock;
@@ -93,12 +94,14 @@ describe("WebhookService", () => {
     } as any;
 
     audit = { log: jest.fn().mockResolvedValue(undefined) };
+    notificationsQueue = { add: jest.fn().mockResolvedValue(undefined) };
 
     service = new (WebhookService as any)(
       { getOrThrow: (key: string) => (key === "STRIPE_SECRET_KEY" ? "sk_test" : "whsec_test") },
       db,
       reservations,
       audit,
+      notificationsQueue,
     );
 
     jest.spyOn(Logger.prototype, "warn").mockImplementation(() => {});
@@ -206,6 +209,23 @@ describe("WebhookService", () => {
 
       expect(audit.log).toHaveBeenCalledWith(
         expect.objectContaining({ action: "order.confirmed" }),
+      );
+    });
+
+    it("enqueues order.confirmed notification job", async () => {
+      db.query.ordersTable.findFirst.mockResolvedValue(mockOrder);
+      mockUpdateFn.mockReturnValue(updateChain());
+      mockDeleteFn.mockReturnValue(deleteChain());
+
+      await service.handle({
+        type: "checkout.session.completed",
+        data: { object: makeSession() },
+      } as any);
+
+      expect(notificationsQueue.add).toHaveBeenCalledWith(
+        "order.confirmed",
+        { orderId: ORDER_ID, storeId: STORE_ID },
+        expect.objectContaining({ attempts: 3 }),
       );
     });
   });

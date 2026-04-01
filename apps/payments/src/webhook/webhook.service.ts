@@ -1,7 +1,9 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
+import { InjectQueue } from "@nestjs/bullmq";
 import { ConfigService } from "@nestjs/config";
 import { cartsTable, eq, ordersTable, storesTable, type Db } from "@sitehaus-ecom/database";
 import { AuditService, DB_TOKEN } from "@sitehaus-ecom/shared";
+import { Queue } from "bullmq";
 import Stripe from "stripe";
 import { ReservationService } from "./reservation.service";
 
@@ -16,6 +18,7 @@ export class WebhookService {
     @Inject(DB_TOKEN) private readonly db: Db,
     private readonly reservations: ReservationService,
     private readonly audit: AuditService,
+    @InjectQueue("ecom-notifications") private readonly notificationsQueue: Queue,
   ) {
     this.stripe = new Stripe(config.getOrThrow("STRIPE_SECRET_KEY"));
     this.webhookSecret = config.getOrThrow("STRIPE_WEBHOOK_SECRET");
@@ -85,7 +88,11 @@ export class WebhookService {
       targetId: order.id,
     });
 
-    // TODO SIT-92: enqueue order.confirmed job on ecom:notifications queue
+    void this.notificationsQueue.add(
+      "order.confirmed",
+      { orderId, storeId: order.storeId },
+      { attempts: 3, backoff: { type: "exponential", delay: 5000 } },
+    );
     this.logger.log(`Order ${orderId} confirmed`);
   }
 
