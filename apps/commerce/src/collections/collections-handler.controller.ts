@@ -19,7 +19,7 @@ export class CollectionsHandlerController {
     return this.collectionService.create(data);
   }
 
-  @MessagePattern("catalog.collections.create")
+  @MessagePattern("catalog.collections.update")
   update(@Payload() data: UpdateCollectionDto & { storeId: string; collectionId: string }) {
     return this.collectionService.update(data);
   }

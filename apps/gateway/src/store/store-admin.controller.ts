@@ -14,6 +14,7 @@ export class StoreAdminController {
     @Inject("PAYMENTS_SERVICE") private readonly paymentsClient: ClientProxy,
   ) {}
 
+  @UseGuards(StoreOwnerGuard)
   @TsRestHandler(contract.store.getMe)
   async getMe(@Req() req: Request) {
     return tsRestHandler(contract.store.getMe, async () => {
