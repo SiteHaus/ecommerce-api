@@ -70,9 +70,16 @@ export class WebhookService {
 
     await this.reservations.commit(orderId);
 
+    const taxCents = session.total_details?.amount_tax ?? 0;
     await this.db
       .update(ordersTable)
-      .set({ status: "confirmed", confirmedAt: new Date(), updatedAt: new Date() })
+      .set({
+        status: "confirmed",
+        confirmedAt: new Date(),
+        updatedAt: new Date(),
+        taxCents,
+        totalCents: order.subtotalCents + order.shippingCents + taxCents,
+      })
       .where(eq(ordersTable.id, orderId));
 
     const cartId = session.metadata?.cartId;

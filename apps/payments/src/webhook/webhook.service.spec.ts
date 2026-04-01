@@ -17,6 +17,8 @@ const mockOrder = {
   storeId: STORE_ID,
   userId: "user-uuid-1",
   status: "pending",
+  subtotalCents: 2500,
+  shippingCents: 500,
 };
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -27,6 +29,7 @@ function makeSession(overrides: Partial<Stripe.Checkout.Session> = {}): Stripe.C
   return {
     object: "checkout.session",
     metadata: { orderId: ORDER_ID, storeId: STORE_ID, cartId: CART_ID },
+    total_details: { amount_tax: 0, amount_discount: 0, amount_shipping: 0 },
     ...overrides,
   } as unknown as Stripe.Checkout.Session;
 }
@@ -210,6 +213,39 @@ describe("WebhookService", () => {
       expect(audit.log).toHaveBeenCalledWith(
         expect.objectContaining({ action: "order.confirmed" }),
       );
+    });
+
+    it("captures tax from session and recalculates total", async () => {
+      db.query.ordersTable.findFirst.mockResolvedValue(mockOrder);
+      mockUpdateFn.mockReturnValue(updateChain());
+      mockDeleteFn.mockReturnValue(deleteChain());
+
+      await service.handle({
+        type: "checkout.session.completed",
+        data: {
+          object: makeSession({
+            total_details: { amount_tax: 250, amount_discount: 0, amount_shipping: 0 },
+          }),
+        },
+      } as any);
+
+      const setCall = mockUpdateFn.mock.results[0].value.set.mock.calls[0][0];
+      expect(setCall.taxCents).toBe(250);
+      expect(setCall.totalCents).toBe(mockOrder.subtotalCents + mockOrder.shippingCents + 250);
+    });
+
+    it("defaults taxCents to 0 when total_details is absent", async () => {
+      db.query.ordersTable.findFirst.mockResolvedValue(mockOrder);
+      mockUpdateFn.mockReturnValue(updateChain());
+      mockDeleteFn.mockReturnValue(deleteChain());
+
+      await service.handle({
+        type: "checkout.session.completed",
+        data: { object: makeSession({ total_details: null as any }) },
+      } as any);
+
+      const setCall = mockUpdateFn.mock.results[0].value.set.mock.calls[0][0];
+      expect(setCall.taxCents).toBe(0);
     });
 
     it("enqueues order.confirmed notification job", async () => {
