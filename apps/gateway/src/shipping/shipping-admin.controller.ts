@@ -7,11 +7,11 @@ import { contract } from "@sitehaus-ecom/contracts";
 import type { Request } from "express";
 import { firstValueFrom } from "rxjs";
 
-@UseGuards(StoreOwnerGuard)
 @Controller("shipping-admin")
 export class ShippingAdminController {
   constructor(@Inject("COMMERCE_SERVICE") private readonly commerce: ClientProxy) {}
 
+  @UseGuards(StoreOwnerGuard)
   @TsRestHandler(contract.shipping.listZones)
   async getZones(@Req() req: Request) {
     return tsRestHandler(contract.shipping.listZones, async () => {
@@ -23,6 +23,7 @@ export class ShippingAdminController {
     });
   }
 
+  @UseGuards(StoreOwnerGuard)
   @TsRestHandler(contract.shipping.createZone)
   async createZone(@Req() req: Request) {
     return tsRestHandler(contract.shipping.createZone, async () => {
@@ -34,6 +35,7 @@ export class ShippingAdminController {
     });
   }
 
+  @UseGuards(StoreOwnerGuard)
   @TsRestHandler(contract.shipping.updateZone)
   async updateZone(@Req() req: Request) {
     return tsRestHandler(contract.shipping.updateZone, async ({ params, body }) => {
@@ -49,6 +51,7 @@ export class ShippingAdminController {
     });
   }
 
+  @UseGuards(StoreOwnerGuard)
   @TsRestHandler(contract.shipping.deleteZone)
   async deleteZone(@Req() req: Request) {
     return tsRestHandler(contract.shipping.deleteZone, async ({ params }) => {
@@ -63,6 +66,7 @@ export class ShippingAdminController {
     });
   }
 
+  @UseGuards(StoreOwnerGuard)
   @TsRestHandler(contract.shipping.createRate)
   async createRate(@Req() req: Request) {
     return tsRestHandler(contract.shipping.createRate, async ({ params, body }) => {
@@ -78,6 +82,7 @@ export class ShippingAdminController {
     });
   }
 
+  @UseGuards(StoreOwnerGuard)
   @TsRestHandler(contract.shipping.updateRate)
   async updateRate(@Req() req: Request) {
     return tsRestHandler(contract.shipping.updateRate, async ({ params, body }) => {
@@ -93,6 +98,8 @@ export class ShippingAdminController {
       return { status: 200 as const, body: result };
     });
   }
+
+  @UseGuards(StoreOwnerGuard)
   @TsRestHandler(contract.shipping.deleteRate)
   async deleteRate(@Req() req: Request) {
     return tsRestHandler(contract.shipping.deleteRate, async ({ params }) => {
@@ -104,6 +111,19 @@ export class ShippingAdminController {
         }),
       );
 
+      return { status: 200 as const, body: result };
+    });
+  }
+
+  @UseGuards(StoreOwnerGuard)
+  async getRates(@Req() req: Request) {
+    return tsRestHandler(contract.shipping.getRates, async ({ query }) => {
+      const result = await firstValueFrom(
+        this.commerce.send("shipping.getRates", {
+          country: query.country,
+          subtotal: query.subtotal,
+        }),
+      );
       return { status: 200 as const, body: result };
     });
   }

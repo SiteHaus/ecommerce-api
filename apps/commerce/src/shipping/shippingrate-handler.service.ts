@@ -62,4 +62,31 @@ export class ShippingRatesHandlerService {
 
     return { message: "The zone was successfully deleted!" };
   }
+
+  async getRates(data: { storeId: string; country: string; subtotal: number }) {
+    const zones = await this.db.query.shippingZonesTable.findMany({
+      where: (z) => eq(z.storeId, data.storeId),
+      orderBy: (z) => z.sortOrder,
+    });
+
+    if (!zones.length) return [];
+
+    let matchedZone = zones.find((z) => z.countries?.includes(data.country));
+    if (!matchedZone) matchedZone = zones.find((z) => z.countries === null);
+    if (!matchedZone) return [];
+
+    const rates = await this.db.query.shippingRatesTable.findMany({
+      where: (r) => eq(r.zoneId, matchedZone.id),
+    });
+
+    return rates
+      .map((rate) => ({
+        id: rate.id,
+        name: rate.name,
+        estimatedDays: rate.estimatedDays,
+        rateCents:
+          rate.minOrderCents !== null && data.subtotal >= rate.minOrderCents ? 0 : rate.rateCents,
+      }))
+      .sort((a, b) => a.rateCents - b.rateCents);
+  }
 }
