@@ -1,0 +1,28 @@
+meta {
+  name: Confirm Image (IDOR attempt — wrong product key)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/v1/admin/products/{{variantVitC90ProductId}}/images/confirm
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+body:json {
+  {
+    "r2Key": "stores/other-store-id/products/other-product-id/fakekey.jpg",
+    "altText": "Should be blocked"
+  }
+}
+
+tests {
+  test("status is 404 (IDOR blocked)", function() {
+    expect(res.status).to.equal(404);
+  });
+}

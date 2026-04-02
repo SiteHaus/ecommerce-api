@@ -1,0 +1,28 @@
+meta {
+  name: Stripe Status
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/v1/admin/stores/stripe-status
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("returns stripe connection fields", function() {
+    expect(res.body).to.have.property("connected");
+    expect(res.body).to.have.property("chargesEnabled");
+    expect(res.body).to.have.property("payoutsEnabled");
+    expect(res.body).to.have.property("detailsSubmitted");
+  });
+}

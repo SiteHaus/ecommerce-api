@@ -136,7 +136,7 @@ try {
     VALUES ($1, $2, 'OneHealth Dev', 'onehealth-dev', 'localhost',
       ${STRIPE_ACCOUNT_ID ? `'${STRIPE_ACCOUNT_ID}'` : "NULL"}, ${STRIPE_ACCOUNT_ID ? "true" : "false"},
       ${STRIPE_ACCOUNT_ID ? "true, true," : "false, false,"}
-      'cad', 15)
+      'usd', 15)
     ON CONFLICT (id) DO NOTHING
   `,
     [STORE_ID, CLIENT_ID],

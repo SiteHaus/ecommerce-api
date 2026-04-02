@@ -1,0 +1,17 @@
+meta {
+  name: IDOR — Get Order Wrong Email (Anonymous)
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/v1/orders/{{orderId}}?email=wrong%40example.com
+  body: none
+  auth: none
+}
+
+tests {
+  test("status is 403 (wrong email blocked)", function() {
+    expect(res.status).to.equal(403);
+  });
+}

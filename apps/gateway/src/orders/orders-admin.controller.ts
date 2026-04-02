@@ -47,14 +47,22 @@ export class OrdersAdminController {
   @TsRestHandler(contract.orders.adminShipOrder)
   adminShipOrder(@Req() req: Request) {
     return tsRestHandler(contract.orders.adminShipOrder, async ({ params, body }) => {
-      const result = await firstValueFrom(
-        this.commerce.send("orders.ship", {
-          storeId: req.store!.id,
-          orderId: params.orderId,
-          trackingNumber: body.trackingNumber,
-        }),
-      );
-      return { status: 200 as const, body: result };
+      try {
+        const result = await firstValueFrom(
+          this.commerce.send("orders.ship", {
+            storeId: req.store!.id,
+            orderId: params.orderId,
+            trackingNumber: body.trackingNumber,
+          }),
+        );
+        return { status: 200 as const, body: result };
+      } catch (err: any) {
+        const status = err?.error?.status ?? err?.status ?? 500;
+        const message = err?.error?.message ?? err?.message ?? "Internal server error";
+        if (status === 404) return { status: 404 as const, body: { message } };
+        if (status === 400) return { status: 400 as const, body: { message } };
+        throw err;
+      }
     });
   }
 

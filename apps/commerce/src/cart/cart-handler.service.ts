@@ -134,16 +134,20 @@ export class CartHandlerService {
   async addItem(identity: CartIdentity, variantId: string, quantity: number) {
     const { storeId } = identity;
 
-    // Fetch with product join for status + goesLiveAt check
+    // Fetch with product join for status + goesLiveAt check, and inventory for stock
     const [variantRow] = await this.db
       .select({
         variantId: productVariantsTable.id,
         isActive: productVariantsTable.isActive,
         productStatus: productsTable.status,
         goesLiveAt: productsTable.goesLiveAt,
+        stock: inventoryTable.stock,
+        reserved: inventoryTable.reserved,
+        allowBackorder: inventoryTable.allowBackorder,
       })
       .from(productVariantsTable)
       .innerJoin(productsTable, eq(productVariantsTable.productId, productsTable.id))
+      .innerJoin(inventoryTable, eq(productVariantsTable.id, inventoryTable.variantId))
       .where(and(eq(productVariantsTable.id, variantId), eq(productVariantsTable.storeId, storeId)))
       .limit(1);
 
@@ -185,10 +189,20 @@ export class CartHandlerService {
       throw new BadRequestException("Cart cannot exceed 50 distinct items");
     }
 
+    const newTotalQuantity = (existing?.quantity ?? 0) + quantity;
+    if (!variantRow.allowBackorder) {
+      const available = variantRow.stock - variantRow.reserved;
+      if (newTotalQuantity > available) {
+        throw new BadRequestException(
+          `Only ${available} unit${available === 1 ? "" : "s"} available`,
+        );
+      }
+    }
+
     if (existing) {
       await this.db
         .update(cartItemsTable)
-        .set({ quantity: existing.quantity + quantity })
+        .set({ quantity: newTotalQuantity })
         .where(eq(cartItemsTable.id, existing.id));
     } else {
       await this.db.insert(cartItemsTable).values({ cartId: cart.id, variantId, quantity });

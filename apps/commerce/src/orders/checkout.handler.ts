@@ -13,14 +13,14 @@ export class CheckoutHandler {
       storeId: string;
       sessionToken?: string;
       userId?: string;
-      email: string;
-      shippingName: string;
-      shippingLine1: string;
+      email?: string;
+      shippingName?: string;
+      shippingLine1?: string;
       shippingLine2?: string;
-      shippingCity: string;
-      shippingState: string;
-      shippingZip: string;
-      shippingCountry: string;
+      shippingCity?: string;
+      shippingState?: string;
+      shippingZip?: string;
+      shippingCountry?: string;
     },
   ) {
     return this.checkout.createOrder(payload);

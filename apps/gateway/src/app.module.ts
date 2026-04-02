@@ -46,6 +46,8 @@ import { ImagesModule } from "./product-images/product-images.module";
         throttlers: [
           // Defaults — individual routes override via @Throttle()
           { name: "default", ttl: 60_000, limit: 120 },
+          // Tight limit for mutation-heavy endpoints (cart, checkout)
+          { name: "mutation", ttl: 60_000, limit: 30 },
         ],
         storage: new ThrottlerStorageRedisService(config.getOrThrow("REDIS_URL")),
       }),

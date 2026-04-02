@@ -1,0 +1,21 @@
+meta {
+  name: IDOR — Get Order Wrong User
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/v1/orders/{{orderId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+tests {
+  test("status is 403 (wrong user blocked)", function() {
+    expect(res.status).to.equal(403);
+  });
+}

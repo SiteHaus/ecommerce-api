@@ -1,0 +1,42 @@
+meta {
+  name: Confirm Image
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/v1/admin/products/{{variantVitC90ProductId}}/images/confirm
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+body:json {
+  {
+    "r2Key": "{{uploadKey}}",
+    "altText": "Vitamin C 90 Capsules"
+  }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    bru.setEnvVar("imageId", res.body.id);
+  }
+}
+
+tests {
+  test("status is 201", function() {
+    expect(res.status).to.equal(201);
+  });
+
+  test("returns image with sortOrder 0 (hero)", function() {
+    expect(res.body.sortOrder).to.equal(0);
+  });
+
+  test("cdnUrl is set", function() {
+    expect(res.body.cdnUrl).to.be.a("string");
+  });
+}

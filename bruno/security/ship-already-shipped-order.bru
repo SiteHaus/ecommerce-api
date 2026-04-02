@@ -1,0 +1,27 @@
+meta {
+  name: Security — Ship already-shipped order (race condition guard)
+  type: http
+  seq: 5
+}
+
+patch {
+  url: {{baseUrl}}/v1/admin/orders/{{orderId}}/ship
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+body:json {
+  {
+    "trackingNumber": "DUPLICATE-SHIP-ATTEMPT"
+  }
+}
+
+tests {
+  test("status is 400 (already shipped)", function() {
+    expect(res.status).to.equal(400);
+  });
+}
