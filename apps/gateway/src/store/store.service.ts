@@ -1,6 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
 import type { ResolvedStore } from "@sitehaus-ecom/auth";
-import { and, eq, storesTable, type Db } from "@sitehaus-ecom/database";
+import { and, eq, storesTable, isNotNull, type Db } from "@sitehaus-ecom/database";
 import { DB_TOKEN } from "@sitehaus-ecom/shared";
 import type { CreateStoreDto, UpdateStoreDto } from "@sitehaus-ecom/validation";
 import type { Redis } from "ioredis";
@@ -106,6 +106,17 @@ export class StoreService {
     const keys = [`store:slug:${slug}`];
     if (domain) keys.push(`store:domain:${domain}`);
     await this.redis.del(...keys);
+  }
+
+  async getActiveStoreDomains(): Promise<string[]> {
+    const rows = await this.db
+      .select({ domain: storesTable.domain })
+      .from(storesTable)
+      .where(and(eq(storesTable.isActive, true), isNotNull(storesTable.domain)));
+
+    return rows
+      .map((r) => r.domain as string)
+      .flatMap((domain) => [`https://${domain}`, `https://www.${domain}`]);
   }
 }
 

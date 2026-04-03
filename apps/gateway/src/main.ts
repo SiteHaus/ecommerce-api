@@ -9,6 +9,7 @@ import helmet from "helmet";
 import "reflect-metadata";
 import { toJSONSchema } from "zod";
 import { AppModule } from "./app.module";
+import { StoreService } from "./store/store.service";
 
 function zodV4SchemaTransformer({
   schema,
@@ -55,8 +56,15 @@ async function bootstrap() {
   // All routes are versioned: /v1/...
   app.enableVersioning({ type: VersioningType.URI });
 
-  // TODO SIT-70: load allowed origins from store domains at startup
-  app.enableCors({ origin: true, credentials: true });
+  const storeService = app.get(StoreService);
+  const storeDomains = await storeService.getActiveStoreDomains();
+  const allowedOrigins = [
+    "https://dashboard.sitehaus.dev",
+    "https://commerce.sitehaus.dev",
+    "https://iam.sitehaus.dev",
+    ...storeDomains,
+  ];
+  app.enableCors({ origin: allowedOrigins, credentials: true });
 
   // Swagger — spec generated from ts-rest contracts (internal/admin use only)
   const document = generateOpenApi(
