@@ -1,5 +1,12 @@
 # sitehaus-commerce
 
+[![CI](https://github.com/SiteHaus/ecommerce-api/actions/workflows/ci.yml/badge.svg)](https://github.com/SiteHaus/ecommerce-api/actions/workflows/ci.yml)
+[![CD](https://github.com/SiteHaus/ecommerce-api/actions/workflows/cd.yml/badge.svg)](https://github.com/SiteHaus/ecommerce-api/actions/workflows/cd.yml)
+[![Built on SiteHaus](https://img.shields.io/badge/built_on-SiteHaus-%23FF4F00?style=flat&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0iI0ZGNEYwMCIgZD0iTTEyIDJMMiAyMmgyMEwxMiAyeiIvPjwvc3ZnPg==)](https://sitehaus.io)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![NestJS](https://img.shields.io/badge/NestJS-11-E0234E?style=flat&logo=nestjs&logoColor=white)](https://nestjs.com/)
+[![pnpm](https://img.shields.io/badge/pnpm-10-F69220?style=flat&logo=pnpm&logoColor=white)](https://pnpm.io/)
+
 Multi-tenant ecommerce API platform built on NestJS. Each store maps to a [SiteHaus](https://sitehaus.io) client. Stripe Connect handles payments direct to store owners — no platform fee taken.
 
 ## Stack
