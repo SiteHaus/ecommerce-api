@@ -71,7 +71,8 @@ jobs:
           script: |
             set -euo pipefail
             cd /srv/sitehaus-commerce
-            git pull origin ci/staging
+            git fetch origin ci/staging
+            git reset --hard origin/ci/staging
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml up -d --remove-orphans
             docker image prune -f
