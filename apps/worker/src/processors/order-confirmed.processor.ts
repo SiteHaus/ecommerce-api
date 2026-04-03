@@ -155,15 +155,15 @@ export class NotificationsProcessor extends WorkerHost {
     const html = `
       <div style="font-family:sans-serif;max-width:600px;margin:0 auto;color:#111">
         <h2 style="margin-bottom:4px">${storeName}</h2>
-        <h3 style="color:#444;font-weight:normal">Your order is ready — #${ref}</h3>
-        <p>Your order is ready for pickup!</p>
+        <h3 style="color:#444;font-weight:normal">Your order has shipped! — #${ref}</h3>
+        <p>Your order is on its way.</p>
         ${trackingSection}
       </div>
     `;
 
     await this.email.send({
       to: order.email,
-      subject: `Your order is ready — #${ref}`,
+      subject: "Your order has shipped!",
       html,
     });
 

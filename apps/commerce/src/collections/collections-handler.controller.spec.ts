@@ -197,7 +197,7 @@ describe("CollectionsHandlerController", () => {
     it("calls service.list with storeId", async () => {
       mockService.list.mockResolvedValue([collectionRow]);
 
-      await controller.list({ storeId: STORE_ID }); // ← fix
+      await controller.list({ storeId: STORE_ID });
 
       expect(mockService.list).toHaveBeenCalledWith(STORE_ID);
     });
@@ -205,7 +205,7 @@ describe("CollectionsHandlerController", () => {
     it("returns the service result unchanged", async () => {
       mockService.list.mockResolvedValue([collectionRow]);
 
-      const result = await controller.list({ storeId: STORE_ID }); // ← fix
+      const result = await controller.list({ storeId: STORE_ID });
 
       expect(result).toEqual([collectionRow]);
     });
@@ -216,7 +216,7 @@ describe("CollectionsHandlerController", () => {
     it("calls service.getCollection with storeId and slug", async () => {
       mockService.getCollection.mockResolvedValue(collectionRow);
 
-      await controller.getCollection({ storeId: STORE_ID, slug: "summer-sale" }); // ← fix
+      await controller.getCollection({ storeId: STORE_ID, slug: "summer-sale" });
 
       expect(mockService.getCollection).toHaveBeenCalledWith(STORE_ID, "summer-sale");
     });
@@ -224,7 +224,7 @@ describe("CollectionsHandlerController", () => {
     it("returns the service result unchanged", async () => {
       mockService.getCollection.mockResolvedValue(collectionRow);
 
-      const result = await controller.getCollection({ storeId: STORE_ID, slug: "summer-sale" }); // ← fix
+      const result = await controller.getCollection({ storeId: STORE_ID, slug: "summer-sale" });
 
       expect(result).toEqual(collectionRow);
     });
