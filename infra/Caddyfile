@@ -1,0 +1,3 @@
+api.sitehaus-commerce.dev {
+    reverse_proxy gateway:7020
+}
