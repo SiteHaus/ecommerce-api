@@ -65,7 +65,7 @@ services:
           memory: 512M
 
   commerce:
-    image: ghcr.io/sitehaus/sitehaus-commerce-storefront:latest
+    image: ghcr.io/sitehaus/sitehaus-commerce-commerce:latest
     restart: always
     networks:
       - sitehaus-commerce-network
