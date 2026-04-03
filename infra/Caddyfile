@@ -1,3 +1,7 @@
 api.commerce.sitehaus.dev {
     reverse_proxy gateway:7020
 }
+
+api.staging.commerce.sitehaus.dev {
+    reverse_proxy gateway:7020
+}
