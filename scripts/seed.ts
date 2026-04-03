@@ -47,7 +47,7 @@ if (!DATABASE_URL) {
 // ── seed data ─────────────────────────────────────────────────────────────────
 
 const STORE_ID = "00000000-0000-4000-8000-000000000001";
-const CLIENT_ID = "a43e7247-3aae-4477-ae5e-2c7a883f7e8b"; // fake SiteHaus clientId
+const CLIENT_ID = process.env.SEED_CLIENT_ID ?? "00000000-0000-0000-0000-000000000000";
 const STRIPE_ACCOUNT_ID = process.env.SEED_STRIPE_ACCOUNT_ID ?? "";
 
 const products = [
