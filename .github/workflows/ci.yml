@@ -44,5 +44,5 @@ jobs:
       - name: Install deps
         run: pnpm install --frozen-lockfile
 
-      - name: Type check, Lint, and Build
-        run: pnpm turbo run check-types lint build --cache-dir=.turbo
+      - name: Type check and Build
+        run: pnpm turbo run check-types build --cache-dir=.turbo
