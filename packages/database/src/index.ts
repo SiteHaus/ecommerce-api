@@ -23,6 +23,7 @@ export {
   gte,
   ilike,
   inArray,
+  notInArray,
   isNotNull,
   isNull,
   like,
