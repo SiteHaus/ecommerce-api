@@ -86,7 +86,7 @@ export class CollectionsAdminController {
           storeId: req.store!.id,
         }),
       );
-      return { status: 200 as const, body: result };
+      return { status: 200 as const, body: { collections: result } };
     });
   }
   @TsRestHandler(contract.collection.getCollection)

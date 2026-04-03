@@ -29,7 +29,7 @@ export class CollectionsHandlerController {
     return this.collectionService.delete(data);
   }
 
-  @MessagePattern("catalog.collections.addProduct")
+  @MessagePattern("catalog.collections.verify")
   addProduct(@Payload() data: VerifyProductDto & { storeId: string; collectionId: string }) {
     return this.collectionService.verify(data);
   }
@@ -40,12 +40,12 @@ export class CollectionsHandlerController {
   }
 
   @MessagePattern("catalog.collections.list")
-  list(storeId: string) {
-    return this.collectionService.list(storeId);
+  list(@Payload() data: { storeId: string }) {
+    return this.collectionService.list(data.storeId);
   }
 
   @MessagePattern("catalog.collections.getCollection")
-  getCollection(storeId: string, slug: string) {
-    return this.collectionService.getCollection(storeId, slug);
+  getCollection(@Payload() data: { storeId: string; slug: string }) {
+    return this.collectionService.getCollection(data.storeId, data.slug);
   }
 }
