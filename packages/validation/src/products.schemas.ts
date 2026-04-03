@@ -14,9 +14,7 @@ export const createProductSchema = z.object({
   goesLiveAt: z.string().datetime({ offset: true }).nullable().optional(),
 });
 
-export const updateProductSchema = createProductSchema.partial().extend({
-  id: z.uuid(),
-});
+export const updateProductSchema = createProductSchema.partial();
 export const adminQueryParams = z.object({
   status: StatusEnum.optional(),
   limit: z.coerce.number().int().min(1).max(100).default(20),
