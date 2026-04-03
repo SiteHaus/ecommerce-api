@@ -32,6 +32,7 @@ export {
   ne,
   or,
   sql,
+  max,
 } from "drizzle-orm";
 
 import { drizzle, NodePgDatabase } from "drizzle-orm/node-postgres";

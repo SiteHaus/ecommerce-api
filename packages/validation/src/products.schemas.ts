@@ -14,8 +14,9 @@ export const createProductSchema = z.object({
   goesLiveAt: z.string().datetime({ offset: true }).nullable().optional(),
 });
 
-export const updateProductSchema = createProductSchema.partial();
-
+export const updateProductSchema = createProductSchema.partial().extend({
+  id: z.uuid(),
+});
 export const adminQueryParams = z.object({
   status: StatusEnum.optional(),
   limit: z.coerce.number().int().min(1).max(100).default(20),
@@ -81,6 +82,12 @@ export const deleteProductResponse = z.object({
 });
 
 export type CreateProductDto = z.infer<typeof createProductSchema>;
-export type UpdateProductDto = z.infer<typeof updateProductSchema>;
+export type UpdateProductDto = {
+  id: string;
+  name?: string;
+  description?: string | null;
+  status?: "draft" | "active" | "archived";
+  goesLiveAt?: string | null;
+};
 export type AdminQueryParams = z.infer<typeof adminQueryParams>;
 export type PublicQueryParams = z.infer<typeof publicQueryParams>;
