@@ -47,6 +47,11 @@ async function bootstrap() {
   app.use(helmet());
   app.use(cookieParser());
 
+  // Health check — used by Docker and load balancers
+  app.use("/health", (_req: unknown, res: { json: (body: unknown) => void }) => {
+    res.json({ status: "ok" });
+  });
+
   // All routes are versioned: /v1/...
   app.enableVersioning({ type: VersioningType.URI });
 

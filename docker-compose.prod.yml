@@ -71,12 +71,6 @@ services:
       - sitehaus-commerce-network
     env_file:
       - ./apps/commerce/.env
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 15s
     depends_on:
       postgres:
         condition: service_healthy
@@ -95,12 +89,6 @@ services:
       - sitehaus-commerce-network
     env_file:
       - ./apps/payments/.env
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 15s
     depends_on:
       postgres:
         condition: service_healthy
@@ -119,12 +107,6 @@ services:
       - sitehaus-commerce-network
     env_file:
       - ./apps/worker/.env
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 15s
     depends_on:
       postgres:
         condition: service_healthy
@@ -152,12 +134,6 @@ services:
       - .env
     depends_on:
       gateway:
-        condition: service_healthy
-      commerce:
-        condition: service_healthy
-      payments:
-        condition: service_healthy
-      worker:
         condition: service_healthy
     deploy:
       resources:
