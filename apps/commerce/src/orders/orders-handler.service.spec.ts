@@ -378,10 +378,11 @@ describe("OrdersHandlerService", () => {
 
       await service.ship({ storeId: STORE_ID, orderId: ORDER_ID, trackingNumber: "1Z999AA1" });
 
-      expect(mockQueue.add).toHaveBeenCalledWith("order.shipped", {
-        orderId: ORDER_ID,
-        storeId: STORE_ID,
-      });
+      expect(mockQueue.add).toHaveBeenCalledWith(
+        "order.shipped",
+        { orderId: ORDER_ID, storeId: STORE_ID },
+        expect.objectContaining({ attempts: 3 }),
+      );
     });
 
     it("throws RpcException 404 when order not found", async () => {

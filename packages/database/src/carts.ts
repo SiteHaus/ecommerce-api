@@ -1,12 +1,5 @@
 import { sql } from "drizzle-orm";
-import {
-  index,
-  pgTable,
-  timestamp,
-  uniqueIndex,
-  uuid,
-  varchar,
-} from "drizzle-orm/pg-core";
+import { index, pgTable, timestamp, uniqueIndex, uuid, varchar } from "drizzle-orm/pg-core";
 import { storesTable } from "./stores.js";
 
 export const cartsTable = pgTable(
@@ -19,9 +12,7 @@ export const cartsTable = pgTable(
     sessionToken: varchar("session_token", { length: 128 }), // anonymous cart identifier
     userId: uuid("user_id"), // SiteHaus userId if authenticated
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow()

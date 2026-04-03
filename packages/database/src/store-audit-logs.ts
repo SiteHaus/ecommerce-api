@@ -1,11 +1,4 @@
-import {
-  index,
-  jsonb,
-  pgTable,
-  timestamp,
-  uuid,
-  varchar,
-} from "drizzle-orm/pg-core";
+import { index, jsonb, pgTable, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 import { storesTable } from "./stores.js";
 
 export const storeAuditLogsTable = pgTable(
@@ -20,9 +13,7 @@ export const storeAuditLogsTable = pgTable(
     targetType: varchar("target_type", { length: 32 }),
     targetId: uuid("target_id"),
     meta: jsonb("meta"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     index("store_audit_store_idx").on(t.storeId),

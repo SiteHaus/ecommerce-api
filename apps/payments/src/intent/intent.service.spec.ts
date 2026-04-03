@@ -94,7 +94,7 @@ describe("IntentService", () => {
       expect(mockSessionsCreate).toHaveBeenCalledWith(
         expect.objectContaining({
           mode: "payment",
-          success_url: SUCCESS_URL,
+          success_url: `${SUCCESS_URL}?orderId=${ORDER_ID}`,
           cancel_url: CANCEL_URL,
           metadata: expect.objectContaining({ orderId: ORDER_ID }),
         }),

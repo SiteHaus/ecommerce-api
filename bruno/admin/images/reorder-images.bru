@@ -1,0 +1,33 @@
+meta {
+  name: Reorder Images
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}/v1/admin/products/{{variantVitC90ProductId}}/images/reorder
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+body:json {
+  {
+    "items": [
+      { "imageId": "{{imageId}}", "sortOrder": 0 }
+    ]
+  }
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("returns image list", function() {
+    expect(res.body).to.be.an("array");
+  });
+}

@@ -1,8 +1,8 @@
-import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { S3Client, DeleteObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { PutObjectCommand } from '@aws-sdk/client-s3';
+import { Injectable } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { S3Client, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
 
 @Injectable()
 export class R2Service {
@@ -11,16 +11,16 @@ export class R2Service {
   private readonly cdnUrl: string;
 
   constructor(private readonly config: ConfigService) {
-    const accountId = config.getOrThrow('R2_ACCOUNT_ID');
-    this.bucket = config.getOrThrow('R2_BUCKET_NAME');
-    this.cdnUrl = config.getOrThrow('R2_CDN_URL');
+    const accountId = config.getOrThrow("R2_ACCOUNT_ID");
+    this.bucket = config.getOrThrow("R2_BUCKET_NAME");
+    this.cdnUrl = config.getOrThrow("R2_CDN_URL");
 
     this.client = new S3Client({
       endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
-      region: 'auto',
+      region: "auto",
       credentials: {
-        accessKeyId: config.getOrThrow('R2_ACCESS_KEY_ID'),
-        secretAccessKey: config.getOrThrow('R2_SECRET_ACCESS_KEY'),
+        accessKeyId: config.getOrThrow("R2_ACCESS_KEY_ID"),
+        secretAccessKey: config.getOrThrow("R2_SECRET_ACCESS_KEY"),
       },
     });
   }
@@ -42,9 +42,7 @@ export class R2Service {
   }
 
   async delete(key: string): Promise<void> {
-    await this.client.send(
-      new DeleteObjectCommand({ Bucket: this.bucket, Key: key }),
-    );
+    await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }));
   }
 
   cdnUrlFor(key: string): string {

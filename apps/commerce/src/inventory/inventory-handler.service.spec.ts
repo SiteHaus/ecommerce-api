@@ -96,7 +96,7 @@ describe("InventoryHandlerService", () => {
         available: 90,
         allowBackorder: false,
         reservationTtlMinutes: 30,
-        updatedAt: invRow.updatedAt,
+        updatedAt: invRow.updatedAt.toISOString(),
       });
     });
 
@@ -147,7 +147,7 @@ describe("InventoryHandlerService", () => {
         available: 190,
         allowBackorder: false,
         reservationTtlMinutes: 30,
-        updatedAt: updatedRow.updatedAt,
+        updatedAt: updatedRow.updatedAt.toISOString(),
       });
     });
 

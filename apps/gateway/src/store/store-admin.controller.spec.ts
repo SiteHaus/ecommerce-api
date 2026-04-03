@@ -109,14 +109,11 @@ describe("StoreAdminController", () => {
         .post("/v1/admin/stores/connect-stripe")
         .send({ returnUrl: "https://example.com/return" });
 
-      expect(mockPaymentsClient.send).toHaveBeenCalledWith(
-        "stripe.connect.initiate",
-        {
-          storeId: mockStore.id,
-          stripeAccountId: null,
-          returnUrl: "https://example.com/return",
-        },
-      );
+      expect(mockPaymentsClient.send).toHaveBeenCalledWith("stripe.connect.initiate", {
+        storeId: mockStore.id,
+        stripeAccountId: null,
+        returnUrl: "https://example.com/return",
+      });
     });
 
     it("passes null stripeAccountId (not undefined) when store has no account", async () => {
@@ -152,9 +149,7 @@ describe("StoreAdminController", () => {
     it("returns connected: true when stripeAccountId is set", async () => {
       currentStore = { ...mockStore, stripeAccountId: "acct_123" };
 
-      const res = await request(app.getHttpServer()).get(
-        "/v1/admin/stores/stripe-status",
-      );
+      const res = await request(app.getHttpServer()).get("/v1/admin/stores/stripe-status");
 
       expect(res.status).toBe(200);
       expect(res.body.connected).toBe(true);
@@ -163,9 +158,7 @@ describe("StoreAdminController", () => {
     it("returns connected: false when stripeAccountId is null", async () => {
       currentStore = { ...mockStore, stripeAccountId: null };
 
-      const res = await request(app.getHttpServer()).get(
-        "/v1/admin/stores/stripe-status",
-      );
+      const res = await request(app.getHttpServer()).get("/v1/admin/stores/stripe-status");
 
       expect(res.status).toBe(200);
       expect(res.body.connected).toBe(false);
@@ -180,9 +173,7 @@ describe("StoreAdminController", () => {
         stripeDetailsSubmitted: true,
       };
 
-      const res = await request(app.getHttpServer()).get(
-        "/v1/admin/stores/stripe-status",
-      );
+      const res = await request(app.getHttpServer()).get("/v1/admin/stores/stripe-status");
 
       expect(res.body).toEqual({
         connected: true,
@@ -201,9 +192,7 @@ describe("StoreAdminController", () => {
         stripeDetailsSubmitted: true,
       };
 
-      const res = await request(app.getHttpServer()).get(
-        "/v1/admin/stores/stripe-status",
-      );
+      const res = await request(app.getHttpServer()).get("/v1/admin/stores/stripe-status");
 
       expect(res.body.chargesEnabled).toBe(true);
       expect(res.body.payoutsEnabled).toBe(false);

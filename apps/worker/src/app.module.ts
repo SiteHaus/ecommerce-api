@@ -5,8 +5,7 @@ import { DbModule, EmailModule, AuditModule } from "@sitehaus-ecom/shared";
 import { validateWorkerEnv } from "./config/env";
 import { ReservationExpireProcessor } from "./processors/reservation-expire.processor";
 import { CartExpireProcessor } from "./processors/cart-expire.processor";
-import { OrderConfirmedProcessor } from "./processors/order-confirmed.processor";
-import { OrderShippedProcessor } from "./processors/order-shipped.processor";
+import { NotificationsProcessor } from "./processors/order-confirmed.processor";
 
 @Module({
   imports: [
@@ -30,11 +29,6 @@ import { OrderShippedProcessor } from "./processors/order-shipped.processor";
       { name: "ecom-notifications" },
     ),
   ],
-  providers: [
-    ReservationExpireProcessor,
-    CartExpireProcessor,
-    OrderConfirmedProcessor,
-    OrderShippedProcessor,
-  ],
+  providers: [ReservationExpireProcessor, CartExpireProcessor, NotificationsProcessor],
 })
 export class AppModule {}

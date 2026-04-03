@@ -18,9 +18,7 @@ export const reservationsTable = pgTable(
       .references(() => storesTable.id, { onDelete: "cascade" }),
     quantity: integer("quantity").notNull().default(1),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     index("reservations_variant_idx").on(t.variantId),

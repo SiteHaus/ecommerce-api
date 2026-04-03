@@ -1,4 +1,5 @@
 import { Controller, Inject, Req } from "@nestjs/common";
+import { Throttle } from "@nestjs/throttler";
 import { ClientProxy } from "@nestjs/microservices";
 import { contract } from "@sitehaus-ecom/contracts";
 import { Public } from "@sitehaus/client-sdk/nestjs";
@@ -42,6 +43,7 @@ export class CartController {
     });
   }
 
+  @Throttle({ mutation: { ttl: 60_000, limit: 30 } })
   @TsRestHandler(contract.cart.addItem)
   addItem(@Req() req: Request) {
     return tsRestHandler(contract.cart.addItem, async ({ body }) => {
@@ -53,6 +55,7 @@ export class CartController {
     });
   }
 
+  @Throttle({ mutation: { ttl: 60_000, limit: 30 } })
   @TsRestHandler(contract.cart.updateItem)
   updateItem(@Req() req: Request) {
     return tsRestHandler(contract.cart.updateItem, async ({ params, body }) => {
@@ -68,6 +71,7 @@ export class CartController {
     });
   }
 
+  @Throttle({ mutation: { ttl: 60_000, limit: 30 } })
   @TsRestHandler(contract.cart.removeItem)
   removeItem(@Req() req: Request) {
     return tsRestHandler(contract.cart.removeItem, async ({ params }) => {

@@ -6,10 +6,14 @@ meta {
 
 post {
   url: {{baseUrl}}/v1/admin/orders/{{orderId}}/refund
-  body: none
+  body: json
   auth: bearer
 }
 
 auth:bearer {
   token: {{adminToken}}
+}
+
+body:json {
+  {}
 }

@@ -71,6 +71,7 @@ export class WebhookService {
     await this.reservations.commit(orderId);
 
     const taxCents = session.total_details?.amount_tax ?? 0;
+    const customerEmail = session.customer_details?.email;
     await this.db
       .update(ordersTable)
       .set({
@@ -79,6 +80,10 @@ export class WebhookService {
         updatedAt: new Date(),
         taxCents,
         totalCents: order.subtotalCents + order.shippingCents + taxCents,
+        ...(customerEmail && !order.email ? { email: customerEmail } : {}),
+        ...(session.payment_intent
+          ? { stripePaymentIntentId: session.payment_intent as string }
+          : {}),
       })
       .where(eq(ordersTable.id, orderId));
 

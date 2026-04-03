@@ -1,4 +1,5 @@
 import { Controller, Headers, Inject, Post, RawBodyRequest, Req, Res } from "@nestjs/common";
+import { Throttle } from "@nestjs/throttler";
 import { ClientProxy } from "@nestjs/microservices";
 import { contract } from "@sitehaus-ecom/contracts";
 import { Public } from "@sitehaus/client-sdk/nestjs";
@@ -14,6 +15,7 @@ export class CheckoutController {
     @Inject("PAYMENTS_SERVICE") private readonly payments: ClientProxy,
   ) {}
 
+  @Throttle({ mutation: { ttl: 60_000, limit: 5 } })
   @TsRestHandler(contract.checkout.createIntent)
   createIntent(@Req() req: Request) {
     return tsRestHandler(contract.checkout.createIntent, async ({ body }) => {
@@ -27,13 +29,13 @@ export class CheckoutController {
           sessionToken,
           userId,
           email: body.email,
-          shippingName: body.address.name,
-          shippingLine1: body.address.line1,
-          shippingLine2: body.address.line2,
-          shippingCity: body.address.city,
-          shippingState: body.address.state,
-          shippingZip: body.address.zip,
-          shippingCountry: body.address.country,
+          shippingName: body.address?.name,
+          shippingLine1: body.address?.line1,
+          shippingLine2: body.address?.line2,
+          shippingCity: body.address?.city,
+          shippingState: body.address?.state,
+          shippingZip: body.address?.zip,
+          shippingCountry: body.address?.country,
         }),
       );
 

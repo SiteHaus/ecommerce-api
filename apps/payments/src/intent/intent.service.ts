@@ -56,7 +56,7 @@ export class IntentService {
     try {
       session = await this.stripe.checkout.sessions.create({
         mode: "payment",
-        customer_email: order.email,
+        ...(order.email ? { customer_email: order.email } : {}),
         line_items: items.map((item) => ({
           price_data: {
             currency: order.currency,
@@ -74,7 +74,7 @@ export class IntentService {
         },
         metadata: { orderId: order.id, storeId: order.storeId, ...(cartId ? { cartId } : {}) },
         automatic_tax: { enabled: true },
-        success_url: successUrl,
+        success_url: `${successUrl}?orderId=${orderId}`,
         cancel_url: cancelUrl,
       });
     } catch (err: any) {
@@ -86,7 +86,7 @@ export class IntentService {
 
     await this.db
       .update(ordersTable)
-      .set({ stripePaymentIntentId: session.id, updatedAt: new Date() })
+      .set({ stripePaymentIntentId: session.payment_intent as string, updatedAt: new Date() })
       .where(eq(ordersTable.id, orderId));
 
     return { checkoutUrl: session.url! };

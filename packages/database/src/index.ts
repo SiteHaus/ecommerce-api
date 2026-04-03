@@ -23,6 +23,7 @@ export {
   gte,
   ilike,
   inArray,
+  notInArray,
   isNotNull,
   isNull,
   like,
@@ -31,6 +32,7 @@ export {
   ne,
   or,
   sql,
+  max,
 } from "drizzle-orm";
 
 import { drizzle, NodePgDatabase } from "drizzle-orm/node-postgres";

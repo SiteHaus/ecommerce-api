@@ -1,0 +1,31 @@
+meta {
+  name: Security — Adjust inventory below reserved count
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}/v1/admin/inventory/{{variantVitC90}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+body:json {
+  {
+    "stock": 0
+  }
+}
+
+tests {
+  test("status is 400", function() {
+    expect(res.status).to.equal(400);
+  });
+
+  test("error message mentions reserved count", function() {
+    expect(res.body.message).to.be.a("string");
+  });
+}

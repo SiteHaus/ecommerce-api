@@ -1,0 +1,28 @@
+meta {
+  name: List Public Products
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/v1/catalog/products
+  body: none
+  auth: none
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("returns paginated list", function() {
+    expect(res.body.items).to.be.an("array");
+    expect(res.body.total).to.be.a("number");
+  });
+
+  test("no draft products exposed", function() {
+    res.body.items.forEach(function(p) {
+      expect(p.status).to.equal("active");
+    });
+  });
+}

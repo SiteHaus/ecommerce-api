@@ -1,0 +1,43 @@
+meta {
+  name: Get Image Upload URL
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/v1/admin/products/{{variantVitC90ProductId}}/images/upload-url
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+body:json {
+  {
+    "contentType": "image/jpeg"
+  }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    bru.setEnvVar("uploadKey", res.body.key);
+    bru.setEnvVar("uploadUrl", res.body.url);
+  }
+}
+
+tests {
+  test("status is 201", function() {
+    expect(res.status).to.equal(201);
+  });
+
+  test("returns presigned url and key", function() {
+    expect(res.body.url).to.be.a("string");
+    expect(res.body.key).to.be.a("string");
+  });
+
+  test("key is scoped to correct store and product", function() {
+    expect(res.body.key).to.include("products/" + bru.getEnvVar("variantVitC90ProductId"));
+  });
+}

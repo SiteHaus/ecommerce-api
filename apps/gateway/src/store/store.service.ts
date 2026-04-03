@@ -24,9 +24,7 @@ export class StoreService {
     const [row] = await this.db
       .select()
       .from(storesTable)
-      .where(
-        and(eq(storesTable.domain, domain), eq(storesTable.isActive, true)),
-      )
+      .where(and(eq(storesTable.domain, domain), eq(storesTable.isActive, true)))
       .limit(1);
 
     if (!row) return null;
@@ -56,9 +54,7 @@ export class StoreService {
     const [row] = await this.db
       .select()
       .from(storesTable)
-      .where(
-        and(eq(storesTable.clientId, clientId), eq(storesTable.isActive, true)),
-      )
+      .where(and(eq(storesTable.clientId, clientId), eq(storesTable.isActive, true)))
       .limit(1);
 
     return row ? toContext(row) : null;

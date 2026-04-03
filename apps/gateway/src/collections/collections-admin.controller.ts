@@ -29,7 +29,7 @@ export class CollectionsAdminController {
     return tsRestHandler(contract.collection.updateCollection, async ({ params, body }) => {
       const result = await firstValueFrom(
         this.commerce.send("catalog.collections.update", {
-          collectionId: params.collectionId,
+          collectionId: params.id,
           storeId: req.store!.id,
           ...body,
         }),
@@ -86,7 +86,7 @@ export class CollectionsAdminController {
           storeId: req.store!.id,
         }),
       );
-      return { status: 200 as const, body: result };
+      return { status: 200 as const, body: { collections: result } };
     });
   }
   @TsRestHandler(contract.collection.getCollection)

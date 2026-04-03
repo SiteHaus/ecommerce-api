@@ -107,7 +107,11 @@ export class ImagesHandlerService {
 
     await this.r2.delete(image.r2Key);
 
-    await this.db.delete(productImagesTable).where(eq(productImagesTable.id, data.imageId));
+    await this.db
+      .delete(productImagesTable)
+      .where(
+        and(eq(productImagesTable.id, data.imageId), eq(productImagesTable.storeId, data.storeId)),
+      );
 
     // if hero image was deleted, shift remaining down
     if (image.sortOrder === 0) {
@@ -147,6 +151,7 @@ export class ImagesHandlerService {
             and(
               eq(productImagesTable.id, item.imageId),
               eq(productImagesTable.productId, data.productId),
+              eq(productImagesTable.storeId, data.storeId),
             ),
           );
       }

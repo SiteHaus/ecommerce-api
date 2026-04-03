@@ -1,6 +1,6 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { DB_TOKEN, EmailService } from "@sitehaus-ecom/shared";
-import { OrderShippedProcessor } from "./order-shipped.processor";
+import { NotificationsProcessor as OrderShippedProcessor } from "./order-confirmed.processor";
 
 const ORDER_ID = "aaaaaaaa-0000-4000-8000-000000000001";
 const STORE_ID = "aaaaaaaa-0000-4000-8000-000000000002";
@@ -50,8 +50,8 @@ describe("OrderShippedProcessor", () => {
 
   afterEach(() => jest.clearAllMocks());
 
-  it("ignores jobs that are not order.shipped", async () => {
-    await processor.process({ name: "order.confirmed", data: {} } as any);
+  it("ignores unknown job names", async () => {
+    await processor.process({ name: "order.unknown", data: {} } as any);
 
     expect(db.query.ordersTable.findFirst).not.toHaveBeenCalled();
     expect(mockSend).not.toHaveBeenCalled();
