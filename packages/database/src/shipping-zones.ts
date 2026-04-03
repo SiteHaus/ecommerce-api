@@ -1,12 +1,4 @@
-import {
-  index,
-  integer,
-  jsonb,
-  pgTable,
-  text,
-  timestamp,
-  uuid,
-} from "drizzle-orm/pg-core";
+import { index, integer, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { storesTable } from "./stores.js";
 
 export const shippingZonesTable = pgTable(
@@ -19,9 +11,7 @@ export const shippingZonesTable = pgTable(
     name: text("name").notNull(), // e.g. "Domestic", "International"
     countries: jsonb("countries").$type<string[]>(), // ISO country codes; null = everywhere
     sortOrder: integer("sort_order").notNull().default(0),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("shipping_zones_store_idx").on(t.storeId)],
 );

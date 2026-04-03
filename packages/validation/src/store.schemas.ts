@@ -4,10 +4,7 @@ const slugSchema = z
   .string()
   .min(1)
   .max(64)
-  .regex(
-    /^[a-z0-9-]+$/,
-    "slug may only contain lowercase letters, numbers, and hyphens",
-  );
+  .regex(/^[a-z0-9-]+$/, "slug may only contain lowercase letters, numbers, and hyphens");
 
 export const createStoreSchema = z.object({
   name: z.string().min(1),

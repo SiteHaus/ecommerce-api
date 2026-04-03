@@ -151,8 +151,7 @@ export class ProductsController {
         storeId: req.store!.id,
         userId: req.user!.userId,
       });
-      if ("error" in result)
-        return { status: 422 as const, body: { message: result.error } };
+      if ("error" in result) return { status: 422 as const, body: { message: result.error } };
       return { status: 201 as const, body: { product: result } };
     });
   }
@@ -161,12 +160,8 @@ export class ProductsController {
   @TsRestHandler(contract.catalog.get)
   async get(@Req() req: AuthedRequest) {
     return tsRestHandler(contract.catalog.get, async ({ params }) => {
-      const product = await this.products.getById(
-        params.productId,
-        req.store!.id,
-      );
-      if (!product)
-        return { status: 404 as const, body: { message: "Product not found" } };
+      const product = await this.products.getById(params.productId, req.store!.id);
+      if (!product) return { status: 404 as const, body: { message: "Product not found" } };
       return { status: 200 as const, body: { product } };
     });
   }
@@ -239,10 +234,7 @@ Every query on a store-owned table **must** include a `storeId` condition. No ex
 
 ```typescript
 // ✅
-where: and(
-  eq(schema.productsTable.id, id),
-  eq(schema.productsTable.storeId, storeId),
-);
+where: and(eq(schema.productsTable.id, id), eq(schema.productsTable.storeId, storeId));
 
 // ❌ — data leak across stores
 where: eq(schema.productsTable.id, id);
@@ -369,10 +361,7 @@ Comment **why**, not **what**.
 ```typescript
 // ✅ — explains a non-obvious constraint
 // storeId is denormalised on variants for query performance — always filter by it
-where: and(
-  eq(schema.variantsTable.id, id),
-  eq(schema.variantsTable.storeId, storeId),
-);
+where: and(eq(schema.variantsTable.id, id), eq(schema.variantsTable.storeId, storeId));
 
 // ❌ — restates the code
 // Get variant by ID

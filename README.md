@@ -51,18 +51,18 @@ Three processes, one database:
 
 ## Packages
 
-| Package | Description |
-|---|---|
-| `@sitehaus-ecom/database` | Drizzle schema + typed DB client |
-| `@sitehaus-ecom/validation` | Zod schemas for all inputs and enums |
-| `@sitehaus-ecom/contracts` | ts-rest API contracts (gateway ↔ clients) |
-| `@sitehaus-ecom/auth` | Store resolution, IAM guards, anon session |
-| `@sitehaus-ecom/shared` | DB, Redis, R2, Email, Audit modules |
-| `@sitehaus-ecom/catalog` | Products, variants, collections, images |
-| `@sitehaus-ecom/inventory` | Stock levels, atomic reservations |
-| `@sitehaus-ecom/orders` | Carts, orders, shipping zones/rates |
-| `@sitehaus-ecom/checkout` | Stripe Connect, payment intents, webhooks |
-| `@sitehaus-ecom/typescript-config` | Shared tsconfig presets |
+| Package                            | Description                                |
+| ---------------------------------- | ------------------------------------------ |
+| `@sitehaus-ecom/database`          | Drizzle schema + typed DB client           |
+| `@sitehaus-ecom/validation`        | Zod schemas for all inputs and enums       |
+| `@sitehaus-ecom/contracts`         | ts-rest API contracts (gateway ↔ clients)  |
+| `@sitehaus-ecom/auth`              | Store resolution, IAM guards, anon session |
+| `@sitehaus-ecom/shared`            | DB, Redis, R2, Email, Audit modules        |
+| `@sitehaus-ecom/catalog`           | Products, variants, collections, images    |
+| `@sitehaus-ecom/inventory`         | Stock levels, atomic reservations          |
+| `@sitehaus-ecom/orders`            | Carts, orders, shipping zones/rates        |
+| `@sitehaus-ecom/checkout`          | Stripe Connect, payment intents, webhooks  |
+| `@sitehaus-ecom/typescript-config` | Shared tsconfig presets                    |
 
 ## Getting started
 
@@ -92,14 +92,14 @@ pnpm dev
 
 ## Ports
 
-| Service | Port | Protocol |
-|---|---|---|
-| Gateway | 7020 | HTTP |
-| Commerce | 7021 | TCP |
-| Payments | 7022 | TCP |
-| PostgreSQL | 5432 | — |
-| Redis | 6379 | — |
-| RedisInsight | 5540 | HTTP |
+| Service      | Port | Protocol |
+| ------------ | ---- | -------- |
+| Gateway      | 7020 | HTTP     |
+| Commerce     | 7021 | TCP      |
+| Payments     | 7022 | TCP      |
+| PostgreSQL   | 5432 | —        |
+| Redis        | 6379 | —        |
+| RedisInsight | 5540 | HTTP     |
 
 ## Contributing
 

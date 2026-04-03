@@ -1,9 +1,7 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 const envSchema = z.object({
-  NODE_ENV: z
-    .enum(['development', 'production', 'test'])
-    .default('development'),
+  NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
 
   DATABASE_URL: z.url(),
   DB_POOL_SIZE: z.coerce.number().int().positive().default(5),
@@ -22,8 +20,8 @@ export function validateWorkerEnv(config: Record<string, unknown>): Env {
   const result = envSchema.safeParse(config);
   if (!result.success) {
     const formatted = result.error.issues
-      .map((i) => `  ${i.path.join('.')}: ${i.message}`)
-      .join('\n');
+      .map((i) => `  ${i.path.join(".")}: ${i.message}`)
+      .join("\n");
     throw new Error(`Invalid environment variables:\n${formatted}`);
   }
   return result.data;

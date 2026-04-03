@@ -1,11 +1,4 @@
-import {
-  index,
-  integer,
-  pgTable,
-  text,
-  uuid,
-  varchar,
-} from "drizzle-orm/pg-core";
+import { index, integer, pgTable, text, uuid, varchar } from "drizzle-orm/pg-core";
 import { ordersTable } from "./orders.js";
 import { productVariantsTable } from "./product-variants.js";
 

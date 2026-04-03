@@ -1,11 +1,4 @@
-import {
-  index,
-  integer,
-  pgTable,
-  text,
-  timestamp,
-  uuid,
-} from "drizzle-orm/pg-core";
+import { index, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { shippingZonesTable } from "./shipping-zones.js";
 
 export const shippingRatesTable = pgTable(
@@ -19,9 +12,7 @@ export const shippingRatesTable = pgTable(
     rateCents: integer("rate_cents").notNull(), // 0 = free
     minOrderCents: integer("min_order_cents"), // free shipping threshold; null = always this rate
     estimatedDays: integer("estimated_days"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("shipping_rates_zone_idx").on(t.zoneId)],
 );

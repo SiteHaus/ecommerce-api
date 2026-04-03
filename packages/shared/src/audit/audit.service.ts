@@ -1,7 +1,7 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
-import { DB_TOKEN } from '../db/db.module.js';
-import { storeAuditLogsTable } from '@sitehaus-ecom/database';
-import type { Db } from '@sitehaus-ecom/database';
+import { Inject, Injectable, Logger } from "@nestjs/common";
+import { DB_TOKEN } from "../db/db.module.js";
+import { storeAuditLogsTable } from "@sitehaus-ecom/database";
+import type { Db } from "@sitehaus-ecom/database";
 
 export interface AuditEntry {
   storeId: string;
@@ -32,7 +32,7 @@ export class AuditService {
       })
       .then(() => undefined)
       .catch((err: unknown) => {
-        this.logger.error('Failed to write audit log', err);
+        this.logger.error("Failed to write audit log", err);
       });
   }
 }

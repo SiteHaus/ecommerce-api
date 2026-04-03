@@ -38,12 +38,9 @@ export const ordersTable = pgTable(
     shippingState: text("shipping_state"),
     shippingZip: text("shipping_zip"),
     shippingCountry: varchar("shipping_country", { length: 2 }),
-    shippingRateId: uuid("shipping_rate_id").references(
-      () => shippingRatesTable.id,
-      {
-        onDelete: "set null",
-      },
-    ),
+    shippingRateId: uuid("shipping_rate_id").references(() => shippingRatesTable.id, {
+      onDelete: "set null",
+    }),
     shippingCents: integer("shipping_cents").notNull().default(0),
     subtotalCents: integer("subtotal_cents").notNull(),
     taxCents: integer("tax_cents").notNull().default(0),
@@ -55,9 +52,7 @@ export const ordersTable = pgTable(
     confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
     shippedAt: timestamp("shipped_at", { withTimezone: true }),
     deliveredAt: timestamp("delivered_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow()

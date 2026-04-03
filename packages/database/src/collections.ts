@@ -21,9 +21,7 @@ export const collectionsTable = pgTable(
     description: text("description"),
     slug: varchar("slug", { length: 128 }),
     sortOrder: integer("sort_order").notNull().default(0),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     index("collections_store_idx").on(t.storeId),
