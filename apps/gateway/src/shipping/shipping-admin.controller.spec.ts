@@ -7,6 +7,7 @@ describe("ShippingAdminController", () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ShippingAdminController],
+      providers: [{ provide: "COMMERCE_SERVICE", useValue: { send: jest.fn() } }],
     }).compile();
 
     controller = module.get<ShippingAdminController>(ShippingAdminController);
