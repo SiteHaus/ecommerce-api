@@ -26,18 +26,18 @@ Multi-tenant ecommerce API platform built on NestJS. Each store maps to a [SiteH
 Three processes, one database:
 
 ```
-                  ┌─────────────────────────────┐
+                  ┌───────────────────────────────┐
   HTTP :7020      │         apps/gateway          │
-  ────────────►   │  NestJS HTTP. Routes only.   │
+  ────────────►   │  NestJS HTTP. Routes only.    │
                   │  No business logic, no keys.  │
                   └────────┬──────────┬───────────┘
                            │ TCP      │ TCP
                     :7021  ▼          ▼  :7022
-             ┌─────────────────┐  ┌──────────────────┐
-             │  apps/commerce  │  │  apps/payments   │
-             │  Catalog, cart, │  │  Stripe Connect, │
-             │  orders, stock  │  │  webhooks, refund│
-             └─────────────────┘  └──────────────────┘
+             ┌─────────────────┐  ┌───────────────────┐
+             │  apps/commerce  │  │  apps/payments    │
+             │  Catalog, cart, │  │  Stripe Connect,  │
+             │  orders, stock  │  │  webhooks, refund │
+             └─────────────────┘  └───────────────────┘
                            │              │
                            └──────┬───────┘
                                   ▼
