@@ -1,0 +1,31 @@
+meta {
+  name: Add Product to Collection
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/v1/admin/collections/{{collectionId}}/products
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+body:json {
+  {
+    "productId": "{{variantVitC90ProductId}}"
+  }
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("collection contains the product", function() {
+    expect(res.body.id).to.be.a("string");
+  });
+}

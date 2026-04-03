@@ -1,0 +1,21 @@
+meta {
+  name: Security — Customer order never exposes stripePaymentIntentId
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/v1/orders/{{orderId}}?email={{orderEmail}}
+  body: none
+  auth: none
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("stripePaymentIntentId is not in response", function() {
+    expect(res.body).to.not.have.property("stripePaymentIntentId");
+  });
+}

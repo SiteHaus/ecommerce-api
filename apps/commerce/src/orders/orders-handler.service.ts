@@ -263,10 +263,11 @@ export class OrdersHandlerService {
       throw new RpcException({ status: 400, message: "Only confirmed orders can be shipped" });
     }
 
-    void this.notificationsQueue.add("order.shipped", {
-      orderId: data.orderId,
-      storeId: data.storeId,
-    });
+    void this.notificationsQueue.add(
+      "order.shipped",
+      { orderId: data.orderId, storeId: data.storeId },
+      { attempts: 3, backoff: { type: "exponential", delay: 5000 } },
+    );
 
     void this.audit.log({
       storeId: data.storeId,

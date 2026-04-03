@@ -42,7 +42,7 @@ export class InventoryHandlerService {
       available: inv.stock - inv.reserved,
       allowBackorder: inv.allowBackorder,
       reservationTtlMinutes: store?.reservationTtlMinutes ?? 15,
-      updatedAt: inv.updatedAt,
+      updatedAt: inv.updatedAt.toISOString(),
     };
   }
 
@@ -101,7 +101,7 @@ export class InventoryHandlerService {
       available: updated.stock - updated.reserved,
       allowBackorder: updated.allowBackorder,
       reservationTtlMinutes: store?.reservationTtlMinutes ?? 15,
-      updatedAt: updated.updatedAt,
+      updatedAt: updated.updatedAt.toISOString(),
     };
   }
 }

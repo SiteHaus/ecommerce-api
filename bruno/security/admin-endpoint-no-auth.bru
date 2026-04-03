@@ -1,0 +1,17 @@
+meta {
+  name: Security — Admin endpoint without auth token
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/v1/admin/products
+  body: none
+  auth: none
+}
+
+tests {
+  test("status is 401", function() {
+    expect(res.status).to.equal(401);
+  });
+}

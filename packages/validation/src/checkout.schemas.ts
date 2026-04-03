@@ -11,8 +11,8 @@ export const checkoutAddressSchema = z.object({
 });
 
 export const checkoutIntentRequestSchema = z.object({
-  email: z.string().email("Valid email is required"),
-  address: checkoutAddressSchema,
+  email: z.string().email("Valid email is required").optional(),
+  address: checkoutAddressSchema.optional(),
   successUrl: z.string().url("Valid success URL is required"),
   cancelUrl: z.string().url("Valid cancel URL is required"),
   shippingRateId: z.string().uuid().optional(),

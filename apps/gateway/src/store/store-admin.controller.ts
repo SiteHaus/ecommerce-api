@@ -17,7 +17,7 @@ export class StoreAdminController {
   @TsRestHandler(contract.store.getMe)
   async getMe(@Req() req: Request) {
     return tsRestHandler(contract.store.getMe, async () => {
-      const store = req.store;
+      const store = await this.storeService.findByClientId(req.user!.clientId);
       if (!store) return { status: 404 as const, body: { message: "Store not found" } };
       return { status: 200 as const, body: store };
     });

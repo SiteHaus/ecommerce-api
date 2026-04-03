@@ -1,0 +1,21 @@
+meta {
+  name: Delete Collection
+  type: http
+  seq: 4
+}
+
+delete {
+  url: {{baseUrl}}/v1/admin/collections/{{collectionId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+}

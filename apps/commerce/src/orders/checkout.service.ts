@@ -27,14 +27,14 @@ export class CheckoutService {
     storeId: string;
     sessionToken?: string;
     userId?: string;
-    email: string;
-    shippingName: string;
-    shippingLine1: string;
+    email?: string;
+    shippingName?: string;
+    shippingLine1?: string;
     shippingLine2?: string;
-    shippingCity: string;
-    shippingState: string;
-    shippingZip: string;
-    shippingCountry: string;
+    shippingCity?: string;
+    shippingState?: string;
+    shippingZip?: string;
+    shippingCountry?: string;
   }) {
     // 1. Locate the cart
     const cartWhere = data.userId
@@ -88,15 +88,15 @@ export class CheckoutService {
       .values({
         storeId: data.storeId,
         userId: data.userId ?? null,
-        email: data.email,
+        email: data.email ?? "",
         status: "pending",
-        shippingName: data.shippingName,
-        shippingLine1: data.shippingLine1,
+        shippingName: data.shippingName ?? null,
+        shippingLine1: data.shippingLine1 ?? null,
         shippingLine2: data.shippingLine2 ?? null,
-        shippingCity: data.shippingCity,
-        shippingState: data.shippingState,
-        shippingZip: data.shippingZip,
-        shippingCountry: data.shippingCountry,
+        shippingCity: data.shippingCity ?? null,
+        shippingState: data.shippingState ?? null,
+        shippingZip: data.shippingZip ?? null,
+        shippingCountry: data.shippingCountry ?? null,
         subtotalCents,
         shippingCents,
         taxCents,

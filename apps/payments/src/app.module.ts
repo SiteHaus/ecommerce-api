@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
-import { ConfigModule } from "@nestjs/config";
+import { ConfigModule, ConfigService } from "@nestjs/config";
+import { BullModule } from "@nestjs/bullmq";
 import { DbModule } from "@sitehaus-ecom/shared";
 import { validatePaymentsEnv } from "./config/env";
 import { ConnectModule } from "./connect/connect.module";
@@ -11,6 +12,13 @@ import { WebhookModule } from "./webhook/webhook.module";
   imports: [
     ConfigModule.forRoot({ isGlobal: true, validate: validatePaymentsEnv }),
     DbModule,
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        connection: { url: config.getOrThrow("REDIS_URL") },
+      }),
+    }),
     ConnectModule,
     IntentModule,
     RefundModule,

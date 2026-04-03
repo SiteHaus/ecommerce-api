@@ -47,6 +47,8 @@ export class StoreModule implements NestModule {
       .apply(StoreResolutionMiddleware)
       // POST /v1/admin/stores creates a new store — no store to resolve yet
       .exclude({ path: "v1/admin/stores", method: RequestMethod.POST })
+      // GET /v1/admin/stores/me looks up the store BY clientId — no store to resolve yet
+      .exclude({ path: "v1/admin/stores/me", method: RequestMethod.GET })
       .forRoutes("*");
   }
 }

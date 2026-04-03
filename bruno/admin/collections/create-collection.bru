@@ -1,0 +1,41 @@
+meta {
+  name: Create Collection
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/v1/admin/collections
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+body:json {
+  {
+    "name": "Best Sellers",
+    "slug": "best-sellers",
+    "description": "Our most popular supplements."
+  }
+}
+
+script:post-response {
+  if (res.status === 200) {
+    bru.setEnvVar("collectionId", res.body.id);
+    bru.setEnvVar("collectionSlug", res.body.slug);
+  }
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("returns collection with id and slug", function() {
+    expect(res.body.id).to.be.a("string");
+    expect(res.body.slug).to.equal("best-sellers");
+  });
+}
