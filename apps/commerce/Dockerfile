@@ -34,4 +34,5 @@ RUN addgroup --system --gid 1001 nodejs && \
 USER nestjs
 COPY --from=build --chown=nestjs:nodejs /app/apps/commerce/dist ./dist
 COPY --from=build --chown=nestjs:nodejs /app/apps/commerce/package.json ./package.json
+COPY --from=build --chown=nestjs:nodejs /app/node_modules ./node_modules
 CMD ["node", "dist/main.js"]
