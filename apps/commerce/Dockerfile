@@ -17,10 +17,9 @@ WORKDIR /app
 COPY --from=prune /app/out/json/ .
 COPY --from=prune /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
 COPY --from=prune /app/out/pnpm-workspace.yaml ./pnpm-workspace.yaml
-RUN --mount=type=cache,target=/pnpm/store pnpm fetch
 COPY --from=prune /app/out/full/ ./
 COPY turbo.json turbo.json
-RUN --mount=type=cache,target=/pnpm/store pnpm install -r
+RUN --mount=type=cache,target=/pnpm/store pnpm install --frozen-lockfile
 
 FROM base AS build
 WORKDIR /app
