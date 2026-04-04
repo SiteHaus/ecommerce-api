@@ -1,4 +1,4 @@
-FROM node:20-alpine AS base
+FROM node:22-alpine AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN apk add --no-cache libc6-compat && \
@@ -27,7 +27,7 @@ COPY --from=installer /app ./
 RUN --mount=type=cache,target=/root/.cache/turbo \
     turbo run build --filter=@sitehaus-ecom/commerce...
 
-FROM node:20-alpine AS runner
+FROM node:22-alpine AS runner
 WORKDIR /app
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nestjs

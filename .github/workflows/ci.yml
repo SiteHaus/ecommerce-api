@@ -9,6 +9,13 @@ on:
       - "docker-compose*.yml" # ← no need to run CI for compose changes
       - "infra/**" # ← or infra config changes
       - ".github/workflows/cd.yml"
+  push:
+    branches: [ci/staging]
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - "docker-compose*.yml"
+      - "infra/**"
 
 concurrency:
   group: ci-${{ github.ref }}
