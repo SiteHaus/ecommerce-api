@@ -1,6 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
 import type { ResolvedStore } from "@sitehaus-ecom/auth";
-import { and, eq, storesTable, type Db } from "@sitehaus-ecom/database";
+import { and, eq, inArray, storesTable, type Db } from "@sitehaus-ecom/database";
 import { DB_TOKEN } from "@sitehaus-ecom/shared";
 import type { CreateStoreDto, UpdateStoreDto } from "@sitehaus-ecom/validation";
 import type { Redis } from "ioredis";
@@ -48,6 +48,22 @@ export class StoreService {
     const ctx = toContext(row);
     await this.redis.setex(key, CACHE_TTL, JSON.stringify(ctx));
     return ctx;
+  }
+
+  async findByClientIds(
+    clientIds: string[],
+  ): Promise<{ id: string; clientId: string; slug: string; name: string }[]> {
+    if (clientIds.length === 0) return [];
+    const rows = await this.db
+      .select({
+        id: storesTable.id,
+        clientId: storesTable.clientId,
+        slug: storesTable.slug,
+        name: storesTable.name,
+      })
+      .from(storesTable)
+      .where(and(inArray(storesTable.clientId, clientIds), eq(storesTable.isActive, true)));
+    return rows;
   }
 
   async findByClientId(clientId: string): Promise<ResolvedStore | null> {

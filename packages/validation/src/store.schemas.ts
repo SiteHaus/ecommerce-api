@@ -51,6 +51,21 @@ export const stripeStatusItem = z.object({
   detailsSubmitted: z.boolean(),
 });
 
+export const accessibleStoresQuery = z.object({
+  clientIds: z.string(),
+});
+
+export const accessibleStoreItem = z.object({
+  id: z.uuid(),
+  clientId: z.uuid(),
+  slug: z.string(),
+  name: z.string(),
+});
+
+export const accessibleStoresResponse = z.object({
+  stores: z.array(accessibleStoreItem),
+});
+
 export type CreateStoreDto = z.infer<typeof createStoreSchema>;
 export type UpdateStoreDto = z.infer<typeof updateStoreSchema>;
 export type ConnectStripeDto = z.infer<typeof connectStripeSchema>;

@@ -25,9 +25,11 @@ export class StoreResolutionMiddleware implements NestMiddleware {
       const auth = req.headers["authorization"];
       if (auth?.startsWith("Bearer ")) {
         try {
-          const payload = jwt.decode(auth.slice(7)) as { clientId?: string } | null;
-          if (payload?.clientId) {
-            store = await this.storeService.findByClientId(payload.clientId);
+          const payload = jwt.decode(auth.slice(7)) as { clientId?: string; aud?: string } | null;
+          const clientId =
+            payload?.clientId ?? (typeof payload?.aud === "string" ? payload.aud : undefined);
+          if (clientId) {
+            store = await this.storeService.findByClientId(clientId);
           }
         } catch {
           // malformed token — AccessGuard will handle the rejection

@@ -14,6 +14,18 @@ export class StoreAdminController {
     @Inject("PAYMENTS_SERVICE") private readonly paymentsClient: ClientProxy,
   ) {}
 
+  @TsRestHandler(contract.store.getAccessible)
+  async getAccessible() {
+    return tsRestHandler(contract.store.getAccessible, async ({ query }) => {
+      const clientIds = query.clientIds
+        .split(",")
+        .map((id) => id.trim())
+        .filter(Boolean);
+      const stores = await this.storeService.findByClientIds(clientIds);
+      return { status: 200 as const, body: { stores } };
+    });
+  }
+
   @TsRestHandler(contract.store.getMe)
   async getMe(@Req() req: Request) {
     return tsRestHandler(contract.store.getMe, async () => {
