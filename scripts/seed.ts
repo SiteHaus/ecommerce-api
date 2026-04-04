@@ -53,62 +53,226 @@ const STRIPE_ACCOUNT_ID = process.env.SEED_STRIPE_ACCOUNT_ID ?? "";
 const products = [
   {
     id: "00000000-0000-4001-8000-000000000001",
-    name: "Vitamin C 1000mg",
-    description: "High-potency vitamin C for immune support.",
+    name: "B Essentials",
+    description:
+      "A comprehensive B-vitamin complex to support energy metabolism and nervous system health.",
     variants: [
       {
         id: "00000000-0000-4002-8000-000000000001",
-        name: "90 Capsules",
-        sku: "VIT-C-90",
-        priceCents: 2499,
-        compareAtCents: 2999,
-        stock: 50,
+        name: "60 Capsules",
+        sku: "B-ESS-60",
+        priceCents: 2400,
+        compareAtCents: null,
+        stock: 45,
       },
       {
         id: "00000000-0000-4002-8000-000000000002",
-        name: "180 Capsules",
-        sku: "VIT-C-180",
-        priceCents: 4299,
-        compareAtCents: 4999,
+        name: "120 Capsules",
+        sku: "B-ESS-120",
+        priceCents: 4400,
+        compareAtCents: null,
         stock: 30,
       },
     ],
   },
   {
     id: "00000000-0000-4001-8000-000000000002",
-    name: "Magnesium Glycinate",
-    description: "Highly bioavailable magnesium for sleep and muscle recovery.",
+    name: "Bone Support",
+    description:
+      "Advanced formula with calcium, magnesium, vitamin D3, and K2 for optimal bone density.",
     variants: [
       {
         id: "00000000-0000-4002-8000-000000000003",
+        name: "60 Capsules",
+        sku: "BONE-60",
+        priceCents: 3000,
+        compareAtCents: null,
+        stock: 38,
+      },
+      {
+        id: "00000000-0000-4002-8000-000000000004",
         name: "120 Capsules",
-        sku: "MAG-GLY-120",
-        priceCents: 3299,
+        sku: "BONE-120",
+        priceCents: 5500,
+        compareAtCents: null,
+        stock: 20,
+      },
+    ],
+  },
+  {
+    id: "00000000-0000-4001-8000-000000000003",
+    name: "Digestive Enzymes",
+    description: "Full-spectrum enzyme blend to support digestion and nutrient absorption.",
+    variants: [
+      {
+        id: "00000000-0000-4002-8000-000000000005",
+        name: "60 Capsules",
+        sku: "DIG-ENZ-60",
+        priceCents: 2200,
+        compareAtCents: null,
+        stock: 50,
+      },
+      {
+        id: "00000000-0000-4002-8000-000000000006",
+        name: "90 Capsules",
+        sku: "DIG-ENZ-90",
+        priceCents: 3000,
         compareAtCents: null,
         stock: 25,
       },
     ],
   },
   {
-    id: "00000000-0000-4001-8000-000000000003",
-    name: "Omega-3 Fish Oil",
-    description: "Ultra-pure EPA/DHA for cardiovascular and cognitive health.",
+    id: "00000000-0000-4001-8000-000000000004",
+    name: "Easy Iron",
+    description: "Gentle, non-constipating iron bisglycinate for effective iron repletion.",
     variants: [
       {
-        id: "00000000-0000-4002-8000-000000000004",
-        name: "60 Softgels",
-        sku: "OMG-3-60",
-        priceCents: 2799,
-        compareAtCents: 3299,
-        stock: 3, // low stock on purpose
+        id: "00000000-0000-4002-8000-000000000007",
+        name: "60 Capsules",
+        sku: "EASY-IRON-60",
+        priceCents: 2200,
+        compareAtCents: null,
+        stock: 40,
+      },
+    ],
+  },
+  {
+    id: "00000000-0000-4001-8000-000000000005",
+    name: "Essential Mag",
+    description:
+      "Highly absorbable magnesium glycinate for relaxation, sleep, and muscle recovery.",
+    variants: [
+      {
+        id: "00000000-0000-4002-8000-000000000008",
+        name: "60 Capsules",
+        sku: "ESS-MAG-60",
+        priceCents: 2000,
+        compareAtCents: null,
+        stock: 55,
       },
       {
-        id: "00000000-0000-4002-8000-000000000005",
+        id: "00000000-0000-4002-8000-000000000009",
+        name: "120 Capsules",
+        sku: "ESS-MAG-120",
+        priceCents: 3600,
+        compareAtCents: null,
+        stock: 35,
+      },
+    ],
+  },
+  {
+    id: "00000000-0000-4001-8000-000000000006",
+    name: "Melatonin",
+    description: "Low-dose melatonin to support healthy sleep onset and circadian rhythm.",
+    variants: [
+      {
+        id: "00000000-0000-4002-8000-00000000000a",
+        name: "60 Tablets",
+        sku: "MELT-60",
+        priceCents: 1600,
+        compareAtCents: null,
+        stock: 60,
+      },
+      {
+        id: "00000000-0000-4002-8000-00000000000b",
+        name: "120 Tablets",
+        sku: "MELT-120",
+        priceCents: 2800,
+        compareAtCents: null,
+        stock: 3, // low stock on purpose
+      },
+    ],
+  },
+  {
+    id: "00000000-0000-4001-8000-000000000007",
+    name: "Micro DHEA-25",
+    description: "Micronized DHEA 25mg to support hormonal balance and adrenal health.",
+    variants: [
+      {
+        id: "00000000-0000-4002-8000-00000000000c",
+        name: "60 Capsules",
+        sku: "DHEA-25-60",
+        priceCents: 2500,
+        compareAtCents: null,
+        stock: 30,
+      },
+    ],
+  },
+  {
+    id: "00000000-0000-4001-8000-000000000008",
+    name: "Micro DHEA-50",
+    description: "Micronized DHEA 50mg for enhanced hormonal support and vitality.",
+    variants: [
+      {
+        id: "00000000-0000-4002-8000-00000000000d",
+        name: "60 Capsules",
+        sku: "DHEA-50-60",
+        priceCents: 3000,
+        compareAtCents: null,
+        stock: 28,
+      },
+    ],
+  },
+  {
+    id: "00000000-0000-4001-8000-000000000009",
+    name: "Vitamin B12 Liquid",
+    description: "Methylcobalamin B12 in liquid form for rapid absorption and energy support.",
+    variants: [
+      {
+        id: "00000000-0000-4002-8000-00000000000e",
+        name: "1 fl oz",
+        sku: "B12-LIQ-1OZ",
+        priceCents: 4000,
+        compareAtCents: null,
+        stock: 22,
+      },
+    ],
+  },
+  {
+    id: "00000000-0000-4001-8000-00000000000a",
+    name: "Vitamin D3",
+    description: "High-potency vitamin D3 with K2 for immune function and calcium metabolism.",
+    variants: [
+      {
+        id: "00000000-0000-4002-8000-00000000000f",
+        name: "60 Softgels",
+        sku: "VIT-D3-60",
+        priceCents: 2200,
+        compareAtCents: null,
+        stock: 65,
+      },
+      {
+        id: "00000000-0000-4002-8000-000000000010",
         name: "120 Softgels",
-        sku: "OMG-3-120",
-        priceCents: 4999,
+        sku: "VIT-D3-120",
+        priceCents: 4000,
         compareAtCents: null,
         stock: 0, // out of stock on purpose
+      },
+    ],
+  },
+  {
+    id: "00000000-0000-4001-8000-00000000000b",
+    name: "Vivere Essential",
+    description:
+      "Daily foundational multivitamin with broad-spectrum micronutrients for whole-body wellness.",
+    variants: [
+      {
+        id: "00000000-0000-4002-8000-000000000011",
+        name: "30 Packets",
+        sku: "VIV-ESS-30",
+        priceCents: 2500,
+        compareAtCents: null,
+        stock: 18,
+      },
+      {
+        id: "00000000-0000-4002-8000-000000000012",
+        name: "60 Packets",
+        sku: "VIV-ESS-60",
+        priceCents: 4500,
+        compareAtCents: null,
+        stock: 12,
       },
     ],
   },
@@ -193,13 +357,22 @@ try {
   Bruno environment variables (copy into local.bru):
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  storeId         ${STORE_ID}
+  storeId              ${STORE_ID}
 
-  variantVitC90   ${products[0].variants[0].id}
-  variantVitC180  ${products[0].variants[1].id}
-  variantMag      ${products[1].variants[0].id}
-  variantOmega60  ${products[2].variants[0].id}   ← low stock
-  variantOmega120 ${products[2].variants[1].id}   ← out of stock
+  variantBEss60        ${products[0].variants[0].id}
+  variantBEss120       ${products[0].variants[1].id}
+  variantBone60        ${products[1].variants[0].id}
+  variantDigEst60      ${products[2].variants[0].id}
+  variantEasyIron      ${products[3].variants[0].id}
+  variantMag60         ${products[4].variants[0].id}
+  variantMelatonin60   ${products[5].variants[0].id}
+  variantMelatonin120  ${products[5].variants[1].id}   ← low stock
+  variantDHEA25        ${products[6].variants[0].id}
+  variantDHEA50        ${products[7].variants[0].id}
+  variantB12Liquid     ${products[8].variants[0].id}
+  variantVitD3_60      ${products[9].variants[0].id}
+  variantVitD3_120     ${products[9].variants[1].id}   ← out of stock
+  variantVivere30      ${products[10].variants[0].id}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   ⚠️   For checkout to work, replace stripe_account_id
