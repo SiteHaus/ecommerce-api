@@ -6,6 +6,11 @@ import { ImagesHandlerService } from "./images-handler.service";
 export class ImagesHandlerController {
   constructor(private readonly imagesService: ImagesHandlerService) {}
 
+  @MessagePattern("catalog.images.list")
+  list(@Payload() data: { productId: string; storeId: string }) {
+    return this.imagesService.list(data);
+  }
+
   @MessagePattern("catalog.images.uploadUrl")
   uploadUrl(@Payload() data: { productId: string; storeId: string; contentType: string }) {
     return this.imagesService.uploadUrl(data);
