@@ -6,7 +6,7 @@ import {
 } from "@nestjs/common";
 import { DB_TOKEN, AuditService } from "@sitehaus-ecom/shared";
 import { Db, productImagesTable, productsTable } from "@sitehaus-ecom/database";
-import { and, eq, max, sql } from "@sitehaus-ecom/database";
+import { and, asc, eq, max, sql } from "@sitehaus-ecom/database";
 import { R2Service } from "@sitehaus-ecom/shared";
 import { customAlphabet } from "nanoid";
 
@@ -26,6 +26,24 @@ export class ImagesHandlerService {
     private readonly r2: R2Service,
     private readonly audit: AuditService,
   ) {}
+
+  async list(data: { productId: string; storeId: string }) {
+    const product = await this.db.query.productsTable.findFirst({
+      where: (p) => and(eq(p.id, data.productId), eq(p.storeId, data.storeId)),
+    });
+    if (!product) throw new NotFoundException("Product not found");
+
+    return this.db
+      .select()
+      .from(productImagesTable)
+      .where(
+        and(
+          eq(productImagesTable.productId, data.productId),
+          eq(productImagesTable.storeId, data.storeId),
+        ),
+      )
+      .orderBy(asc(productImagesTable.sortOrder));
+  }
 
   async uploadUrl(data: { productId: string; storeId: string; contentType: string }) {
     const product = await this.db.query.productsTable.findFirst({

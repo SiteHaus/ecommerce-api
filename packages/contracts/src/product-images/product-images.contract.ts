@@ -15,6 +15,13 @@ import { initContract } from "@ts-rest/core";
 const c = initContract();
 
 export const imagesContract = c.router({
+  listImages: {
+    method: "GET",
+    path: "/v1/admin/products/:id/images",
+    pathParams: productImageParams,
+    responses: { 200: productImageList, 404: apiError },
+    metadata: { openApiTags: ["Images"] } as const,
+  },
   uploadUrl: {
     method: "POST",
     path: "/v1/admin/products/:id/images/upload-url",

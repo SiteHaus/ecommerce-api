@@ -49,6 +49,8 @@ export class StoreModule implements NestModule {
       .exclude({ path: "v1/admin/stores", method: RequestMethod.POST })
       // GET /v1/admin/stores/me looks up the store BY clientId — no store to resolve yet
       .exclude({ path: "v1/admin/stores/me", method: RequestMethod.GET })
+      // GET /v1/admin/stores/accessible resolves stores by clientIds query param
+      .exclude({ path: "v1/admin/stores/accessible", method: RequestMethod.GET })
       .forRoutes("*");
   }
 }

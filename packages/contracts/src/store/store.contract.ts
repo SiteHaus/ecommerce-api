@@ -1,4 +1,6 @@
 import {
+  accessibleStoresQuery,
+  accessibleStoresResponse,
   apiError,
   connectStripeResponse,
   connectStripeSchema,
@@ -12,6 +14,15 @@ import { initContract } from "@ts-rest/core";
 const c = initContract();
 
 export const storeContract = c.router({
+  getAccessible: {
+    method: "GET",
+    path: "/v1/admin/stores/accessible",
+    query: accessibleStoresQuery,
+    responses: {
+      200: accessibleStoresResponse,
+    },
+    metadata: { openApiTags: ["Stores"] } as const,
+  },
   getMe: {
     method: "GET",
     path: "/v1/admin/stores/me",

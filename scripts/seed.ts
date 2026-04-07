@@ -50,6 +50,10 @@ const STORE_ID = "00000000-0000-4000-8000-000000000001";
 const CLIENT_ID = process.env.SEED_CLIENT_ID ?? "00000000-0000-0000-0000-000000000000";
 const STRIPE_ACCOUNT_ID = process.env.SEED_STRIPE_ACCOUNT_ID ?? "";
 
+// Second test store (Grace Jeanne) — fixed UUIDs for multi-store testing
+const GJ_STORE_ID = "00000000-0000-4000-8000-000000000002";
+const GJ_CLIENT_ID = "00000000-cafe-4bab-8000-000000000002";
+
 const products = [
   {
     id: "00000000-0000-4001-8000-000000000001",
@@ -287,7 +291,7 @@ try {
   console.log("🌱  Seeding dev database...\n");
 
   // Clean up previous seed data (safe — keyed by dev-only domain/skus)
-  await client.query(`DELETE FROM stores WHERE domain = 'localhost'`);
+  await client.query(`DELETE FROM stores WHERE domain = 'localhost' OR domain = 'gj.localhost'`);
   console.log("🧹  Cleared previous seed rows\n");
 
   // Store
@@ -306,6 +310,21 @@ try {
     [STORE_ID, CLIENT_ID],
   );
   console.log("✅  Store:    onehealth-dev (domain: localhost)");
+
+  // Second store — Grace Jeanne (multi-store test)
+  await client.query(
+    `
+    INSERT INTO stores (id, client_id, name, slug, domain,
+      stripe_account_id, stripe_charges_enabled,
+      stripe_payouts_enabled, stripe_details_submitted,
+      currency, reservation_ttl_minutes)
+    VALUES ($1, $2, 'Grace Jeanne Dev', 'gracejeanne-dev', 'gj.localhost',
+      NULL, false, false, false, 'usd', 15)
+    ON CONFLICT (id) DO NOTHING
+  `,
+    [GJ_STORE_ID, GJ_CLIENT_ID],
+  );
+  console.log("✅  Store:    gracejeanne-dev (domain: gj.localhost)");
 
   // Products + variants + inventory
   for (const product of products) {

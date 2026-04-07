@@ -11,6 +11,19 @@ import { ClientProxy } from "@nestjs/microservices";
 export class ImagesController {
   constructor(@Inject("COMMERCE_SERVICE") private readonly commerce: ClientProxy) {}
 
+  @TsRestHandler(contract.image.listImages)
+  async list(@Req() req: Request) {
+    return tsRestHandler(contract.image.listImages, async ({ params }) => {
+      const result = await firstValueFrom(
+        this.commerce.send("catalog.images.list", {
+          productId: params.id,
+          storeId: req.store!.id,
+        }),
+      );
+      return { status: 200 as const, body: result };
+    });
+  }
+
   @TsRestHandler(contract.image.uploadUrl)
   async uploadUrl(@Req() req: Request) {
     return tsRestHandler(contract.image.uploadUrl, async ({ body, params }) => {
