@@ -15,7 +15,7 @@ import {
   DeleteCollectionDto,
   VerifyProductDto,
 } from "@sitehaus-ecom/validation";
-import { and, eq, asc } from "@sitehaus-ecom/database";
+import { and, eq, asc, sql, inArray } from "@sitehaus-ecom/database";
 import { ConflictException } from "@nestjs/common";
 
 @Injectable()
@@ -121,7 +121,32 @@ export class CollectionsHandlerService {
       .where(eq(collectionsTable.storeId, storeId))
       .orderBy(asc(collectionsTable.sortOrder));
 
-    return collections;
+    const ids = collections.map((c) => c.id);
+    const counts =
+      ids.length > 0
+        ? await this.db
+            .select({
+              collectionId: collectionProductsTable.collectionId,
+              count: sql<number>`count(*)::int`,
+            })
+            .from(collectionProductsTable)
+            .where(inArray(collectionProductsTable.collectionId, ids))
+            .groupBy(collectionProductsTable.collectionId)
+        : [];
+
+    const countMap = Object.fromEntries(counts.map((r) => [r.collectionId, r.count]));
+    const now = new Date();
+
+    return collections.map((c) => ({
+      id: c.id,
+      name: c.name,
+      slug: c.slug,
+      description: c.description ?? null,
+      sortOrder: c.sortOrder,
+      scheduled: c.goesLiveAt ? new Date(c.goesLiveAt) > now : false,
+      goesLiveAt: c.goesLiveAt ?? null,
+      productCount: countMap[c.id] ?? 0,
+    }));
   }
 
   async getCollection(storeId: string, slug: string) {
@@ -161,5 +186,22 @@ export class CollectionsHandlerService {
       .insert(collectionProductsTable)
       .values({ collectionId: collection.id, productId: product.id })
       .onConflictDoNothing();
+
+    const [{ count }] = await this.db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(collectionProductsTable)
+      .where(eq(collectionProductsTable.collectionId, collection.id));
+
+    const now = new Date();
+    return {
+      id: collection.id,
+      name: collection.name,
+      slug: collection.slug,
+      description: collection.description ?? null,
+      sortOrder: collection.sortOrder,
+      scheduled: collection.goesLiveAt ? new Date(collection.goesLiveAt) > now : false,
+      goesLiveAt: collection.goesLiveAt ?? null,
+      productCount: count,
+    };
   }
 }
