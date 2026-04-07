@@ -6,12 +6,18 @@ import { ConflictException, NotFoundException } from "@nestjs/common";
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
 function selectChain(resolveValue: any[]) {
+  const afterWhere: any = {
+    then: (resolve: any, reject?: any) => Promise.resolve(resolveValue).then(resolve, reject),
+    catch: (reject: any) => Promise.resolve(resolveValue).catch(reject),
+    finally: (onFinally: any) => Promise.resolve(resolveValue).finally(onFinally),
+    limit: jest.fn().mockResolvedValue(resolveValue),
+    orderBy: jest.fn().mockResolvedValue(resolveValue),
+    groupBy: jest.fn().mockResolvedValue(resolveValue),
+  };
   return {
     from: jest.fn().mockReturnValue({
-      where: jest.fn().mockReturnValue({
-        limit: jest.fn().mockResolvedValue(resolveValue),
-        orderBy: jest.fn().mockResolvedValue(resolveValue),
-      }),
+      where: jest.fn().mockReturnValue(afterWhere),
+      orderBy: jest.fn().mockReturnValue({ where: jest.fn().mockReturnValue(afterWhere) }),
     }),
   };
 }
@@ -200,9 +206,9 @@ describe("CollectionsHandlerService", () => {
 
   describe("list", () => {
     it("should return sorted collections", async () => {
-      mockSelectFn.mockReturnValueOnce(
-        selectChain([collectionRow, { ...collectionRow, id: "col-2" }]),
-      );
+      mockSelectFn
+        .mockReturnValueOnce(selectChain([collectionRow, { ...collectionRow, id: "col-2" }]))
+        .mockReturnValueOnce(selectChain([{ collectionId: COLLECTION_ID, count: 1 }]));
 
       const result = await service.list(STORE_ID);
 
@@ -244,7 +250,8 @@ describe("CollectionsHandlerService", () => {
     it("should insert product into collection", async () => {
       mockSelectFn
         .mockReturnValueOnce(selectChain([collectionRow])) // collection check
-        .mockReturnValueOnce(selectChain([{ id: PRODUCT_ID }])); // product check
+        .mockReturnValueOnce(selectChain([{ id: PRODUCT_ID }])) // product check
+        .mockReturnValueOnce(selectChain([{ count: 1 }])); // product count
       mockInsertFn.mockReturnValueOnce(insertChain([]));
 
       await service.verify(payload);

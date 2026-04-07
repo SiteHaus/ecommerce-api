@@ -21,6 +21,7 @@ export const collectionsTable = pgTable(
     description: text("description"),
     slug: varchar("slug", { length: 128 }),
     sortOrder: integer("sort_order").notNull().default(0),
+    goesLiveAt: timestamp("goes_live_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [

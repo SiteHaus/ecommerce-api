@@ -1,0 +1,1 @@
+ALTER TABLE "collections" ADD COLUMN "goes_live_at" timestamp with time zone;

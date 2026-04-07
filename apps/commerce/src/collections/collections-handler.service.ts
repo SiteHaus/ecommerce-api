@@ -36,7 +36,14 @@ export class CollectionsHandlerService {
 
     const [collection] = await this.db
       .insert(collectionsTable)
-      .values({ ...data })
+      .values({
+        storeId: data.storeId,
+        name: data.name,
+        slug: data.slug,
+        description: data.description,
+        sortOrder: data.sortOrder,
+        goesLiveAt: data.goesLiveAt ? new Date(data.goesLiveAt) : null,
+      })
       .returning();
 
     return collection;
@@ -77,12 +84,16 @@ export class CollectionsHandlerService {
 
     if (!oldCollection) throw new NotFoundException("Collection not found");
 
+    const { storeId, collectionId, goesLiveAt, ...rest } = data;
     const [updated] = await this.db
       .update(collectionsTable)
-      .set(data)
-      .where(
-        and(eq(collectionsTable.storeId, data.storeId), eq(collectionsTable.id, data.collectionId)),
-      )
+      .set({
+        ...rest,
+        ...(goesLiveAt !== undefined
+          ? { goesLiveAt: goesLiveAt ? new Date(goesLiveAt) : null }
+          : {}),
+      })
+      .where(and(eq(collectionsTable.storeId, storeId), eq(collectionsTable.id, collectionId)))
       .returning();
 
     return updated;
