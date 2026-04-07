@@ -32,5 +32,6 @@ WORKDIR /app
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nestjs
 COPY --from=build --chown=nestjs:nodejs /app ./
+COPY --chown=nestjs:nodejs scripts/ ./scripts/
 USER nestjs
 CMD ["node", "apps/commerce/dist/main.js"]

@@ -1,4 +1,5 @@
 import { Test, TestingModule } from "@nestjs/testing";
+import { AdminStoreGuard } from "../store/admin-store.guard";
 import { ShippingAdminController } from "./shipping-admin.controller";
 
 describe("ShippingAdminController", () => {
@@ -8,7 +9,10 @@ describe("ShippingAdminController", () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ShippingAdminController],
       providers: [{ provide: "COMMERCE_SERVICE", useValue: { send: jest.fn() } }],
-    }).compile();
+    })
+      .overrideGuard(AdminStoreGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<ShippingAdminController>(ShippingAdminController);
   });

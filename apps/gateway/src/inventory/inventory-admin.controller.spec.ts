@@ -1,6 +1,7 @@
+import { AdminStoreGuard } from "../store/admin-store.guard";
 import { Test, TestingModule } from "@nestjs/testing";
 import { INestApplication } from "@nestjs/common";
-import { StoreOwnerGuard } from "@sitehaus-ecom/auth";
+
 import type { ResolvedStore } from "@sitehaus-ecom/auth";
 import { of, throwError } from "rxjs";
 import { RpcException } from "@nestjs/microservices";
@@ -56,7 +57,7 @@ describe("InventoryAdminController", () => {
       controllers: [InventoryAdminController],
       providers: [{ provide: "COMMERCE_SERVICE", useValue: mockCommerceClient }],
     })
-      .overrideGuard(StoreOwnerGuard)
+      .overrideGuard(AdminStoreGuard)
       .useValue({ canActivate: () => true })
       .compile();
 

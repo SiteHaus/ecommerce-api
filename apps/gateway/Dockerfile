@@ -32,5 +32,7 @@ WORKDIR /app
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nestjs
 COPY --from=build --chown=nestjs:nodejs /app ./
+# Migration files aren't compiled — copy them explicitly so runMigrations() can find them at runtime
+COPY --chown=nestjs:nodejs packages/database/drizzle/ ./packages/database/drizzle/
 USER nestjs
 CMD ["node", "apps/gateway/dist/main.js"]

@@ -1,5 +1,5 @@
 import { Controller, UseGuards, Req } from "@nestjs/common";
-import { StoreOwnerGuard } from "@sitehaus-ecom/auth";
+import { AdminStoreGuard } from "../store/admin-store.guard";
 import { Inject } from "@nestjs/common";
 import { ClientProxy } from "@nestjs/microservices";
 import { TsRestHandler, tsRestHandler } from "@ts-rest/nest";
@@ -11,7 +11,7 @@ import { firstValueFrom } from "rxjs";
 export class ShippingAdminController {
   constructor(@Inject("COMMERCE_SERVICE") private readonly commerce: ClientProxy) {}
 
-  @UseGuards(StoreOwnerGuard)
+  @UseGuards(AdminStoreGuard)
   @TsRestHandler(contract.shipping.listZones)
   async getZones(@Req() req: Request) {
     return tsRestHandler(contract.shipping.listZones, async () => {
@@ -23,7 +23,7 @@ export class ShippingAdminController {
     });
   }
 
-  @UseGuards(StoreOwnerGuard)
+  @UseGuards(AdminStoreGuard)
   @TsRestHandler(contract.shipping.createZone)
   async createZone(@Req() req: Request) {
     return tsRestHandler(contract.shipping.createZone, async () => {
@@ -35,7 +35,7 @@ export class ShippingAdminController {
     });
   }
 
-  @UseGuards(StoreOwnerGuard)
+  @UseGuards(AdminStoreGuard)
   @TsRestHandler(contract.shipping.updateZone)
   async updateZone(@Req() req: Request) {
     return tsRestHandler(contract.shipping.updateZone, async ({ params, body }) => {
@@ -51,7 +51,7 @@ export class ShippingAdminController {
     });
   }
 
-  @UseGuards(StoreOwnerGuard)
+  @UseGuards(AdminStoreGuard)
   @TsRestHandler(contract.shipping.deleteZone)
   async deleteZone(@Req() req: Request) {
     return tsRestHandler(contract.shipping.deleteZone, async ({ params }) => {
@@ -66,7 +66,7 @@ export class ShippingAdminController {
     });
   }
 
-  @UseGuards(StoreOwnerGuard)
+  @UseGuards(AdminStoreGuard)
   @TsRestHandler(contract.shipping.createRate)
   async createRate(@Req() req: Request) {
     return tsRestHandler(contract.shipping.createRate, async ({ params, body }) => {
@@ -82,7 +82,7 @@ export class ShippingAdminController {
     });
   }
 
-  @UseGuards(StoreOwnerGuard)
+  @UseGuards(AdminStoreGuard)
   @TsRestHandler(contract.shipping.updateRate)
   async updateRate(@Req() req: Request) {
     return tsRestHandler(contract.shipping.updateRate, async ({ params, body }) => {
@@ -99,7 +99,7 @@ export class ShippingAdminController {
     });
   }
 
-  @UseGuards(StoreOwnerGuard)
+  @UseGuards(AdminStoreGuard)
   @TsRestHandler(contract.shipping.deleteRate)
   async deleteRate(@Req() req: Request) {
     return tsRestHandler(contract.shipping.deleteRate, async ({ params }) => {
@@ -115,7 +115,7 @@ export class ShippingAdminController {
     });
   }
 
-  @UseGuards(StoreOwnerGuard)
+  @UseGuards(AdminStoreGuard)
   async getRates(@Req() req: Request) {
     return tsRestHandler(contract.shipping.getRates, async ({ query }) => {
       const result = await firstValueFrom(

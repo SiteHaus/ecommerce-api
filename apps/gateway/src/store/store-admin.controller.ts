@@ -1,6 +1,6 @@
 import { Controller, Inject, Req, UseGuards } from "@nestjs/common";
 import { ClientProxy } from "@nestjs/microservices";
-import { StoreOwnerGuard } from "@sitehaus-ecom/auth";
+import { AdminStoreGuard } from "./admin-store.guard";
 import { contract } from "@sitehaus-ecom/contracts";
 import { TsRestHandler, tsRestHandler } from "@ts-rest/nest";
 import type { Request } from "express";
@@ -47,7 +47,7 @@ export class StoreAdminController {
     });
   }
 
-  @UseGuards(StoreOwnerGuard)
+  @UseGuards(AdminStoreGuard)
   @TsRestHandler(contract.store.updateStore)
   async update(@Req() req: Request) {
     return tsRestHandler(contract.store.updateStore, async ({ body }) => {
@@ -72,7 +72,7 @@ export class StoreAdminController {
     };
   }
 
-  @UseGuards(StoreOwnerGuard)
+  @UseGuards(AdminStoreGuard)
   @TsRestHandler(contract.store.connectStripe)
   async connectStripe(@Req() req: Request) {
     return tsRestHandler(contract.store.connectStripe, async ({ body }) => {
@@ -88,7 +88,7 @@ export class StoreAdminController {
     });
   }
 
-  @UseGuards(StoreOwnerGuard)
+  @UseGuards(AdminStoreGuard)
   @TsRestHandler(contract.store.stripeStatus)
   async stripeStatus(@Req() req: Request) {
     return tsRestHandler(contract.store.stripeStatus, async () => {

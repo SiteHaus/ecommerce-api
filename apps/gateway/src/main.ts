@@ -1,3 +1,4 @@
+import { runMigrations } from "@sitehaus-ecom/database/migrate";
 import { Logger, VersioningType } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { NestExpressApplication } from "@nestjs/platform-express";
@@ -36,6 +37,13 @@ function hasOpenApiTags(metadata: unknown): metadata is { openApiTags: string[] 
 }
 
 async function bootstrap() {
+  const dbUrl = process.env.DATABASE_URL;
+  if (!dbUrl) throw new Error("DATABASE_URL is required");
+
+  Logger.log("Running database migrations...", "Bootstrap");
+  await runMigrations(dbUrl);
+  Logger.log("Migrations complete.", "Bootstrap");
+
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     // Raw body required to forward Stripe webhook payload to payments service
     rawBody: true,
