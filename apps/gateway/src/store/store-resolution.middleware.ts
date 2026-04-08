@@ -8,16 +8,21 @@ export class StoreResolutionMiddleware implements NestMiddleware {
   constructor(private readonly storeService: StoreService) {}
 
   async use(req: Request, _res: Response, next: NextFunction) {
-    // 1. Try Host header (custom domains)
-    let store = await this.storeService.findByDomain(req.hostname);
+    // 1. Explicit store slug header — highest priority, set by storefront clients
+    //    via NEXT_PUBLIC_STORE_SLUG. Deterministic: no hostname magic required.
+    const slugHeader = req.headers["x-store-slug"] as string | undefined;
+    let store = slugHeader ? await this.storeService.findBySlug(slugHeader) : null;
 
-    // 2. Fall back to :slug route param
+    // 2. Try Host header (custom domains)
+    if (!store) store = await this.storeService.findByDomain(req.hostname);
+
+    // 3. Fall back to :slug route param
     const slug = req.params["slug"] as string | undefined;
     if (!store && slug) {
       store = await this.storeService.findBySlug(slug);
     }
 
-    // 3. Fall back to clientId decoded from the Bearer token
+    // 4. Fall back to clientId decoded from the Bearer token
     //    (admin app routes — no hostname/slug context)
     //    Note: guards run AFTER middleware so req.user is not yet populated here.
     //    We decode without verifying — the AccessGuard will reject invalid tokens.

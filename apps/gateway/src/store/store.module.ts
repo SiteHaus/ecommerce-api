@@ -5,6 +5,7 @@ import { DbModule } from "@sitehaus-ecom/shared";
 import IORedis from "ioredis";
 import { AnonSessionMiddleware } from "../anon-session/anon-session.middleware";
 import { AnonSessionModule } from "../anon-session/anon-session.module";
+import { AdminStoreGuard } from "./admin-store.guard";
 import { StoreAdminController } from "./store-admin.controller";
 import { StoreResolutionMiddleware } from "./store-resolution.middleware";
 import { REDIS_TOKEN, StoreService } from "./store.service";
@@ -32,25 +33,23 @@ import { REDIS_TOKEN, StoreService } from "./store.service";
   controllers: [StoreAdminController],
   providers: [
     StoreService,
+    AdminStoreGuard,
     {
       provide: REDIS_TOKEN,
       inject: [ConfigService],
       useFactory: (config: ConfigService) => new IORedis(config.getOrThrow("REDIS_URL")),
     },
   ],
-  exports: [StoreService],
+  exports: [StoreService, AdminStoreGuard],
 })
 export class StoreModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer.apply(AnonSessionMiddleware).forRoutes("*");
     consumer
       .apply(StoreResolutionMiddleware)
-      // POST /v1/admin/stores creates a new store — no store to resolve yet
-      .exclude({ path: "v1/admin/stores", method: RequestMethod.POST })
-      // GET /v1/admin/stores/me looks up the store BY clientId — no store to resolve yet
-      .exclude({ path: "v1/admin/stores/me", method: RequestMethod.GET })
-      // GET /v1/admin/stores/accessible resolves stores by clientIds query param
-      .exclude({ path: "v1/admin/stores/accessible", method: RequestMethod.GET })
+      // Admin routes resolve the store from the Bearer token via AdminStoreGuard —
+      // the middleware is only needed for storefront routes (domain/slug resolution).
+      .exclude({ path: "/v1/admin/(.*)", method: RequestMethod.ALL })
       .forRoutes("*");
   }
 }

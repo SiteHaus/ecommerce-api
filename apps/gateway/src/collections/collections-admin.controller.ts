@@ -1,13 +1,13 @@
 import { Controller, Inject, Req, UseGuards } from "@nestjs/common";
 import { ClientProxy } from "@nestjs/microservices";
-import { StoreOwnerGuard } from "@sitehaus-ecom/auth";
+import { AdminStoreGuard } from "../store/admin-store.guard";
 import { contract } from "@sitehaus-ecom/contracts";
 import { TsRestHandler, tsRestHandler } from "@ts-rest/nest";
 import type { Request } from "express";
 import { firstValueFrom } from "rxjs";
 
 @Controller()
-@UseGuards(StoreOwnerGuard)
+@UseGuards(AdminStoreGuard)
 export class CollectionsAdminController {
   constructor(@Inject("COMMERCE_SERVICE") private readonly commerce: ClientProxy) {}
 

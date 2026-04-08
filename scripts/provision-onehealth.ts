@@ -18,6 +18,7 @@ import { Client } from "pg";
 
 const DATABASE_URL = process.env.DATABASE_URL;
 const DOMAIN = process.env.PROVISION_DOMAIN;
+const CLIENT_ID = process.env.PROVISION_CLIENT_ID;
 const STRIPE_ACCOUNT = process.env.PROVISION_STRIPE_ACCOUNT ?? null;
 
 if (!DATABASE_URL) {
@@ -28,6 +29,11 @@ if (!DOMAIN) {
   console.error("❌  PROVISION_DOMAIN is required (e.g. onehealthclinics.com)");
   process.exit(1);
 }
+if (!CLIENT_ID) {
+  console.error("❌  PROVISION_CLIENT_ID is required — find it with:");
+  console.error("     sitehaus db query \"SELECT id, key FROM clients WHERE key = 'one-health'\"");
+  process.exit(1);
+}
 
 if (!STRIPE_ACCOUNT) {
   console.warn(
@@ -36,9 +42,8 @@ if (!STRIPE_ACCOUNT) {
   console.warn("     Run provision again with --stripe-account once Stripe Connect is set up.\n");
 }
 
-// Fixed IDs — stable across environments
+// STORE_ID is fixed and stable across environments
 const STORE_ID = "00000000-0000-4000-8000-000000000001";
-const CLIENT_ID = "00000000-cafe-4bab-8000-000000000001"; // onehealth IAM client
 
 const PRODUCTS = [
   {
@@ -270,6 +275,7 @@ try {
       'usd', 15
     )
     ON CONFLICT (id) DO UPDATE SET
+      client_id                = EXCLUDED.client_id,
       domain                   = EXCLUDED.domain,
       stripe_account_id        = EXCLUDED.stripe_account_id,
       stripe_charges_enabled   = EXCLUDED.stripe_charges_enabled,

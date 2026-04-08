@@ -1,7 +1,7 @@
 import { Controller, Inject, Req, UseGuards } from "@nestjs/common";
 import { ClientProxy } from "@nestjs/microservices";
 import { contract } from "@sitehaus-ecom/contracts";
-import { StoreOwnerGuard } from "@sitehaus-ecom/auth";
+import { AdminStoreGuard } from "../store/admin-store.guard";
 import { Public } from "@sitehaus/client-sdk/nestjs";
 import { TsRestHandler, tsRestHandler } from "@ts-rest/nest";
 import type { Request } from "express";
@@ -11,7 +11,7 @@ import { firstValueFrom } from "rxjs";
 export class ProductsController {
   constructor(@Inject("COMMERCE_SERVICE") private readonly commerce: ClientProxy) {}
 
-  @UseGuards(StoreOwnerGuard)
+  @UseGuards(AdminStoreGuard)
   @TsRestHandler(contract.product.listProducts)
   listProducts(@Req() req: Request) {
     return tsRestHandler(contract.product.listProducts, async ({ query }) => {
@@ -22,7 +22,7 @@ export class ProductsController {
     });
   }
 
-  @UseGuards(StoreOwnerGuard)
+  @UseGuards(AdminStoreGuard)
   @TsRestHandler(contract.product.createProduct)
   create(@Req() req: Request) {
     return tsRestHandler(contract.product.createProduct, async ({ body }) => {
@@ -33,7 +33,7 @@ export class ProductsController {
     });
   }
 
-  @UseGuards(StoreOwnerGuard)
+  @UseGuards(AdminStoreGuard)
   @TsRestHandler(contract.product.getProduct)
   getProduct(@Req() req: Request) {
     return tsRestHandler(contract.product.getProduct, async ({ params }) => {
@@ -44,7 +44,7 @@ export class ProductsController {
     });
   }
 
-  @UseGuards(StoreOwnerGuard)
+  @UseGuards(AdminStoreGuard)
   @TsRestHandler(contract.product.updateProduct)
   update(@Req() req: Request) {
     return tsRestHandler(contract.product.updateProduct, async ({ body, params }) => {
@@ -59,7 +59,7 @@ export class ProductsController {
     });
   }
 
-  @UseGuards(StoreOwnerGuard)
+  @UseGuards(AdminStoreGuard)
   @TsRestHandler(contract.product.deleteProduct)
   delete(@Req() req: Request) {
     return tsRestHandler(contract.product.deleteProduct, async ({ params }) => {

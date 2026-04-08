@@ -1,6 +1,7 @@
+import { AdminStoreGuard } from "../store/admin-store.guard";
 import { INestApplication } from "@nestjs/common";
 import { Test, TestingModule } from "@nestjs/testing";
-import { StoreOwnerGuard } from "@sitehaus-ecom/auth";
+
 import type { ResolvedStore } from "@sitehaus-ecom/auth";
 import { RpcException } from "@nestjs/microservices";
 import { of, throwError } from "rxjs";
@@ -90,7 +91,7 @@ describe("OrdersAdminController", () => {
         { provide: "PAYMENTS_SERVICE", useValue: mockPaymentsClient },
       ],
     })
-      .overrideGuard(StoreOwnerGuard)
+      .overrideGuard(AdminStoreGuard)
       .useValue({ canActivate: () => true })
       .compile();
 
@@ -286,7 +287,7 @@ describe("OrdersAdminController", () => {
           { provide: "PAYMENTS_SERVICE", useValue: mockPaymentsClient },
         ],
       })
-        .overrideGuard(StoreOwnerGuard)
+        .overrideGuard(AdminStoreGuard)
         .useValue({ canActivate: () => true })
         .compile();
 
