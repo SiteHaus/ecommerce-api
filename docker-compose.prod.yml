@@ -41,7 +41,7 @@ services:
           memory: 256M
 
   gateway:
-    image: ghcr.io/sitehaus/sitehaus-commerce-gateway:latest
+    image: ghcr.io/sitehaus/sitehaus-commerce-gateway:${IMAGE_TAG:-latest}
     restart: always
     networks:
       - sitehaus-commerce-network
@@ -65,7 +65,7 @@ services:
           memory: 512M
 
   commerce:
-    image: ghcr.io/sitehaus/sitehaus-commerce-commerce:latest
+    image: ghcr.io/sitehaus/sitehaus-commerce-commerce:${IMAGE_TAG:-latest}
     restart: always
     networks:
       - sitehaus-commerce-network
@@ -83,7 +83,7 @@ services:
           memory: 512M
 
   payments:
-    image: ghcr.io/sitehaus/sitehaus-commerce-payments:latest
+    image: ghcr.io/sitehaus/sitehaus-commerce-payments:${IMAGE_TAG:-latest}
     restart: always
     networks:
       - sitehaus-commerce-network
@@ -101,7 +101,7 @@ services:
           memory: 512M
 
   worker:
-    image: ghcr.io/sitehaus/sitehaus-commerce-worker:latest
+    image: ghcr.io/sitehaus/sitehaus-commerce-worker:${IMAGE_TAG:-latest}
     restart: always
     networks:
       - sitehaus-commerce-network
