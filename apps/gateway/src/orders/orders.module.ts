@@ -3,9 +3,11 @@ import { ConfigModule, ConfigService } from "@nestjs/config";
 import { ClientsModule, Transport } from "@nestjs/microservices";
 import { OrdersAdminController } from "./orders-admin.controller";
 import { OrdersController } from "./orders.controller";
+import { StoreModule } from "../store/store.module";
 
 @Module({
   imports: [
+    StoreModule,
     ClientsModule.registerAsync([
       {
         name: "COMMERCE_SERVICE",
