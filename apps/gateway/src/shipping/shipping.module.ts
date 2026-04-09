@@ -2,8 +2,10 @@ import { Module } from "@nestjs/common";
 import { ShippingAdminController } from "./shipping-admin.controller";
 import { ClientsModule, Transport } from "@nestjs/microservices";
 import { ConfigModule, ConfigService } from "@nestjs/config";
+import { StoreModule } from "../store/store.module";
 @Module({
   imports: [
+    StoreModule,
     ClientsModule.registerAsync([
       {
         name: "COMMERCE_SERVICE",
