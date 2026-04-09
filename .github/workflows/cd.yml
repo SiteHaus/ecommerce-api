@@ -67,8 +67,9 @@ jobs:
             cd /srv/sitehaus-commerce
             git fetch origin main
             git reset --hard origin/main
+            export IMAGE_TAG=staging
             docker compose -f docker-compose.prod.yml pull
-            docker compose -f docker-compose.prod.yml up -d --remove-orphans
+            docker compose -f docker-compose.prod.yml up -d --remove-orphans --force-recreate
             docker image prune -f
 
   # ── Stage 3: Manual approval gate ─────────────────────────────────────────
@@ -135,6 +136,5 @@ jobs:
             cd /srv/sitehaus-commerce
             git pull origin main
             docker compose -f docker-compose.prod.yml pull
-            docker compose -f docker-compose.prod.yml up -d --remove-orphans
-            docker compose -f docker-compose.prod.yml restart caddy
+            docker compose -f docker-compose.prod.yml up -d --remove-orphans --force-recreate
             docker image prune -f
