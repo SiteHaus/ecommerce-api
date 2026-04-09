@@ -9,7 +9,8 @@ export class StoreResolutionMiddleware implements NestMiddleware {
 
   async use(req: Request, _res: Response, next: NextFunction) {
     // Admin routes resolve the store via AdminStoreGuard (token-based) — skip middleware.
-    if (req.path.startsWith("/v1/admin/")) return next();
+    // Note: req.path strips the version prefix in NestJS/Express 5 context, so use originalUrl.
+    if (req.originalUrl?.includes("/admin/")) return next();
 
     // 1. Explicit store slug header — highest priority, set by storefront clients
     //    via NEXT_PUBLIC_STORE_SLUG. Deterministic: no hostname magic required.
