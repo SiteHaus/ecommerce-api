@@ -1,4 +1,4 @@
-import { MiddlewareConsumer, Module, NestModule, RequestMethod } from "@nestjs/common";
+import { MiddlewareConsumer, Module, NestModule } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { ClientsModule, Transport } from "@nestjs/microservices";
 import { DbModule } from "@sitehaus-ecom/shared";
@@ -45,11 +45,6 @@ import { REDIS_TOKEN, StoreService } from "./store.service";
 export class StoreModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer.apply(AnonSessionMiddleware).forRoutes("*");
-    consumer
-      .apply(StoreResolutionMiddleware)
-      // Admin routes resolve the store from the Bearer token via AdminStoreGuard —
-      // the middleware is only needed for storefront routes (domain/slug resolution).
-      .exclude({ path: "/v1/admin/(.*)", method: RequestMethod.ALL })
-      .forRoutes("*");
+    consumer.apply(StoreResolutionMiddleware).forRoutes("*");
   }
 }
