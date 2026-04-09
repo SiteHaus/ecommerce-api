@@ -28,7 +28,7 @@ Three processes, one database:
 ```
                   ┌───────────────────────────────┐
   HTTP :7020      │         apps/gateway          │
-  ────────────►   │  NestJS HTTP. Routes only.    │
+  ─────────────►  │  NestJS HTTP. Routes only.    │
                   │  No business logic, no keys.  │
                   └────────┬──────────┬───────────┘
                            │ TCP      │ TCP
