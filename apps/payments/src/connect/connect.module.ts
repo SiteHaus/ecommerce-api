@@ -3,6 +3,7 @@ import { ConnectHandler } from "./connect.handler";
 import { ConnectService } from "./connect.service";
 
 @Module({
-  providers: [ConnectService, ConnectHandler],
+  controllers: [ConnectHandler],
+  providers: [ConnectService],
 })
 export class ConnectModule {}
