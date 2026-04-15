@@ -67,7 +67,7 @@ export class NotificationsProcessor extends WorkerHost {
         .where(eq(orderItemsTable.orderId, orderId)),
       this.db.query.storesTable.findFirst({
         where: eq(storesTable.id, storeId),
-        columns: { name: true },
+        columns: { name: true, notificationEmail: true },
       }),
     ]);
 
@@ -119,13 +119,18 @@ export class NotificationsProcessor extends WorkerHost {
       </div>
     `;
 
+    const recipients: string[] = [order.email];
+    if (store?.notificationEmail) recipients.push(store.notificationEmail);
+
     await this.email.send({
-      to: order.email,
+      to: recipients,
       subject: `Order confirmed — #${ref}`,
       html,
     });
 
-    this.logger.log(`Order confirmation email sent for order ${orderId}`);
+    this.logger.log(
+      `Order confirmation email sent for order ${orderId} to ${recipients.join(", ")}`,
+    );
   }
 
   private async handleOrderShipped(job: Job): Promise<void> {

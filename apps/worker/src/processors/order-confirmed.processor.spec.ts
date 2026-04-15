@@ -34,7 +34,7 @@ const mockItems = [
   },
 ];
 
-const mockStore = { name: "Health & Co." };
+const mockStore = { name: "Health & Co.", notificationEmail: null };
 
 function selectChain(rows: any[]) {
   return {
@@ -92,7 +92,7 @@ describe("OrderConfirmedProcessor", () => {
 
     expect(mockSend).toHaveBeenCalledWith(
       expect.objectContaining({
-        to: "customer@example.com",
+        to: ["customer@example.com"],
         subject: `Order confirmed — #${ORDER_ID.slice(0, 8).toUpperCase()}`,
       }),
     );
