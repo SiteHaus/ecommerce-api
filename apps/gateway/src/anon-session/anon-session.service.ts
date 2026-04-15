@@ -28,9 +28,9 @@ export class AnonSessionService {
     const newToken = jwt.sign({ sub }, secret, { expiresIn: "7d" });
     res.cookie("store_session", newToken, {
       httpOnly: true,
-      sameSite: "lax",
+      sameSite: "none", // cross-origin storefronts on different domains need None
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      secure: this.config.get("NODE_ENV") === "production",
+      secure: true, // required for SameSite=None
     });
     return sub;
   }

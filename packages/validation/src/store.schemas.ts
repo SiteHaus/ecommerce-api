@@ -20,6 +20,7 @@ export const updateStoreSchema = z.object({
   domain: z.string().nullable().optional(),
   currency: z.string().length(3).optional(),
   timezone: z.string().optional(),
+  notificationEmail: z.string().email().nullable().optional(),
   reservationTtlMinutes: z.number().int().min(5).max(60).optional(),
 });
 
@@ -29,6 +30,7 @@ export const storeItem = z.object({
   slug: z.string(),
   domain: z.string().nullable(),
   currency: z.string(),
+  notificationEmail: z.string().email().nullable(),
   stripeAccountId: z.string().nullable(),
   stripeChargesEnabled: z.boolean(),
   stripePayoutsEnabled: z.boolean(),

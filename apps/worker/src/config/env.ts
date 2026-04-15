@@ -12,6 +12,8 @@ const envSchema = z.object({
   // Transactional email via Resend
   RESEND_API_KEY: z.string().min(1),
   EMAIL_FROM: z.email(),
+  // When set, all outbound emails are redirected to this address (staging/dev only)
+  EMAIL_DEV_REDIRECT: z.email().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

@@ -15,6 +15,13 @@
       "when": 1775598245419,
       "tag": "0001_lowly_argent",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1776101169652,
+      "tag": "0002_perfect_barracuda",
+      "breakpoints": true
     }
   ]
 }

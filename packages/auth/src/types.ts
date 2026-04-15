@@ -4,6 +4,7 @@ export interface ResolvedStore {
   slug: string;
   domain: string | null;
   currency: string;
+  notificationEmail: string | null;
   stripeAccountId: string | null;
   stripeChargesEnabled: boolean;
   stripePayoutsEnabled: boolean;
