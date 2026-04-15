@@ -18,6 +18,7 @@ const mockStore: ResolvedStore = {
   stripePayoutsEnabled: false,
   stripeDetailsSubmitted: true,
   reservationTtlMinutes: 15,
+  notificationEmail: null,
 };
 
 const validBody = {

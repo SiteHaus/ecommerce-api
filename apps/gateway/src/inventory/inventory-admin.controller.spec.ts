@@ -20,6 +20,7 @@ const mockStore: ResolvedStore = {
   stripePayoutsEnabled: false,
   stripeDetailsSubmitted: false,
   reservationTtlMinutes: 15,
+  notificationEmail: null,
 };
 
 const mockUser = {
