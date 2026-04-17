@@ -157,8 +157,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/validation
       '@sitehaus/client-sdk':
-        specifier: ^0.2.0
-        version: 0.2.0(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.16)
+        specifier: ^0.3.0
+        version: 0.3.0(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.16)
       '@ts-rest/core':
         specifier: 3.53.0-rc.1
         version: 3.53.0-rc.1(@types/node@22.19.13)
@@ -1846,8 +1846,8 @@ packages:
   '@sinonjs/fake-timers@10.3.0':
     resolution: {integrity: sha512-V4BG07kuYSUkTCSBHG8G8TNhM+F19jXFWnQtzj+we8DrkpSBCee9Z3Ms8yiGer/dlmhe35/Xdgyo3/0rQKg7YA==}
 
-  '@sitehaus/client-sdk@0.2.0':
-    resolution: {integrity: sha512-A0ma4PTPitW8anuOebUzhXxRw++X3+2Zd+dQ0BvX1ZtoVa12WDOGBWWBhTj9bxAzKNXGA/KmUNGJQ3t9um3T3w==}
+  '@sitehaus/client-sdk@0.3.0':
+    resolution: {integrity: sha512-JjWR81hqlzqf+Pksro7WoQu5otiB4moJch+eSc3tQn5H2Y49CxoQ9rxai52yW9oTAsny+u4j698hIkvsIgJswg==}
     peerDependencies:
       '@nestjs/common': ^11.0.0
       '@nestjs/core': ^11.0.0
@@ -6478,7 +6478,7 @@ snapshots:
     dependencies:
       '@sinonjs/commons': 3.0.1
 
-  '@sitehaus/client-sdk@0.2.0(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.16)':
+  '@sitehaus/client-sdk@0.3.0(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.16)':
     optionalDependencies:
       '@nestjs/common': 11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2)
       '@nestjs/core': 11.1.16(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/microservices@11.1.16)(@nestjs/platform-express@11.1.16)(reflect-metadata@0.2.2)(rxjs@7.8.2)
