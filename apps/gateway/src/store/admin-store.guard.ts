@@ -1,6 +1,7 @@
 import {
   CanActivate,
   ExecutionContext,
+  ForbiddenException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -8,12 +9,15 @@ import {
 import { StoreService } from "./store.service";
 
 /**
- * For admin routes — resolves req.store directly from the authenticated user's
- * clientId rather than relying on the StoreResolutionMiddleware.
+ * For admin routes — resolves req.store from the authenticated user's context.
  *
- * This means admin routes work correctly regardless of hostname or slug in the
- * URL, and the store discovery endpoints (getAccessible, getMe) don't need to
- * be excluded from middleware.
+ * Prefers the x-client-id header (sent by the commerce admin frontend via
+ * targetClientIdProvider) so the frontend never needs to switch OAuth clients.
+ * The requested client ID is validated against the user's accessible clients
+ * (from introspection) before use.
+ *
+ * Falls back to req.user.clientId for tokens issued directly for a merchant
+ * client (legacy / storefront-initiated sessions).
  */
 @Injectable()
 export class AdminStoreGuard implements CanActivate {
@@ -23,7 +27,18 @@ export class AdminStoreGuard implements CanActivate {
     const req = ctx.switchToHttp().getRequest();
     if (!req.user) throw new UnauthorizedException();
 
-    const store = await this.storeService.findByClientId(req.user.clientId);
+    const requestedClientId = req.headers["x-client-id"] as string | undefined;
+
+    const clientId =
+      requestedClientId && req.user.accessibleClientIds?.includes(requestedClientId)
+        ? requestedClientId
+        : req.user.clientId;
+
+    if (requestedClientId && !req.user.accessibleClientIds?.includes(requestedClientId)) {
+      throw new ForbiddenException("You do not have access to this store");
+    }
+
+    const store = await this.storeService.findByClientId(clientId);
     if (!store) throw new NotFoundException("Store not found");
 
     req.store = store;
