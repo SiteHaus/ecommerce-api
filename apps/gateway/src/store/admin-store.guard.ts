@@ -31,10 +31,8 @@ export class AdminStoreGuard implements CanActivate {
     const requestedClientId = req.headers["x-client-id"] as string | undefined;
 
     if (requestedClientId) {
-      const isFirstParty = req.user.clientIsFirstParty === true;
       const isSelf = requestedClientId === req.user.clientId;
-
-      if (!isFirstParty && !isSelf) {
+      if (!req.user.clientIsFirstParty && !isSelf) {
         throw new ForbiddenException("You do not have access to this store");
       }
     }
