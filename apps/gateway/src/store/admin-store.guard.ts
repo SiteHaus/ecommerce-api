@@ -11,13 +11,14 @@ import { StoreService } from "./store.service";
 /**
  * For admin routes — resolves req.store from the authenticated user's context.
  *
- * Prefers the x-client-id header (sent by the commerce admin frontend via
- * targetClientIdProvider) so the frontend never needs to switch OAuth clients.
- * The requested client ID is validated against the user's accessible clients
- * (from introspection) before use.
+ * First-party clients (SiteHaus internal, e.g. sitehaus-commerce-admin) may
+ * pass x-client-id to specify which store to operate on. This avoids the need
+ * for a separate OAuth re-auth flow per merchant store.
  *
- * Falls back to req.user.clientId for tokens issued directly for a merchant
- * client (legacy / storefront-initiated sessions).
+ * Non-first-party clients (merchant tokens) may only operate on their own
+ * store (x-client-id must match their token's clientId, or be absent).
+ *
+ * Falls back to req.user.clientId when no x-client-id header is present.
  */
 @Injectable()
 export class AdminStoreGuard implements CanActivate {
@@ -29,14 +30,16 @@ export class AdminStoreGuard implements CanActivate {
 
     const requestedClientId = req.headers["x-client-id"] as string | undefined;
 
-    const clientId =
-      requestedClientId && req.user.accessibleClientIds?.includes(requestedClientId)
-        ? requestedClientId
-        : req.user.clientId;
+    if (requestedClientId) {
+      const isFirstParty = req.user.clientIsFirstParty === true;
+      const isSelf = requestedClientId === req.user.clientId;
 
-    if (requestedClientId && !req.user.accessibleClientIds?.includes(requestedClientId)) {
-      throw new ForbiddenException("You do not have access to this store");
+      if (!isFirstParty && !isSelf) {
+        throw new ForbiddenException("You do not have access to this store");
+      }
     }
+
+    const clientId = requestedClientId ?? req.user.clientId;
 
     const store = await this.storeService.findByClientId(clientId);
     if (!store) throw new NotFoundException("Store not found");
