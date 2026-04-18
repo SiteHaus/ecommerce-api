@@ -26,12 +26,11 @@ export class StoreAdminController {
     });
   }
 
+  @UseGuards(AdminStoreGuard)
   @TsRestHandler(contract.store.getMe)
   async getMe(@Req() req: Request) {
     return tsRestHandler(contract.store.getMe, async () => {
-      const store = await this.storeService.findByClientId(req.user!.clientId);
-      if (!store) return { status: 404 as const, body: { message: "Store not found" } };
-      return { status: 200 as const, body: store };
+      return { status: 200 as const, body: req.store! };
     });
   }
 
@@ -39,7 +38,8 @@ export class StoreAdminController {
   async create(@Req() req: Request) {
     return tsRestHandler(contract.store.createStore, async ({ body }) => {
       try {
-        const store = await this.storeService.create(req.user!.clientId, body);
+        const clientId = (req.headers["x-client-id"] as string | undefined) ?? req.user!.clientId;
+        const store = await this.storeService.create(clientId, body);
         return { status: 201 as const, body: store };
       } catch (err: any) {
         return this.handleStoreConflict(err);
