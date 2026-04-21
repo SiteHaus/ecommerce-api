@@ -1,4 +1,5 @@
 import { AdminStoreGuard } from "../store/admin-store.guard";
+import { CommercePermGuard } from "../store/commerce-perm.guard";
 import { INestApplication } from "@nestjs/common";
 import { Test, TestingModule } from "@nestjs/testing";
 
@@ -93,6 +94,8 @@ describe("OrdersAdminController", () => {
       ],
     })
       .overrideGuard(AdminStoreGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(CommercePermGuard)
       .useValue({ canActivate: () => true })
       .compile();
 
@@ -289,6 +292,8 @@ describe("OrdersAdminController", () => {
         ],
       })
         .overrideGuard(AdminStoreGuard)
+        .useValue({ canActivate: () => true })
+        .overrideGuard(CommercePermGuard)
         .useValue({ canActivate: () => true })
         .compile();
 
