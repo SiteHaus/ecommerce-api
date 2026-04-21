@@ -15,6 +15,7 @@ import { InventoryModule } from "./inventory/inventory.module";
 import { OrdersModule } from "./orders/orders.module";
 import { ProductsModule } from "./products/products.module";
 import { StoreModule } from "./store/store.module";
+import { CommercePermGuard } from "./store/commerce-perm.guard";
 import { VariantsModule } from "./variants/variants.module";
 import { CollectionsModule } from "./collections/collections.module";
 import { ImagesModule } from "./product-images/product-images.module";
@@ -104,6 +105,9 @@ import { ShippingAdminModule } from "./shipping/shipping.module";
 
     // Redis-backed throttling keyed by userId → sessionToken → IP
     { provide: APP_GUARD, useClass: SmartThrottlerGuard },
+
+    // Commerce permission check — first-party bypass, checks @CommercePerm() metadata
+    { provide: APP_GUARD, useClass: CommercePermGuard },
   ],
 })
 export class AppModule {}

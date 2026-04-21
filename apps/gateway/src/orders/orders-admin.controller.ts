@@ -2,7 +2,7 @@ import { Controller, Inject, Req, UseGuards } from "@nestjs/common";
 import { ClientProxy } from "@nestjs/microservices";
 import { contract } from "@sitehaus-ecom/contracts";
 import { AdminStoreGuard } from "../store/admin-store.guard";
-import { RequirePerms } from "@sitehaus/client-sdk/nestjs";
+import { CommercePerm } from "../store/commerce-perm.decorator";
 import { TsRestHandler, tsRestHandler } from "@ts-rest/nest";
 import type { Request } from "express";
 import { firstValueFrom } from "rxjs";
@@ -15,7 +15,7 @@ export class OrdersAdminController {
     @Inject("PAYMENTS_SERVICE") private readonly payments: ClientProxy,
   ) {}
 
-  @RequirePerms("orders:read")
+  @CommercePerm("orders:read")
   @TsRestHandler(contract.orders.adminListOrders)
   adminListOrders(@Req() req: Request) {
     return tsRestHandler(contract.orders.adminListOrders, async ({ query }) => {
@@ -33,7 +33,7 @@ export class OrdersAdminController {
     });
   }
 
-  @RequirePerms("orders:read")
+  @CommercePerm("orders:read")
   @TsRestHandler(contract.orders.adminGetOrder)
   adminGetOrder(@Req() req: Request) {
     return tsRestHandler(contract.orders.adminGetOrder, async ({ params }) => {
@@ -47,7 +47,7 @@ export class OrdersAdminController {
     });
   }
 
-  @RequirePerms("orders:write")
+  @CommercePerm("orders:write")
   @TsRestHandler(contract.orders.adminShipOrder)
   adminShipOrder(@Req() req: Request) {
     return tsRestHandler(contract.orders.adminShipOrder, async ({ params, body }) => {
@@ -70,7 +70,7 @@ export class OrdersAdminController {
     });
   }
 
-  @RequirePerms("payments:refund")
+  @CommercePerm("payments:refund")
   @TsRestHandler(contract.orders.adminRefundOrder)
   adminRefundOrder(@Req() req: Request) {
     return tsRestHandler(contract.orders.adminRefundOrder, async ({ params }) => {

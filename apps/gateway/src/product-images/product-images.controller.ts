@@ -1,6 +1,6 @@
 import { Controller, Inject, Req, UseGuards } from "@nestjs/common";
 import { AdminStoreGuard } from "../store/admin-store.guard";
-import { RequirePerms } from "@sitehaus/client-sdk/nestjs";
+import { CommercePerm } from "../store/commerce-perm.decorator";
 import { TsRestHandler, tsRestHandler } from "@ts-rest/nest";
 import { contract } from "@sitehaus-ecom/contracts";
 import type { Request } from "express";
@@ -12,7 +12,7 @@ import { ClientProxy } from "@nestjs/microservices";
 export class ImagesController {
   constructor(@Inject("COMMERCE_SERVICE") private readonly commerce: ClientProxy) {}
 
-  @RequirePerms("products:read")
+  @CommercePerm("products:read")
   @TsRestHandler(contract.image.listImages)
   async list(@Req() req: Request) {
     return tsRestHandler(contract.image.listImages, async ({ params }) => {
@@ -26,7 +26,7 @@ export class ImagesController {
     });
   }
 
-  @RequirePerms("products:write")
+  @CommercePerm("products:write")
   @TsRestHandler(contract.image.uploadUrl)
   async uploadUrl(@Req() req: Request) {
     return tsRestHandler(contract.image.uploadUrl, async ({ body, params }) => {
@@ -41,7 +41,7 @@ export class ImagesController {
     });
   }
 
-  @RequirePerms("products:write")
+  @CommercePerm("products:write")
   @TsRestHandler(contract.image.confirmImage)
   async confirm(@Req() req: Request) {
     return tsRestHandler(contract.image.confirmImage, async ({ body, params }) => {
@@ -56,7 +56,7 @@ export class ImagesController {
     });
   }
 
-  @RequirePerms("products:delete")
+  @CommercePerm("products:delete")
   @TsRestHandler(contract.image.deleteImage)
   async delete(@Req() req: Request) {
     return tsRestHandler(contract.image.deleteImage, async ({ params }) => {
@@ -71,7 +71,7 @@ export class ImagesController {
     });
   }
 
-  @RequirePerms("products:write")
+  @CommercePerm("products:write")
   @TsRestHandler(contract.image.reorderImages)
   async reorder(@Req() req: Request) {
     return tsRestHandler(contract.image.reorderImages, async ({ body, params }) => {

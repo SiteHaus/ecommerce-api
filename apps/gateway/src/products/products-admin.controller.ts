@@ -2,7 +2,8 @@ import { Controller, Inject, Req, UseGuards } from "@nestjs/common";
 import { ClientProxy } from "@nestjs/microservices";
 import { contract } from "@sitehaus-ecom/contracts";
 import { AdminStoreGuard } from "../store/admin-store.guard";
-import { Public, RequirePerms } from "@sitehaus/client-sdk/nestjs";
+import { Public } from "@sitehaus/client-sdk/nestjs";
+import { CommercePerm } from "../store/commerce-perm.decorator";
 import { TsRestHandler, tsRestHandler } from "@ts-rest/nest";
 import type { Request } from "express";
 import { firstValueFrom } from "rxjs";
@@ -11,7 +12,7 @@ import { firstValueFrom } from "rxjs";
 export class ProductsController {
   constructor(@Inject("COMMERCE_SERVICE") private readonly commerce: ClientProxy) {}
 
-  @RequirePerms("products:read")
+  @CommercePerm("products:read")
   @UseGuards(AdminStoreGuard)
   @TsRestHandler(contract.product.listProducts)
   listProducts(@Req() req: Request) {
@@ -23,7 +24,7 @@ export class ProductsController {
     });
   }
 
-  @RequirePerms("products:write")
+  @CommercePerm("products:write")
   @UseGuards(AdminStoreGuard)
   @TsRestHandler(contract.product.createProduct)
   create(@Req() req: Request) {
@@ -35,7 +36,7 @@ export class ProductsController {
     });
   }
 
-  @RequirePerms("products:read")
+  @CommercePerm("products:read")
   @UseGuards(AdminStoreGuard)
   @TsRestHandler(contract.product.getProduct)
   getProduct(@Req() req: Request) {
@@ -47,7 +48,7 @@ export class ProductsController {
     });
   }
 
-  @RequirePerms("products:write")
+  @CommercePerm("products:write")
   @UseGuards(AdminStoreGuard)
   @TsRestHandler(contract.product.updateProduct)
   update(@Req() req: Request) {
@@ -63,7 +64,7 @@ export class ProductsController {
     });
   }
 
-  @RequirePerms("products:delete")
+  @CommercePerm("products:delete")
   @UseGuards(AdminStoreGuard)
   @TsRestHandler(contract.product.deleteProduct)
   delete(@Req() req: Request) {

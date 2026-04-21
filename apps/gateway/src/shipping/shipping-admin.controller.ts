@@ -1,6 +1,6 @@
 import { Controller, UseGuards, Req, Inject } from "@nestjs/common";
 import { AdminStoreGuard } from "../store/admin-store.guard";
-import { RequirePerms } from "@sitehaus/client-sdk/nestjs";
+import { CommercePerm } from "../store/commerce-perm.decorator";
 import { ClientProxy } from "@nestjs/microservices";
 import { TsRestHandler, tsRestHandler } from "@ts-rest/nest";
 import { contract } from "@sitehaus-ecom/contracts";
@@ -11,7 +11,7 @@ import { firstValueFrom } from "rxjs";
 export class ShippingAdminController {
   constructor(@Inject("COMMERCE_SERVICE") private readonly commerce: ClientProxy) {}
 
-  @RequirePerms("orders:read")
+  @CommercePerm("orders:read")
   @UseGuards(AdminStoreGuard)
   @TsRestHandler(contract.shipping.listZones)
   async getZones(@Req() req: Request) {
@@ -24,7 +24,7 @@ export class ShippingAdminController {
     });
   }
 
-  @RequirePerms("orders:write")
+  @CommercePerm("orders:write")
   @UseGuards(AdminStoreGuard)
   @TsRestHandler(contract.shipping.createZone)
   async createZone(@Req() req: Request) {
@@ -37,7 +37,7 @@ export class ShippingAdminController {
     });
   }
 
-  @RequirePerms("orders:write")
+  @CommercePerm("orders:write")
   @UseGuards(AdminStoreGuard)
   @TsRestHandler(contract.shipping.updateZone)
   async updateZone(@Req() req: Request) {
@@ -54,7 +54,7 @@ export class ShippingAdminController {
     });
   }
 
-  @RequirePerms("orders:write")
+  @CommercePerm("orders:write")
   @UseGuards(AdminStoreGuard)
   @TsRestHandler(contract.shipping.deleteZone)
   async deleteZone(@Req() req: Request) {
@@ -70,7 +70,7 @@ export class ShippingAdminController {
     });
   }
 
-  @RequirePerms("orders:write")
+  @CommercePerm("orders:write")
   @UseGuards(AdminStoreGuard)
   @TsRestHandler(contract.shipping.createRate)
   async createRate(@Req() req: Request) {
@@ -87,7 +87,7 @@ export class ShippingAdminController {
     });
   }
 
-  @RequirePerms("orders:write")
+  @CommercePerm("orders:write")
   @UseGuards(AdminStoreGuard)
   @TsRestHandler(contract.shipping.updateRate)
   async updateRate(@Req() req: Request) {
@@ -105,7 +105,7 @@ export class ShippingAdminController {
     });
   }
 
-  @RequirePerms("orders:write")
+  @CommercePerm("orders:write")
   @UseGuards(AdminStoreGuard)
   @TsRestHandler(contract.shipping.deleteRate)
   async deleteRate(@Req() req: Request) {
@@ -122,7 +122,7 @@ export class ShippingAdminController {
     });
   }
 
-  @RequirePerms("orders:read")
+  @CommercePerm("orders:read")
   @UseGuards(AdminStoreGuard)
   async getRates(@Req() req: Request) {
     return tsRestHandler(contract.shipping.getRates, async ({ query }) => {

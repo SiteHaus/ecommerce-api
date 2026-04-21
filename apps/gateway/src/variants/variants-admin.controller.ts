@@ -1,6 +1,6 @@
 import { Controller, Inject, Req, UseGuards } from "@nestjs/common";
 import { AdminStoreGuard } from "../store/admin-store.guard";
-import { RequirePerms } from "@sitehaus/client-sdk/nestjs";
+import { CommercePerm } from "../store/commerce-perm.decorator";
 import { TsRestHandler, tsRestHandler } from "@ts-rest/nest";
 import { contract } from "@sitehaus-ecom/contracts";
 import type { Request } from "express";
@@ -12,7 +12,7 @@ import { ClientProxy } from "@nestjs/microservices";
 export class VariantsController {
   constructor(@Inject("COMMERCE_SERVICE") private readonly commerce: ClientProxy) {}
 
-  @RequirePerms("products:write")
+  @CommercePerm("products:write")
   @TsRestHandler(contract.variant.createVariant)
   async create(@Req() req: Request) {
     return tsRestHandler(contract.variant.createVariant, async ({ body, params }) => {
@@ -27,7 +27,7 @@ export class VariantsController {
     });
   }
 
-  @RequirePerms("products:write")
+  @CommercePerm("products:write")
   @TsRestHandler(contract.variant.updateVariant)
   async update(@Req() req: Request) {
     return tsRestHandler(contract.variant.updateVariant, async ({ body, params }) => {
@@ -42,7 +42,7 @@ export class VariantsController {
     });
   }
 
-  @RequirePerms("products:delete")
+  @CommercePerm("products:delete")
   @TsRestHandler(contract.variant.deleteVariant)
   async delete(@Req() req: Request) {
     return tsRestHandler(contract.variant.deleteVariant, async ({ params }) => {
