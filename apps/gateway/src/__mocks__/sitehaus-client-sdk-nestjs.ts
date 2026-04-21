@@ -7,7 +7,19 @@ export const Public = (): ClassDecorator & MethodDecorator => {
   };
 };
 
+export const RequirePerms = (..._permissions: string[]): MethodDecorator => {
+  return () => {};
+};
+
+export const RequirePermsAny = (..._permissions: string[]): MethodDecorator => {
+  return () => {};
+};
+
 export const AccessGuard = jest.fn().mockImplementation(() => ({
+  canActivate: jest.fn().mockReturnValue(true),
+}));
+
+export const PermissionGuard = jest.fn().mockImplementation(() => ({
   canActivate: jest.fn().mockReturnValue(true),
 }));
 
