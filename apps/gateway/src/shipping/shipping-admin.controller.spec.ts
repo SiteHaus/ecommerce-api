@@ -1,5 +1,6 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { AdminStoreGuard } from "../store/admin-store.guard";
+import { CommercePermGuard } from "../store/commerce-perm.guard";
 import { ShippingAdminController } from "./shipping-admin.controller";
 
 describe("ShippingAdminController", () => {
@@ -11,6 +12,8 @@ describe("ShippingAdminController", () => {
       providers: [{ provide: "COMMERCE_SERVICE", useValue: { send: jest.fn() } }],
     })
       .overrideGuard(AdminStoreGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(CommercePermGuard)
       .useValue({ canActivate: () => true })
       .compile();
 

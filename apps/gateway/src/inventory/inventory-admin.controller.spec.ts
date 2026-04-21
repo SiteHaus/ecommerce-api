@@ -1,4 +1,5 @@
 import { AdminStoreGuard } from "../store/admin-store.guard";
+import { CommercePermGuard } from "../store/commerce-perm.guard";
 import { Test, TestingModule } from "@nestjs/testing";
 import { INestApplication } from "@nestjs/common";
 
@@ -59,6 +60,8 @@ describe("InventoryAdminController", () => {
       providers: [{ provide: "COMMERCE_SERVICE", useValue: mockCommerceClient }],
     })
       .overrideGuard(AdminStoreGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(CommercePermGuard)
       .useValue({ canActivate: () => true })
       .compile();
 
