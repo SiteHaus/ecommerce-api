@@ -17,6 +17,34 @@ export class ConnectService {
     this.stripe = new Stripe(config.getOrThrow("STRIPE_SECRET_KEY"));
   }
 
+  async syncAccount(
+    storeId: string,
+    accountId: string,
+  ): Promise<{
+    chargesEnabled: boolean;
+    payoutsEnabled: boolean;
+    detailsSubmitted: boolean;
+  }> {
+    try {
+      const account = await this.stripe.accounts.retrieve(accountId);
+      const patch = {
+        stripeChargesEnabled: account.charges_enabled ?? false,
+        stripePayoutsEnabled: account.payouts_enabled ?? false,
+        stripeDetailsSubmitted: account.details_submitted ?? false,
+        updatedAt: new Date(),
+      };
+      await this.db.update(storesTable).set(patch).where(eq(storesTable.id, storeId));
+      return {
+        chargesEnabled: patch.stripeChargesEnabled,
+        payoutsEnabled: patch.stripePayoutsEnabled,
+        detailsSubmitted: patch.stripeDetailsSubmitted,
+      };
+    } catch (err: any) {
+      this.logger.error(`Stripe account sync failed for store ${storeId}: ${err.message}`);
+      return { chargesEnabled: false, payoutsEnabled: false, detailsSubmitted: false };
+    }
+  }
+
   async initiateConnect(
     storeId: string,
     existingAccountId: string | null,

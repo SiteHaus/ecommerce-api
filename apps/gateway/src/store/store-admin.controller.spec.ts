@@ -148,13 +148,36 @@ describe("StoreAdminController", () => {
   });
 
   describe("GET /v1/admin/stores/stripe-status", () => {
-    it("returns connected: true when stripeAccountId is set", async () => {
+    it("returns connected: true when stripeAccountId is set (all flags false — live sync)", async () => {
       currentStore = { ...mockStore, stripeAccountId: "acct_123" };
+      mockPaymentsClient.send.mockReturnValue(
+        of({ chargesEnabled: false, payoutsEnabled: false, detailsSubmitted: false }),
+      );
 
       const res = await request(app.getHttpServer()).get("/v1/admin/stores/stripe-status");
 
       expect(res.status).toBe(200);
       expect(res.body.connected).toBe(true);
+    });
+
+    it("live syncs from Stripe when all flags are false", async () => {
+      currentStore = { ...mockStore, stripeAccountId: "acct_123" };
+      mockPaymentsClient.send.mockReturnValue(
+        of({ chargesEnabled: true, payoutsEnabled: true, detailsSubmitted: true }),
+      );
+
+      const res = await request(app.getHttpServer()).get("/v1/admin/stores/stripe-status");
+
+      expect(mockPaymentsClient.send).toHaveBeenCalledWith("stripe.account.sync", {
+        storeId: mockStore.id,
+        accountId: "acct_123",
+      });
+      expect(res.body).toEqual({
+        connected: true,
+        chargesEnabled: true,
+        payoutsEnabled: true,
+        detailsSubmitted: true,
+      });
     });
 
     it("returns connected: false when stripeAccountId is null", async () => {
