@@ -1,6 +1,7 @@
 import { Controller, Inject, Req, UseGuards } from "@nestjs/common";
 import { ClientProxy } from "@nestjs/microservices";
 import { AdminStoreGuard } from "../store/admin-store.guard";
+import { CommercePerm } from "../store/commerce-perm.decorator";
 import { contract } from "@sitehaus-ecom/contracts";
 import { TsRestHandler, tsRestHandler } from "@ts-rest/nest";
 import type { Request } from "express";
@@ -11,6 +12,7 @@ import { firstValueFrom } from "rxjs";
 export class InventoryAdminController {
   constructor(@Inject("COMMERCE_SERVICE") private readonly commerce: ClientProxy) {}
 
+  @CommercePerm("products:read")
   @TsRestHandler(contract.inventory.getInventory)
   get(@Req() req: Request) {
     return tsRestHandler(contract.inventory.getInventory, async ({ params }) => {
@@ -24,6 +26,7 @@ export class InventoryAdminController {
     });
   }
 
+  @CommercePerm("products:write")
   @TsRestHandler(contract.inventory.adjust)
   adjust(@Req() req: Request) {
     return tsRestHandler(contract.inventory.adjust, async ({ params, body }) => {

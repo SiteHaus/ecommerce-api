@@ -93,14 +93,39 @@ export class StoreAdminController {
   async stripeStatus(@Req() req: Request) {
     return tsRestHandler(contract.store.stripeStatus, async () => {
       const store = req.store!;
+
+      if (!store.stripeAccountId) {
+        return {
+          status: 200 as const,
+          body: {
+            connected: false,
+            chargesEnabled: false,
+            payoutsEnabled: false,
+            detailsSubmitted: false,
+          },
+        };
+      }
+
+      // If webhook hasn't fired yet (all flags false), sync live from Stripe
+      const needsSync =
+        !store.stripeChargesEnabled && !store.stripePayoutsEnabled && !store.stripeDetailsSubmitted;
+      const flags = needsSync
+        ? await firstValueFrom(
+            this.paymentsClient.send<{
+              chargesEnabled: boolean;
+              payoutsEnabled: boolean;
+              detailsSubmitted: boolean;
+            }>("stripe.account.sync", { storeId: store.id, accountId: store.stripeAccountId }),
+          )
+        : {
+            chargesEnabled: store.stripeChargesEnabled,
+            payoutsEnabled: store.stripePayoutsEnabled,
+            detailsSubmitted: store.stripeDetailsSubmitted,
+          };
+
       return {
         status: 200 as const,
-        body: {
-          connected: store.stripeAccountId !== null,
-          chargesEnabled: store.stripeChargesEnabled,
-          payoutsEnabled: store.stripePayoutsEnabled,
-          detailsSubmitted: store.stripeDetailsSubmitted,
-        },
+        body: { connected: true, ...flags },
       };
     });
   }

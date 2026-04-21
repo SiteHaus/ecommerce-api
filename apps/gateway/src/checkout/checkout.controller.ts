@@ -61,7 +61,7 @@ export class CheckoutController {
     });
   }
 
-  @Post("v1/checkout/webhook")
+  @Post("v1/webhooks/stripe")
   webhook(
     @Req() req: RawBodyRequest<Request>,
     @Res() res: Response,

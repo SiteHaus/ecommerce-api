@@ -1,6 +1,7 @@
 import { Controller, Inject, Req, UseGuards } from "@nestjs/common";
 import { ClientProxy } from "@nestjs/microservices";
 import { AdminStoreGuard } from "../store/admin-store.guard";
+import { CommercePerm } from "../store/commerce-perm.decorator";
 import { contract } from "@sitehaus-ecom/contracts";
 import { TsRestHandler, tsRestHandler } from "@ts-rest/nest";
 import type { Request } from "express";
@@ -11,6 +12,7 @@ import { firstValueFrom } from "rxjs";
 export class CollectionsAdminController {
   constructor(@Inject("COMMERCE_SERVICE") private readonly commerce: ClientProxy) {}
 
+  @CommercePerm("products:write")
   @TsRestHandler(contract.collection.createCollection)
   create(@Req() req: Request) {
     return tsRestHandler(contract.collection.createCollection, async ({ body }) => {
@@ -24,6 +26,7 @@ export class CollectionsAdminController {
     });
   }
 
+  @CommercePerm("products:write")
   @TsRestHandler(contract.collection.updateCollection)
   update(@Req() req: Request) {
     return tsRestHandler(contract.collection.updateCollection, async ({ params, body }) => {
@@ -38,6 +41,7 @@ export class CollectionsAdminController {
     });
   }
 
+  @CommercePerm("products:delete")
   @TsRestHandler(contract.collection.deleteCollection)
   delete(@Req() req: Request) {
     return tsRestHandler(contract.collection.deleteCollection, async ({ params }) => {
@@ -51,6 +55,7 @@ export class CollectionsAdminController {
     });
   }
 
+  @CommercePerm("products:write")
   @TsRestHandler(contract.collection.verify)
   verify(@Req() req: Request) {
     return tsRestHandler(contract.collection.verify, async ({ params, body }) => {
@@ -65,6 +70,7 @@ export class CollectionsAdminController {
     });
   }
 
+  @CommercePerm("products:write")
   @TsRestHandler(contract.collection.reorder)
   reorder(@Req() req: Request) {
     return tsRestHandler(contract.collection.reorder, async ({ params, body }) => {
@@ -78,6 +84,7 @@ export class CollectionsAdminController {
       return { status: 200 as const, body: result };
     });
   }
+  @CommercePerm("products:read")
   @TsRestHandler(contract.collection.list)
   list(@Req() req: Request) {
     return tsRestHandler(contract.collection.list, async () => {
@@ -89,6 +96,7 @@ export class CollectionsAdminController {
       return { status: 200 as const, body: { collections: result } };
     });
   }
+  @CommercePerm("products:read")
   @TsRestHandler(contract.collection.getCollection)
   getCollection(@Req() req: Request) {
     return tsRestHandler(contract.collection.getCollection, async ({ params }) => {

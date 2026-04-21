@@ -6,6 +6,11 @@ import { ConnectService } from "./connect.service";
 export class ConnectHandler {
   constructor(private readonly connectService: ConnectService) {}
 
+  @MessagePattern("stripe.account.sync")
+  syncAccount(@Payload() payload: { storeId: string; accountId: string }) {
+    return this.connectService.syncAccount(payload.storeId, payload.accountId);
+  }
+
   @MessagePattern("stripe.connect.initiate")
   initiateConnect(
     @Payload()

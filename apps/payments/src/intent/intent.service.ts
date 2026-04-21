@@ -40,7 +40,38 @@ export class IntentService {
       },
     });
 
-    if (!store?.stripeAccountId || !store.stripeChargesEnabled) {
+    if (!store?.stripeAccountId) {
+      throw new RpcException({
+        status: 400,
+        message: "Store payment processing is not configured",
+      });
+    }
+
+    // If charges aren't yet enabled per DB, sync live from Stripe in case webhook hasn't fired
+    let chargesEnabled = store.stripeChargesEnabled;
+    if (!chargesEnabled) {
+      try {
+        const account = await this.stripe.accounts.retrieve(store.stripeAccountId);
+        chargesEnabled = account.charges_enabled ?? false;
+        if (chargesEnabled) {
+          await this.db
+            .update(storesTable)
+            .set({
+              stripeChargesEnabled: account.charges_enabled ?? false,
+              stripePayoutsEnabled: account.payouts_enabled ?? false,
+              stripeDetailsSubmitted: account.details_submitted ?? false,
+              updatedAt: new Date(),
+            })
+            .where(eq(storesTable.id, order.storeId));
+        }
+      } catch (err: any) {
+        this.logger.warn(
+          `Live Stripe account sync failed for store ${order.storeId}: ${err.message}`,
+        );
+      }
+    }
+
+    if (!chargesEnabled) {
       throw new RpcException({
         status: 400,
         message: "Store payment processing is not configured",
