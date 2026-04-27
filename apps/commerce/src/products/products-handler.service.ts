@@ -1,7 +1,16 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { AuditService, DB_TOKEN } from "@sitehaus-ecom/shared";
 import { Inject } from "@nestjs/common";
-import { Db, inventoryTable, productsTable, productVariantsTable } from "@sitehaus-ecom/database";
+import {
+  Db,
+  inventoryTable,
+  productImagesTable,
+  productOptionValuesTable,
+  productOptionsTable,
+  productsTable,
+  productVariantsTable,
+  variantOptionValuesTable,
+} from "@sitehaus-ecom/database";
 import { and, eq, sql, inArray } from "@sitehaus-ecom/database";
 import {
   AdminQueryParams,
@@ -26,6 +35,10 @@ export class ProductsHandlerService {
         description: data.description,
         status: data.status,
         goesLiveAt: data.goesLiveAt ? new Date(data.goesLiveAt) : null,
+        brand: data.brand,
+        gtin: data.gtin,
+        mpn: data.mpn,
+        condition: data.condition,
       })
       .returning();
 
@@ -54,6 +67,10 @@ export class ProductsHandlerService {
         ...(data.goesLiveAt !== undefined && {
           goesLiveAt: data.goesLiveAt ? new Date(data.goesLiveAt) : null,
         }),
+        ...(data.brand !== undefined && { brand: data.brand }),
+        ...(data.gtin !== undefined && { gtin: data.gtin }),
+        ...(data.mpn !== undefined && { mpn: data.mpn }),
+        ...(data.condition !== undefined && { condition: data.condition }),
       })
       .where(and(eq(productsTable.id, data.id), eq(productsTable.storeId, data.storeId)))
       .returning();
@@ -150,32 +167,83 @@ export class ProductsHandlerService {
     });
     if (!product) throw new NotFoundException("Product not found");
 
-    const rows = await this.db
-      .select({
-        id: productVariantsTable.id,
-        name: productVariantsTable.name,
-        sku: productVariantsTable.sku,
-        priceCents: productVariantsTable.priceCents,
-        compareAtCents: productVariantsTable.compareAtCents,
-        isActive: productVariantsTable.isActive,
-        sortOrder: productVariantsTable.sortOrder,
-        stock: inventoryTable.stock,
-        reserved: inventoryTable.reserved,
-      })
-      .from(productVariantsTable)
-      .leftJoin(
-        inventoryTable,
-        and(
-          eq(inventoryTable.variantId, productVariantsTable.id),
-          eq(inventoryTable.storeId, data.storeId),
+    const [variantRows, optionRows, variantIds] = await Promise.all([
+      this.db
+        .select({
+          id: productVariantsTable.id,
+          name: productVariantsTable.name,
+          sku: productVariantsTable.sku,
+          priceCents: productVariantsTable.priceCents,
+          compareAtCents: productVariantsTable.compareAtCents,
+          isActive: productVariantsTable.isActive,
+          sortOrder: productVariantsTable.sortOrder,
+          stock: inventoryTable.stock,
+          reserved: inventoryTable.reserved,
+        })
+        .from(productVariantsTable)
+        .leftJoin(
+          inventoryTable,
+          and(
+            eq(inventoryTable.variantId, productVariantsTable.id),
+            eq(inventoryTable.storeId, data.storeId),
+          ),
+        )
+        .where(
+          and(
+            eq(productVariantsTable.productId, data.id),
+            eq(productVariantsTable.storeId, data.storeId),
+          ),
         ),
-      )
-      .where(
-        and(
-          eq(productVariantsTable.productId, data.id),
-          eq(productVariantsTable.storeId, data.storeId),
-        ),
-      );
+      this.db
+        .select({
+          id: productOptionsTable.id,
+          name: productOptionsTable.name,
+          sortOrder: productOptionsTable.sortOrder,
+          valueId: productOptionValuesTable.id,
+          value: productOptionValuesTable.value,
+          valueSortOrder: productOptionValuesTable.sortOrder,
+        })
+        .from(productOptionsTable)
+        .leftJoin(
+          productOptionValuesTable,
+          eq(productOptionValuesTable.optionId, productOptionsTable.id),
+        )
+        .where(eq(productOptionsTable.productId, data.id)),
+      this.db
+        .select({ id: productVariantsTable.id })
+        .from(productVariantsTable)
+        .where(
+          and(
+            eq(productVariantsTable.productId, data.id),
+            eq(productVariantsTable.storeId, data.storeId),
+          ),
+        )
+        .then((rows) => rows.map((r) => r.id)),
+    ]);
+
+    const optionValuesForVariants =
+      variantIds.length > 0
+        ? await this.db
+            .select({
+              variantId: variantOptionValuesTable.variantId,
+              valueId: productOptionValuesTable.id,
+              value: productOptionValuesTable.value,
+              optionId: productOptionsTable.id,
+              optionName: productOptionsTable.name,
+            })
+            .from(variantOptionValuesTable)
+            .innerJoin(
+              productOptionValuesTable,
+              eq(variantOptionValuesTable.optionValueId, productOptionValuesTable.id),
+            )
+            .innerJoin(
+              productOptionsTable,
+              eq(productOptionValuesTable.optionId, productOptionsTable.id),
+            )
+            .where(inArray(variantOptionValuesTable.variantId, variantIds))
+        : [];
+
+    const options = buildOptions(optionRows);
 
     return {
       id: product.id,
@@ -183,9 +251,14 @@ export class ProductsHandlerService {
       description: product.description ?? null,
       status: product.status,
       goesLiveAt: product.goesLiveAt?.toISOString() ?? null,
+      brand: product.brand ?? null,
+      gtin: product.gtin ?? null,
+      mpn: product.mpn ?? null,
+      condition: product.condition,
       createdAt: product.createdAt.toISOString(),
       updatedAt: product.updatedAt.toISOString(),
-      variants: rows.map((v) => ({
+      options,
+      variants: variantRows.map((v) => ({
         id: v.id,
         name: v.name,
         sku: v.sku ?? null,
@@ -196,7 +269,132 @@ export class ProductsHandlerService {
         stock: v.stock ?? 0,
         reserved: v.reserved ?? 0,
         availability: getAvailability({ stock: v.stock ?? 0, reserved: v.reserved ?? 0 }),
+        optionValues: optionValuesForVariants
+          .filter((ov) => ov.variantId === v.id)
+          .map((ov) => ({
+            optionId: ov.optionId,
+            optionName: ov.optionName,
+            valueId: ov.valueId,
+            value: ov.value,
+          })),
       })),
+    };
+  }
+
+  async getPublicProduct(data: { id: string; storeId: string }) {
+    const product = await this.db.query.productsTable.findFirst({
+      where: (v) => and(eq(v.id, data.id), eq(v.storeId, data.storeId), eq(v.status, "active")),
+    });
+    if (!product) throw new NotFoundException("Product not found");
+
+    const scheduled = product.goesLiveAt ? new Date(product.goesLiveAt) > new Date() : false;
+
+    const [allImages, optionRows] = await Promise.all([
+      this.db
+        .select()
+        .from(productImagesTable)
+        .where(eq(productImagesTable.productId, data.id))
+        .orderBy(productImagesTable.sortOrder),
+      this.db
+        .select({
+          id: productOptionsTable.id,
+          name: productOptionsTable.name,
+          sortOrder: productOptionsTable.sortOrder,
+          valueId: productOptionValuesTable.id,
+          value: productOptionValuesTable.value,
+          valueSortOrder: productOptionValuesTable.sortOrder,
+        })
+        .from(productOptionsTable)
+        .leftJoin(
+          productOptionValuesTable,
+          eq(productOptionValuesTable.optionId, productOptionsTable.id),
+        )
+        .where(eq(productOptionsTable.productId, data.id)),
+    ]);
+
+    const primaryImage = allImages[0] ?? null;
+    const images = allImages.map((img) => ({ cdnUrl: img.cdnUrl, altText: img.altText ?? null }));
+    const options = buildOptions(optionRows);
+
+    let variants = null;
+    if (!scheduled) {
+      const variantRows = await this.db
+        .select({
+          id: productVariantsTable.id,
+          name: productVariantsTable.name,
+          priceCents: productVariantsTable.priceCents,
+          compareAtCents: productVariantsTable.compareAtCents,
+          stock: inventoryTable.stock,
+          reserved: inventoryTable.reserved,
+        })
+        .from(productVariantsTable)
+        .leftJoin(
+          inventoryTable,
+          and(
+            eq(inventoryTable.variantId, productVariantsTable.id),
+            eq(inventoryTable.storeId, data.storeId),
+          ),
+        )
+        .where(
+          and(
+            eq(productVariantsTable.productId, data.id),
+            eq(productVariantsTable.storeId, data.storeId),
+          ),
+        );
+
+      const variantIds = variantRows.map((v) => v.id);
+      const optionValuesForVariants =
+        variantIds.length > 0
+          ? await this.db
+              .select({
+                variantId: variantOptionValuesTable.variantId,
+                valueId: productOptionValuesTable.id,
+                value: productOptionValuesTable.value,
+                optionId: productOptionsTable.id,
+                optionName: productOptionsTable.name,
+              })
+              .from(variantOptionValuesTable)
+              .innerJoin(
+                productOptionValuesTable,
+                eq(variantOptionValuesTable.optionValueId, productOptionValuesTable.id),
+              )
+              .innerJoin(
+                productOptionsTable,
+                eq(productOptionValuesTable.optionId, productOptionsTable.id),
+              )
+              .where(inArray(variantOptionValuesTable.variantId, variantIds))
+          : [];
+
+      variants = variantRows.map((v) => ({
+        id: v.id,
+        name: v.name,
+        priceCents: v.priceCents,
+        compareAtCents: v.compareAtCents ?? null,
+        availability: getAvailability({ stock: v.stock ?? 0, reserved: v.reserved ?? 0 }),
+        optionValues: optionValuesForVariants
+          .filter((ov) => ov.variantId === v.id)
+          .map((ov) => ({
+            optionId: ov.optionId,
+            optionName: ov.optionName,
+            valueId: ov.valueId,
+            value: ov.value,
+          })),
+      }));
+    }
+
+    return {
+      id: product.id,
+      name: product.name,
+      description: product.description ?? null,
+      brand: product.brand ?? null,
+      scheduled,
+      goesLiveAt: product.goesLiveAt?.toISOString() ?? null,
+      primaryImage: primaryImage
+        ? { cdnUrl: primaryImage.cdnUrl, altText: primaryImage.altText ?? null }
+        : null,
+      images,
+      options,
+      variants,
     };
   }
 
@@ -241,6 +439,29 @@ export class ProductsHandlerService {
         .where(inArray(productVariantsTable.productId, productIds)),
     ]);
 
+    const variantIds = allVariants.map((v) => v.id);
+    const allVariantOptionValues =
+      variantIds.length > 0
+        ? await this.db
+            .select({
+              variantId: variantOptionValuesTable.variantId,
+              valueId: productOptionValuesTable.id,
+              value: productOptionValuesTable.value,
+              optionId: productOptionsTable.id,
+              optionName: productOptionsTable.name,
+            })
+            .from(variantOptionValuesTable)
+            .innerJoin(
+              productOptionValuesTable,
+              eq(variantOptionValuesTable.optionValueId, productOptionValuesTable.id),
+            )
+            .innerJoin(
+              productOptionsTable,
+              eq(productOptionValuesTable.optionId, productOptionsTable.id),
+            )
+            .where(inArray(variantOptionValuesTable.variantId, variantIds))
+        : [];
+
     const now = new Date();
 
     const items = products.map((p) => {
@@ -252,7 +473,7 @@ export class ProductsHandlerService {
         id: p.id,
         name: p.name,
         description: p.description ?? null,
-        scheduled,
+        status: p.status,
         goesLiveAt: p.goesLiveAt?.toISOString() ?? null,
         primaryImage: primaryImage
           ? { cdnUrl: primaryImage.cdnUrl, altText: primaryImage.altText ?? null }
@@ -265,6 +486,14 @@ export class ProductsHandlerService {
               priceCents: v.priceCents,
               compareAtCents: v.compareAtCents ?? null,
               availability: getAvailability({ stock: v.stock ?? 0, reserved: v.reserved ?? 0 }),
+              optionValues: allVariantOptionValues
+                .filter((ov) => ov.variantId === v.id)
+                .map((ov) => ({
+                  optionId: ov.optionId,
+                  optionName: ov.optionName,
+                  valueId: ov.valueId,
+                  value: ov.value,
+                })),
             })),
       };
     });
@@ -281,4 +510,35 @@ function getAvailability(inventory: {
   if (available <= 0) return "out_of_stock";
   if (available <= 5) return "low_stock";
   return "in_stock";
+}
+
+function buildOptions(
+  rows: {
+    id: string;
+    name: string;
+    sortOrder: number;
+    valueId: string | null;
+    value: string | null;
+    valueSortOrder: number | null;
+  }[],
+) {
+  const map = new Map<
+    string,
+    {
+      id: string;
+      name: string;
+      sortOrder: number;
+      values: { id: string; value: string; sortOrder: number }[];
+    }
+  >();
+  for (const row of rows) {
+    if (!map.has(row.id))
+      map.set(row.id, { id: row.id, name: row.name, sortOrder: row.sortOrder, values: [] });
+    if (row.valueId && row.value !== null) {
+      map
+        .get(row.id)!
+        .values.push({ id: row.valueId, value: row.value, sortOrder: row.valueSortOrder ?? 0 });
+    }
+  }
+  return [...map.values()].sort((a, b) => a.sortOrder - b.sortOrder);
 }

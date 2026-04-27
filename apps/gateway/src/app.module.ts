@@ -19,6 +19,7 @@ import { VariantsModule } from "./variants/variants.module";
 import { CollectionsModule } from "./collections/collections.module";
 import { ImagesModule } from "./product-images/product-images.module";
 import { ShippingAdminModule } from "./shipping/shipping.module";
+import { OptionsModule } from "./options/options.module";
 // TODO SIT-69: import SharedModule
 // TODO SIT-67+: import HTTP controller modules as they are built
 
@@ -97,6 +98,7 @@ import { ShippingAdminModule } from "./shipping/shipping.module";
     CollectionsModule,
     ImagesModule,
     ShippingAdminModule,
+    OptionsModule,
   ],
   providers: [
     // Map RpcException from TCP services → HTTP responses

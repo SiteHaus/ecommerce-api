@@ -3,6 +3,7 @@ export * from "./orders.schemas.js";
 export * from "./checkout.schemas.js";
 export * from "./common.js";
 export * from "./inventory.schemas.js";
+export * from "./options.schemas.js";
 export * from "./products.schemas.js";
 export * from "./product-images.schemas.js";
 export * from "./store.schemas.js";

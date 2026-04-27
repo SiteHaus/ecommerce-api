@@ -3,9 +3,12 @@ import {
   apiError,
   createProductSchema,
   deleteProductResponse,
+  productDetail,
   productIdParams,
   productItem,
   productList,
+  publicProductDetailFull,
+  publicProductList,
   publicQueryParams,
   updateProductSchema,
 } from "@sitehaus-ecom/validation";
@@ -32,7 +35,7 @@ export const productContract = c.router({
     method: "GET",
     path: "/v1/admin/products/:id",
     pathParams: productIdParams,
-    responses: { 200: productItem, 404: apiError },
+    responses: { 200: productDetail, 404: apiError },
     metadata: { openApiTags: ["Products"] } as const,
   },
   updateProduct: {
@@ -55,7 +58,14 @@ export const productContract = c.router({
     method: "GET",
     path: "/v1/catalog/products",
     query: publicQueryParams,
-    responses: { 200: productList, 404: apiError },
+    responses: { 200: publicProductList, 404: apiError },
+    metadata: { openApiTags: ["Catalog"] } as const,
+  },
+  getPublicProduct: {
+    method: "GET",
+    path: "/v1/catalog/products/:id",
+    pathParams: productIdParams,
+    responses: { 200: publicProductDetailFull, 404: apiError },
     metadata: { openApiTags: ["Catalog"] } as const,
   },
 });

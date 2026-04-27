@@ -12,6 +12,7 @@
 import { readFileSync } from "fs";
 import { resolve } from "path";
 import { Client } from "pg";
+import { randomUUID } from "crypto";
 
 // ── load env ──────────────────────────────────────────────────────────────────
 
@@ -363,6 +364,32 @@ try {
         ON CONFLICT DO NOTHING
       `,
         [variant.id, STORE_ID, variant.stock],
+      );
+    }
+
+    // Options — "Count" option with one value per variant name
+    const countOptionId = randomUUID();
+    await client.query(
+      `INSERT INTO product_options (id, product_id, name, sort_order)
+       VALUES ($1, $2, 'Count', 0)
+       ON CONFLICT DO NOTHING`,
+      [countOptionId, product.id],
+    );
+
+    for (let i = 0; i < product.variants.length; i++) {
+      const variant = product.variants[i];
+      const valueId = randomUUID();
+      await client.query(
+        `INSERT INTO product_option_values (id, option_id, value, sort_order)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT DO NOTHING`,
+        [valueId, countOptionId, variant.name, i],
+      );
+      await client.query(
+        `INSERT INTO variant_option_values (variant_id, option_value_id)
+         VALUES ($1, $2)
+         ON CONFLICT DO NOTHING`,
+        [variant.id, valueId],
       );
     }
 

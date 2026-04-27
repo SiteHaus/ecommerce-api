@@ -8,14 +8,17 @@ export class VariantsHandlerController {
   constructor(private readonly variantService: VariantsHandlerService) {}
 
   @MessagePattern("catalog.variants.create")
-  create(@Payload() data: CreateVariantDto & { productId: string; storeId: string }) {
+  create(
+    @Payload()
+    data: CreateVariantDto & { productId: string; storeId: string; optionValueIds?: string[] },
+  ) {
     return this.variantService.create(data);
   }
 
   @MessagePattern("catalog.variants.update")
   update(
     @Payload()
-    data: UpdateVariantDto & { id: string; storeId: string },
+    data: UpdateVariantDto & { id: string; storeId: string; optionValueIds?: string[] },
   ) {
     return this.variantService.update(data);
   }

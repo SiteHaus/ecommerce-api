@@ -41,4 +41,9 @@ export class ProductsHandlerController {
   listPublic(@Payload() data: PublicQueryParams & { storeId: string }) {
     return this.productService.listPublic(data);
   }
+
+  @MessagePattern("catalog.products.getPublic")
+  getPublicProduct(@Payload() data: { id: string; storeId: string }) {
+    return this.productService.getPublicProduct(data);
+  }
 }
