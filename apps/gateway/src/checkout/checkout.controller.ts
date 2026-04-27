@@ -36,6 +36,7 @@ export class CheckoutController {
           shippingState: body.address?.state,
           shippingZip: body.address?.zip,
           shippingCountry: body.address?.country,
+          shippingRateId: body.shippingRateId,
         }),
       );
 

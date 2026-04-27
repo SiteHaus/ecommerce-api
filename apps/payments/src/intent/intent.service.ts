@@ -1,7 +1,14 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { RpcException } from "@nestjs/microservices";
-import { eq, orderItemsTable, ordersTable, storesTable, type Db } from "@sitehaus-ecom/database";
+import {
+  eq,
+  orderItemsTable,
+  ordersTable,
+  shippingRatesTable,
+  storesTable,
+  type Db,
+} from "@sitehaus-ecom/database";
 import { DB_TOKEN } from "@sitehaus-ecom/shared";
 import Stripe from "stripe";
 
@@ -83,11 +90,40 @@ export class IntentService {
       .from(orderItemsTable)
       .where(eq(orderItemsTable.orderId, orderId));
 
+    let shippingOption: Stripe.Checkout.SessionCreateParams.ShippingOption | undefined;
+    if (order.shippingRateId) {
+      const [rate] = await this.db
+        .select({
+          name: shippingRatesTable.name,
+          estimatedDays: shippingRatesTable.estimatedDays,
+        })
+        .from(shippingRatesTable)
+        .where(eq(shippingRatesTable.id, order.shippingRateId));
+
+      if (rate) {
+        shippingOption = {
+          shipping_rate_data: {
+            type: "fixed_amount",
+            fixed_amount: { amount: order.shippingCents, currency: order.currency },
+            display_name: rate.name,
+            ...(rate.estimatedDays
+              ? {
+                  delivery_estimate: {
+                    maximum: { unit: "business_day", value: rate.estimatedDays },
+                  },
+                }
+              : {}),
+          },
+        };
+      }
+    }
+
     let session: Stripe.Checkout.Session;
     try {
       session = await this.stripe.checkout.sessions.create({
         mode: "payment",
         ...(order.email ? { customer_email: order.email } : {}),
+        ...(shippingOption ? { shipping_options: [shippingOption] } : {}),
         line_items: items.map((item) => ({
           price_data: {
             currency: order.currency,
