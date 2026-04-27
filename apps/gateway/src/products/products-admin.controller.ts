@@ -86,4 +86,15 @@ export class ProductsController {
       return { status: 200 as const, body: result };
     });
   }
+
+  @Public()
+  @TsRestHandler(contract.product.getPublicProduct)
+  getPublicProduct(@Req() req: Request) {
+    return tsRestHandler(contract.product.getPublicProduct, async ({ params }) => {
+      const result = await firstValueFrom(
+        this.commerce.send("catalog.products.getPublic", { id: params.id, storeId: req.store!.id }),
+      );
+      return { status: 200 as const, body: result };
+    });
+  }
 }

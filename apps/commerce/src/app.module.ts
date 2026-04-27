@@ -12,6 +12,7 @@ import { VariantsHandlerModule } from "./variants/variants-handler.module";
 import { VariantsHandlerService } from "./variants/variants-handler.service";
 import { VariantsHandlerController } from "./variants/variants-handler.controller";
 import { CollectionsHandlerModule } from "./collections/collections-handler.module";
+import { OptionsHandlerModule } from "./options/options-handler.module";
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { CollectionsHandlerModule } from "./collections/collections-handler.modu
     ShippingHandlersModule,
     VariantsHandlerModule,
     CollectionsHandlerModule,
+    OptionsHandlerModule,
   ],
 })
 export class AppModule {}

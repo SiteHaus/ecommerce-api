@@ -6,9 +6,12 @@ import {
   inventoryTable,
   orderItemsTable,
   ordersTable,
+  productOptionValuesTable,
+  productOptionsTable,
   productVariantsTable,
+  variantOptionValuesTable,
 } from "@sitehaus-ecom/database";
-import { and, eq, notInArray } from "@sitehaus-ecom/database";
+import { and, eq, inArray, notInArray } from "@sitehaus-ecom/database";
 
 @Injectable()
 export class VariantsHandlerService {
@@ -28,6 +31,7 @@ export class VariantsHandlerService {
     weightGrams?: number;
     sortOrder?: number;
     isActive?: boolean;
+    optionValueIds?: string[];
   }) {
     const product = await this.db.query.productsTable.findFirst({
       where: (p) => and(eq(p.id, data.productId), eq(p.storeId, data.storeId)),
@@ -68,6 +72,14 @@ export class VariantsHandlerService {
       .onConflictDoNothing()
       .returning();
 
+    if (data.optionValueIds?.length) {
+      await this.db
+        .insert(variantOptionValuesTable)
+        .values(
+          data.optionValueIds.map((optionValueId) => ({ variantId: variant.id, optionValueId })),
+        );
+    }
+
     await this.audit.log({
       storeId: data.storeId,
       action: "variant.created",
@@ -75,10 +87,9 @@ export class VariantsHandlerService {
       targetId: variant.id,
     });
 
-    return {
-      ...variant,
-      inventory: inv,
-    };
+    const optionValues = await this.fetchOptionValues(variant.id);
+
+    return { ...variant, inventory: inv, optionValues };
   }
   async update(data: {
     id: string;
@@ -90,6 +101,7 @@ export class VariantsHandlerService {
     weightGrams?: number;
     sortOrder?: number;
     isActive?: boolean;
+    optionValueIds?: string[];
   }) {
     // verify variant belongs to store
     const existing = await this.db.query.productVariantsTable.findFirst({
@@ -118,6 +130,19 @@ export class VariantsHandlerService {
       )
       .returning();
 
+    if (data.optionValueIds !== undefined) {
+      await this.db
+        .delete(variantOptionValuesTable)
+        .where(eq(variantOptionValuesTable.variantId, data.id));
+      if (data.optionValueIds.length > 0) {
+        await this.db
+          .insert(variantOptionValuesTable)
+          .values(
+            data.optionValueIds.map((optionValueId) => ({ variantId: data.id, optionValueId })),
+          );
+      }
+    }
+
     await this.audit.log({
       storeId: data.storeId,
       action: "variant.updated",
@@ -125,7 +150,8 @@ export class VariantsHandlerService {
       targetId: data.id,
     });
 
-    return variant;
+    const optionValues = await this.fetchOptionValues(data.id);
+    return { ...variant, optionValues };
   }
 
   async delete(data: { id: string; storeId: string }) {
@@ -156,7 +182,7 @@ export class VariantsHandlerService {
       .where(
         and(eq(productVariantsTable.id, data.id), eq(productVariantsTable.storeId, data.storeId)),
       );
-    // inventory + cart_items cascade via FK
+    // inventory + cart_items + variant_option_values cascade via FK
 
     await this.audit.log({
       storeId: data.storeId,
@@ -166,5 +192,22 @@ export class VariantsHandlerService {
     });
 
     return { message: "The variant was successfully deleted" };
+  }
+
+  private async fetchOptionValues(variantId: string) {
+    return this.db
+      .select({
+        optionId: productOptionsTable.id,
+        optionName: productOptionsTable.name,
+        valueId: productOptionValuesTable.id,
+        value: productOptionValuesTable.value,
+      })
+      .from(variantOptionValuesTable)
+      .innerJoin(
+        productOptionValuesTable,
+        eq(variantOptionValuesTable.optionValueId, productOptionValuesTable.id),
+      )
+      .innerJoin(productOptionsTable, eq(productOptionValuesTable.optionId, productOptionsTable.id))
+      .where(eq(variantOptionValuesTable.variantId, variantId));
   }
 }
