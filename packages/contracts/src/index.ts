@@ -12,12 +12,14 @@ import { imagesContract } from "./product-images/product-images.contract.js";
 import { collectionContract } from "./collection/collection.contract.js";
 import { shippingContract } from "./shipping/shipping.contract.js";
 import { customersContract } from "./customers/customers.contract.js";
+import { returnsContract } from "./returns/returns.contract.js";
 const c = initContract();
 
 export const contract = c.router({
   cart: cartContract,
   checkout: checkoutContract,
   customer: customersContract,
+  returns: returnsContract,
   discount: discountContract,
   inventory: inventoryContract,
   options: optionsContract,
@@ -34,6 +36,7 @@ export {
   cartContract,
   checkoutContract,
   customersContract,
+  returnsContract,
   discountContract,
   inventoryContract,
   optionsContract,

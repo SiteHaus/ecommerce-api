@@ -20,6 +20,7 @@ import { CollectionsModule } from "./collections/collections.module";
 import { ImagesModule } from "./product-images/product-images.module";
 import { DiscountsModule } from "./discounts/discounts.module";
 import { CustomersModule } from "./customers/customers.module";
+import { ReturnsModule } from "./returns/returns.module";
 import { ShippingAdminModule } from "./shipping/shipping.module";
 import { OptionsModule } from "./options/options.module";
 // TODO SIT-69: import SharedModule
@@ -101,6 +102,7 @@ import { OptionsModule } from "./options/options.module";
     ImagesModule,
     DiscountsModule,
     CustomersModule,
+    ReturnsModule,
     ShippingAdminModule,
     OptionsModule,
   ],

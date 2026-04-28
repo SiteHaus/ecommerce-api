@@ -15,6 +15,7 @@ import { VariantsHandlerController } from "./variants/variants-handler.controlle
 import { CollectionsHandlerModule } from "./collections/collections-handler.module";
 import { OptionsHandlerModule } from "./options/options-handler.module";
 import { CustomersHandlerModule } from "./customers/customers-handler.module";
+import { ReturnsHandlerModule } from "./returns/returns-handler.module";
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { CustomersHandlerModule } from "./customers/customers-handler.module";
     CollectionsHandlerModule,
     OptionsHandlerModule,
     CustomersHandlerModule,
+    ReturnsHandlerModule,
   ],
 })
 export class AppModule {}

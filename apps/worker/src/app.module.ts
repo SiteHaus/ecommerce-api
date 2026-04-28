@@ -7,6 +7,7 @@ import { ReservationExpireProcessor } from "./processors/reservation-expire.proc
 import { CartExpireProcessor } from "./processors/cart-expire.processor";
 import { NotificationsProcessor } from "./processors/order-confirmed.processor";
 import { PublishScheduledProcessor } from "./processors/publish-scheduled.processor";
+import { ReturnRefundProcessor } from "./processors/return-refund.processor";
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { PublishScheduledProcessor } from "./processors/publish-scheduled.proces
       { name: "ecom-orders" },
       { name: "ecom-notifications" },
       { name: "ecom-catalog" },
+      { name: "ecom-returns" },
     ),
   ],
   providers: [
@@ -36,6 +38,7 @@ import { PublishScheduledProcessor } from "./processors/publish-scheduled.proces
     CartExpireProcessor,
     NotificationsProcessor,
     PublishScheduledProcessor,
+    ReturnRefundProcessor,
   ],
 })
 export class AppModule {}
