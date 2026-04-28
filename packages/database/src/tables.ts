@@ -1,4 +1,5 @@
 export { cartItemsTable } from "./cart-items.js";
+export { customersTable } from "./customers.js";
 export { cartsTable } from "./carts.js";
 export { collectionProductsTable } from "./collection-products.js";
 export { collectionsTable } from "./collections.js";

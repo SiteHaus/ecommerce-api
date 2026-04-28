@@ -2,6 +2,8 @@ import { Inject, Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { RpcException } from "@nestjs/microservices";
 import {
+  and,
+  customersTable,
   eq,
   orderItemsTable,
   ordersTable,
@@ -119,6 +121,23 @@ export class IntentService {
       }
     }
 
+    // Look up Stripe Customer for pre-fill if this is an authenticated user
+    let stripeCustomerParam: { customer: string } | { customer_email?: string } = order.email
+      ? { customer_email: order.email }
+      : {};
+    if (order.userId) {
+      const customerRecord = await this.db.query.customersTable.findFirst({
+        where: and(
+          eq(customersTable.storeId, order.storeId),
+          eq(customersTable.userId, order.userId),
+        ),
+        columns: { stripeCustomerId: true },
+      });
+      if (customerRecord?.stripeCustomerId) {
+        stripeCustomerParam = { customer: customerRecord.stripeCustomerId };
+      }
+    }
+
     // Automatic discount takes precedence; if none, allow customer to enter a promo code
     const discountParams: Pick<
       Stripe.Checkout.SessionCreateParams,
@@ -131,7 +150,7 @@ export class IntentService {
     try {
       session = await this.stripe.checkout.sessions.create({
         mode: "payment",
-        ...(order.email ? { customer_email: order.email } : {}),
+        ...stripeCustomerParam,
         ...(shippingOption ? { shipping_options: [shippingOption] } : {}),
         ...discountParams,
         line_items: items.map((item) => ({

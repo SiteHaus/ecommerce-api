@@ -4,9 +4,11 @@ import { ConfigService } from "@nestjs/config";
 import {
   and,
   cartsTable,
+  customersTable,
   discountCodesTable,
   discountsTable,
   eq,
+  isNull,
   orderDiscountsTable,
   ordersTable,
   sql,
@@ -100,6 +102,8 @@ export class WebhookService {
       })
       .where(eq(ordersTable.id, orderId));
 
+    await this.upsertCustomer(order, session);
+
     const amountSavedCents = session.total_details?.amount_discount ?? 0;
     if (amountSavedCents > 0 && session.discounts?.length) {
       await this.snapshotDiscount(orderId, order.storeId, session, amountSavedCents);
@@ -124,6 +128,103 @@ export class WebhookService {
       { attempts: 3, backoff: { type: "exponential", delay: 5000 } },
     );
     this.logger.log(`Order ${orderId} confirmed`);
+  }
+
+  private async upsertCustomer(
+    order: typeof ordersTable.$inferSelect,
+    session: Stripe.Checkout.Session,
+  ): Promise<void> {
+    try {
+      const email = session.customer_details?.email ?? order.email;
+      const { storeId, userId } = order;
+
+      if (userId) {
+        // Authenticated — upsert by (storeId, userId)
+        const existing = await this.db.query.customersTable.findFirst({
+          where: and(eq(customersTable.storeId, storeId), eq(customersTable.userId, userId)),
+        });
+
+        if (existing) {
+          // Delete stale anonymous record with same email to avoid duplicates
+          await this.db
+            .delete(customersTable)
+            .where(
+              and(
+                eq(customersTable.storeId, storeId),
+                eq(customersTable.email, email),
+                isNull(customersTable.userId),
+              ),
+            );
+
+          // Ensure stripeCustomerId is set
+          if (!existing.stripeCustomerId) {
+            const store = await this.db.query.storesTable.findFirst({
+              where: eq(storesTable.id, storeId),
+              columns: { stripeAccountId: true },
+            });
+            if (store?.stripeAccountId) {
+              const stripeCustomer = await this.stripe.customers.create(
+                { email },
+                { stripeAccount: store.stripeAccountId },
+              );
+              await this.db
+                .update(customersTable)
+                .set({ stripeCustomerId: stripeCustomer.id, updatedAt: new Date() })
+                .where(eq(customersTable.id, existing.id));
+            }
+          }
+        } else {
+          // Create new customer record + Stripe Customer
+          const store = await this.db.query.storesTable.findFirst({
+            where: eq(storesTable.id, storeId),
+            columns: { stripeAccountId: true },
+          });
+
+          let stripeCustomerId: string | null = null;
+          if (store?.stripeAccountId) {
+            const stripeCustomer = await this.stripe.customers.create(
+              { email },
+              { stripeAccount: store.stripeAccountId },
+            );
+            stripeCustomerId = stripeCustomer.id;
+          }
+
+          // If anon record exists with same email, promote it rather than insert
+          const anon = await this.db.query.customersTable.findFirst({
+            where: and(eq(customersTable.storeId, storeId), eq(customersTable.email, email)),
+          });
+
+          if (anon) {
+            await this.db
+              .update(customersTable)
+              .set({
+                userId,
+                stripeCustomerId: stripeCustomerId ?? anon.stripeCustomerId,
+                updatedAt: new Date(),
+              })
+              .where(eq(customersTable.id, anon.id));
+          } else {
+            await this.db
+              .insert(customersTable)
+              .values({ storeId, userId, email, stripeCustomerId });
+          }
+        }
+      } else {
+        // Anonymous — upsert by (storeId, email), no Stripe Customer
+        const anonExisting = await this.db.query.customersTable.findFirst({
+          where: and(
+            eq(customersTable.storeId, storeId),
+            eq(customersTable.email, email),
+            isNull(customersTable.userId),
+          ),
+        });
+        if (!anonExisting) {
+          await this.db.insert(customersTable).values({ storeId, email });
+        }
+      }
+    } catch (err: any) {
+      this.logger.error(`Failed to upsert customer for order ${order.id}: ${err.message}`);
+    }
   }
 
   private async snapshotDiscount(

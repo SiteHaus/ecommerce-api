@@ -11,11 +11,13 @@ import { variantContract } from "./variants/variants.contract.js";
 import { imagesContract } from "./product-images/product-images.contract.js";
 import { collectionContract } from "./collection/collection.contract.js";
 import { shippingContract } from "./shipping/shipping.contract.js";
+import { customersContract } from "./customers/customers.contract.js";
 const c = initContract();
 
 export const contract = c.router({
   cart: cartContract,
   checkout: checkoutContract,
+  customer: customersContract,
   discount: discountContract,
   inventory: inventoryContract,
   options: optionsContract,
@@ -31,6 +33,7 @@ export const contract = c.router({
 export {
   cartContract,
   checkoutContract,
+  customersContract,
   discountContract,
   inventoryContract,
   optionsContract,

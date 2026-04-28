@@ -43,6 +43,13 @@
       "when": 1777345867400,
       "tag": "0005_brave_black_tarantula",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1777346413574,
+      "tag": "0006_dear_the_initiative",
+      "breakpoints": true
     }
   ]
 }
