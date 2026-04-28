@@ -6,6 +6,7 @@ import { validateWorkerEnv } from "./config/env";
 import { ReservationExpireProcessor } from "./processors/reservation-expire.processor";
 import { CartExpireProcessor } from "./processors/cart-expire.processor";
 import { NotificationsProcessor } from "./processors/order-confirmed.processor";
+import { PublishScheduledProcessor } from "./processors/publish-scheduled.processor";
 
 @Module({
   imports: [
@@ -27,8 +28,14 @@ import { NotificationsProcessor } from "./processors/order-confirmed.processor";
       { name: "ecom-inventory" },
       { name: "ecom-orders" },
       { name: "ecom-notifications" },
+      { name: "ecom-catalog" },
     ),
   ],
-  providers: [ReservationExpireProcessor, CartExpireProcessor, NotificationsProcessor],
+  providers: [
+    ReservationExpireProcessor,
+    CartExpireProcessor,
+    NotificationsProcessor,
+    PublishScheduledProcessor,
+  ],
 })
 export class AppModule {}

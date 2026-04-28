@@ -1,7 +1,18 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
 import { InjectQueue } from "@nestjs/bullmq";
 import { ConfigService } from "@nestjs/config";
-import { cartsTable, eq, ordersTable, storesTable, type Db } from "@sitehaus-ecom/database";
+import {
+  and,
+  cartsTable,
+  discountCodesTable,
+  discountsTable,
+  eq,
+  orderDiscountsTable,
+  ordersTable,
+  sql,
+  storesTable,
+  type Db,
+} from "@sitehaus-ecom/database";
 import { AuditService, DB_TOKEN } from "@sitehaus-ecom/shared";
 import { Queue } from "bullmq";
 import Stripe from "stripe";
@@ -89,6 +100,11 @@ export class WebhookService {
       })
       .where(eq(ordersTable.id, orderId));
 
+    const amountSavedCents = session.total_details?.amount_discount ?? 0;
+    if (amountSavedCents > 0 && session.discounts?.length) {
+      await this.snapshotDiscount(orderId, order.storeId, session, amountSavedCents);
+    }
+
     const cartId = session.metadata?.cartId;
     if (cartId) {
       await this.db.delete(cartsTable).where(eq(cartsTable.id, cartId));
@@ -108,6 +124,67 @@ export class WebhookService {
       { attempts: 3, backoff: { type: "exponential", delay: 5000 } },
     );
     this.logger.log(`Order ${orderId} confirmed`);
+  }
+
+  private async snapshotDiscount(
+    orderId: string,
+    storeId: string,
+    session: Stripe.Checkout.Session,
+    amountSavedCents: number,
+  ): Promise<void> {
+    try {
+      const sessionDiscount = session.discounts![0];
+      const rawCoupon = sessionDiscount.coupon;
+      if (!rawCoupon) return;
+      const stripeCouponId = typeof rawCoupon === "string" ? rawCoupon : rawCoupon.id;
+
+      const discount = await this.db.query.discountsTable.findFirst({
+        where: and(
+          eq(discountsTable.storeId, storeId),
+          eq(discountsTable.stripeCouponId, stripeCouponId),
+        ),
+      });
+
+      if (!discount) {
+        this.logger.warn(
+          `checkout.session.completed: no discount found for Stripe coupon ${stripeCouponId}`,
+        );
+        return;
+      }
+
+      let discountCodeId: string | null = null;
+      let codeUsed: string | null = null;
+
+      const rawPromoCode = sessionDiscount.promotion_code;
+      if (rawPromoCode) {
+        const stripePromotionCodeId =
+          typeof rawPromoCode === "string" ? rawPromoCode : rawPromoCode.id;
+        const code = await this.db.query.discountCodesTable.findFirst({
+          where: eq(discountCodesTable.stripePromotionCodeId, stripePromotionCodeId),
+        });
+        if (code) {
+          discountCodeId = code.id;
+          codeUsed = code.code;
+        }
+      }
+
+      await this.db.insert(orderDiscountsTable).values({
+        orderId,
+        discountId: discount.id,
+        discountCodeId,
+        codeUsed,
+        amountSavedCents,
+      });
+
+      if (discountCodeId) {
+        await this.db
+          .update(discountCodesTable)
+          .set({ usageCount: sql`${discountCodesTable.usageCount} + 1` })
+          .where(eq(discountCodesTable.id, discountCodeId));
+      }
+    } catch (err: any) {
+      this.logger.error(`Failed to snapshot discount for order ${orderId}: ${err.message}`);
+    }
   }
 
   private async handleSessionExpired(session: Stripe.Checkout.Session): Promise<void> {

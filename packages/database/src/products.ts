@@ -1,7 +1,12 @@
 import { index, pgEnum, pgTable, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 import { storesTable } from "./stores.js";
 
-export const productStatusEnum = pgEnum("product_status", ["draft", "active", "archived"]);
+export const productStatusEnum = pgEnum("product_status", [
+  "draft",
+  "scheduled",
+  "active",
+  "archived",
+]);
 export const productConditionEnum = pgEnum("product_condition", ["new", "refurbished", "used"]);
 
 export const productsTable = pgTable(

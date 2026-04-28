@@ -40,12 +40,20 @@ export class CheckoutController {
         }),
       );
 
+      const automaticDiscount = await firstValueFrom(
+        this.commerce.send("discounts.findApplicableAutomatic", {
+          storeId,
+          subtotalCents: order.subtotalCents,
+        }),
+      );
+
       const { checkoutUrl } = await firstValueFrom(
         this.payments.send("stripe.intent.create", {
           orderId: order.orderId,
           cartId: order.cartId,
           successUrl: body.successUrl,
           cancelUrl: body.cancelUrl,
+          stripeCouponId: automaticDiscount?.stripeCouponId ?? null,
         }),
       );
 

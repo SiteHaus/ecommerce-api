@@ -34,6 +34,17 @@ async function bootstrap() {
     },
   );
 
+  const catalogQueue = app.get(getQueueToken("ecom-catalog"));
+  await catalogQueue.add(
+    "catalog.publish-scheduled",
+    {},
+    {
+      repeat: { pattern: "* * * * *" }, // every minute
+      removeOnComplete: 10,
+      removeOnFail: 50,
+    },
+  );
+
   Logger.log("Repeatable jobs registered", "Bootstrap");
 }
 

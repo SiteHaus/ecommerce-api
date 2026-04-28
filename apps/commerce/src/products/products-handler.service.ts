@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
+import { RpcException } from "@nestjs/microservices";
 import { AuditService, DB_TOKEN } from "@sitehaus-ecom/shared";
 import { Inject } from "@nestjs/common";
 import {
@@ -27,14 +28,17 @@ export class ProductsHandlerService {
   ) {}
 
   async create(data: CreateProductDto & { storeId: string }) {
+    const goesLiveAt = data.goesLiveAt ? new Date(data.goesLiveAt) : null;
+    const status = goesLiveAt && goesLiveAt > new Date() ? "scheduled" : (data.status ?? "draft");
+
     const [product] = await this.db
       .insert(productsTable)
       .values({
         storeId: data.storeId,
         name: data.name,
         description: data.description,
-        status: data.status,
-        goesLiveAt: data.goesLiveAt ? new Date(data.goesLiveAt) : null,
+        status,
+        goesLiveAt,
         brand: data.brand,
         gtin: data.gtin,
         mpn: data.mpn,
@@ -58,15 +62,40 @@ export class ProductsHandlerService {
     });
     if (!existing) throw new NotFoundException("Product not found");
 
+    // Resolve effective goesLiveAt after this update
+    const goesLiveAt =
+      data.goesLiveAt !== undefined
+        ? data.goesLiveAt
+          ? new Date(data.goesLiveAt)
+          : null
+        : existing.goesLiveAt;
+
+    // Guard: cannot manually activate while a future go-live date is set
+    if (data.status === "active" && goesLiveAt && goesLiveAt > new Date()) {
+      throw new RpcException({
+        status: 400,
+        message: "Cannot activate a product with a future go-live date",
+      });
+    }
+
+    // Auto-derive status from goesLiveAt changes
+    let resolvedStatus = data.status;
+    if (data.goesLiveAt !== undefined) {
+      const newGoesLiveAt = data.goesLiveAt ? new Date(data.goesLiveAt) : null;
+      if (newGoesLiveAt && newGoesLiveAt > new Date()) {
+        resolvedStatus = "scheduled";
+      } else if (!newGoesLiveAt && existing.status === "scheduled") {
+        resolvedStatus = "draft";
+      }
+    }
+
     const [product] = await this.db
       .update(productsTable)
       .set({
         ...(data.name !== undefined && { name: data.name }),
         ...(data.description !== undefined && { description: data.description }),
-        ...(data.status !== undefined && { status: data.status }),
-        ...(data.goesLiveAt !== undefined && {
-          goesLiveAt: data.goesLiveAt ? new Date(data.goesLiveAt) : null,
-        }),
+        ...(resolvedStatus !== undefined && { status: resolvedStatus }),
+        ...(data.goesLiveAt !== undefined && { goesLiveAt }),
         ...(data.brand !== undefined && { brand: data.brand }),
         ...(data.gtin !== undefined && { gtin: data.gtin }),
         ...(data.mpn !== undefined && { mpn: data.mpn }),

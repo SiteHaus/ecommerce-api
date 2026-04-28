@@ -29,6 +29,7 @@ export class IntentService {
     successUrl: string,
     cancelUrl: string,
     cartId?: string,
+    stripeCouponId?: string | null,
   ): Promise<{ checkoutUrl: string }> {
     const order = await this.db.query.ordersTable.findFirst({
       where: eq(ordersTable.id, orderId),
@@ -118,12 +119,21 @@ export class IntentService {
       }
     }
 
+    // Automatic discount takes precedence; if none, allow customer to enter a promo code
+    const discountParams: Pick<
+      Stripe.Checkout.SessionCreateParams,
+      "discounts" | "allow_promotion_codes"
+    > = stripeCouponId
+      ? { discounts: [{ coupon: stripeCouponId }] }
+      : { allow_promotion_codes: true };
+
     let session: Stripe.Checkout.Session;
     try {
       session = await this.stripe.checkout.sessions.create({
         mode: "payment",
         ...(order.email ? { customer_email: order.email } : {}),
         ...(shippingOption ? { shipping_options: [shippingOption] } : {}),
+        ...discountParams,
         line_items: items.map((item) => ({
           price_data: {
             currency: order.currency,

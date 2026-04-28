@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { optionItem, variantOptionValueRef } from "./options.schemas.js";
 
-export const StatusEnum = z.enum(["draft", "active", "archived"]);
+export const StatusEnum = z.enum(["draft", "scheduled", "active", "archived"]);
 export type Status = z.infer<typeof StatusEnum>;
 
 export const ConditionEnum = z.enum(["new", "refurbished", "used"]);
@@ -128,7 +128,7 @@ export type UpdateProductDto = {
   id: string;
   name?: string;
   description?: string | null;
-  status?: "draft" | "active" | "archived";
+  status?: "draft" | "scheduled" | "active" | "archived";
   goesLiveAt?: string | null;
   brand?: string | null;
   gtin?: string | null;
