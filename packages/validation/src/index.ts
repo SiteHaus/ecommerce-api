@@ -1,4 +1,5 @@
 export * from "./cart.schemas.js";
+export * from "./discounts.schemas.js";
 export * from "./orders.schemas.js";
 export * from "./checkout.schemas.js";
 export * from "./common.js";

@@ -1,6 +1,7 @@
 import { initContract } from "@ts-rest/core";
 import { cartContract } from "./cart/cart.contract.js";
 import { checkoutContract } from "./checkout/checkout.contract.js";
+import { discountContract } from "./discounts/discounts.contract.js";
 import { inventoryContract } from "./inventory/inventory.contract.js";
 import { optionsContract } from "./options/options.contract.js";
 import { ordersContract } from "./orders/orders.contract.js";
@@ -15,6 +16,7 @@ const c = initContract();
 export const contract = c.router({
   cart: cartContract,
   checkout: checkoutContract,
+  discount: discountContract,
   inventory: inventoryContract,
   options: optionsContract,
   orders: ordersContract,
@@ -29,6 +31,7 @@ export const contract = c.router({
 export {
   cartContract,
   checkoutContract,
+  discountContract,
   inventoryContract,
   optionsContract,
   ordersContract,

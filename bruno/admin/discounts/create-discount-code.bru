@@ -1,0 +1,42 @@
+meta {
+  name: Create Discount Code
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/v1/admin/discounts/{{discountId}}/codes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+body:json {
+  {
+    "code": "SAVE10"
+  }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    const code = res.body.codes.find(c => c.code === "SAVE10");
+    if (code) bru.setEnvVar("discountCodeId", code.id);
+  }
+}
+
+tests {
+  test("status is 201", function() {
+    expect(res.status).to.equal(201);
+  });
+
+  test("code appears in response", function() {
+    const codes = res.body.codes;
+    expect(codes).to.be.an("array");
+    const code = codes.find(c => c.code === "SAVE10");
+    expect(code).to.exist;
+    expect(code.usageCount).to.equal(0);
+  });
+}
