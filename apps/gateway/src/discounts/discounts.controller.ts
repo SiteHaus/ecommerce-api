@@ -14,7 +14,7 @@ export class DiscountsController {
     @Inject("PAYMENTS_SERVICE") private readonly payments: ClientProxy,
   ) {}
 
-  @CommercePerm("products:write")
+  @CommercePerm("discounts:read")
   @UseGuards(AdminStoreGuard)
   @TsRestHandler(contract.discount.listDiscounts)
   listDiscounts(@Req() req: Request) {
@@ -26,7 +26,7 @@ export class DiscountsController {
     });
   }
 
-  @CommercePerm("products:write")
+  @CommercePerm("discounts:read")
   @UseGuards(AdminStoreGuard)
   @TsRestHandler(contract.discount.getDiscount)
   getDiscount(@Req() req: Request) {
@@ -38,7 +38,7 @@ export class DiscountsController {
     });
   }
 
-  @CommercePerm("products:write")
+  @CommercePerm("discounts:write")
   @UseGuards(AdminStoreGuard)
   @TsRestHandler(contract.discount.createDiscount)
   createDiscount(@Req() req: Request) {
@@ -71,7 +71,7 @@ export class DiscountsController {
     });
   }
 
-  @CommercePerm("products:write")
+  @CommercePerm("discounts:write")
   @UseGuards(AdminStoreGuard)
   @TsRestHandler(contract.discount.updateDiscount)
   updateDiscount(@Req() req: Request) {
@@ -108,7 +108,7 @@ export class DiscountsController {
     });
   }
 
-  @CommercePerm("products:write")
+  @CommercePerm("discounts:write")
   @UseGuards(AdminStoreGuard)
   @TsRestHandler(contract.discount.deleteDiscount)
   deleteDiscount(@Req() req: Request) {
@@ -135,7 +135,7 @@ export class DiscountsController {
     });
   }
 
-  @CommercePerm("products:write")
+  @CommercePerm("discounts:write")
   @UseGuards(AdminStoreGuard)
   @TsRestHandler(contract.discount.createDiscountCode)
   createDiscountCode(@Req() req: Request) {
@@ -170,7 +170,7 @@ export class DiscountsController {
     });
   }
 
-  @CommercePerm("products:write")
+  @CommercePerm("discounts:write")
   @UseGuards(AdminStoreGuard)
   @TsRestHandler(contract.discount.deleteDiscountCode)
   deleteDiscountCode(@Req() req: Request) {

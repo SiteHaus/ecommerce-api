@@ -14,7 +14,7 @@ export class ReturnsController {
 
   // ── Admin: settings ──────────────────────────────────────────────────────────
 
-  @CommercePerm("products:write")
+  @CommercePerm("returns:write")
   @UseGuards(AdminStoreGuard)
   @TsRestHandler(contract.returns.getReturnSettings)
   getReturnSettings(@Req() req: Request) {
@@ -26,7 +26,7 @@ export class ReturnsController {
     });
   }
 
-  @CommercePerm("products:write")
+  @CommercePerm("returns:write")
   @UseGuards(AdminStoreGuard)
   @TsRestHandler(contract.returns.updateReturnSettings)
   updateReturnSettings(@Req() req: Request) {
@@ -40,7 +40,7 @@ export class ReturnsController {
 
   // ── Admin: manage returns ─────────────────────────────────────────────────────
 
-  @CommercePerm("products:read")
+  @CommercePerm("returns:read")
   @UseGuards(AdminStoreGuard)
   @TsRestHandler(contract.returns.listReturns)
   listReturns(@Req() req: Request) {
@@ -52,7 +52,7 @@ export class ReturnsController {
     });
   }
 
-  @CommercePerm("products:read")
+  @CommercePerm("returns:read")
   @UseGuards(AdminStoreGuard)
   @TsRestHandler(contract.returns.getReturn)
   getReturn(@Req() req: Request) {
@@ -64,7 +64,7 @@ export class ReturnsController {
     });
   }
 
-  @CommercePerm("products:write")
+  @CommercePerm("returns:write")
   @UseGuards(AdminStoreGuard)
   @TsRestHandler(contract.returns.approveReturn)
   approveReturn(@Req() req: Request) {
@@ -76,7 +76,7 @@ export class ReturnsController {
     });
   }
 
-  @CommercePerm("products:write")
+  @CommercePerm("returns:write")
   @UseGuards(AdminStoreGuard)
   @TsRestHandler(contract.returns.rejectReturn)
   rejectReturn(@Req() req: Request) {
@@ -88,7 +88,7 @@ export class ReturnsController {
     });
   }
 
-  @CommercePerm("products:write")
+  @CommercePerm("returns:write")
   @UseGuards(AdminStoreGuard)
   @TsRestHandler(contract.returns.markReceived)
   markReceived(@Req() req: Request) {
@@ -104,7 +104,7 @@ export class ReturnsController {
     });
   }
 
-  @CommercePerm("products:delete")
+  @CommercePerm("returns:write")
   @UseGuards(AdminStoreGuard)
   @TsRestHandler(contract.returns.deleteReturn)
   deleteReturn(@Req() req: Request) {
