@@ -109,15 +109,17 @@ describe("CheckoutController", () => {
   });
 
   it("passes orderId, successUrl, and cancelUrl to payments service", async () => {
-    mockCommerceClient.send.mockReturnValue(of(mockOrderResult));
+    mockCommerceClient.send.mockReturnValueOnce(of(mockOrderResult)).mockReturnValueOnce(of(null));
     mockPaymentsClient.send.mockReturnValue(of(mockIntentResult));
 
     await request(app.getHttpServer()).post("/v1/checkout/intent").send(validBody);
 
     expect(mockPaymentsClient.send).toHaveBeenCalledWith("stripe.intent.create", {
       orderId: "order-uuid-1",
+      cartId: undefined,
       successUrl: "https://example.com/success",
       cancelUrl: "https://example.com/cancel",
+      stripeCouponId: null,
     });
   });
 
