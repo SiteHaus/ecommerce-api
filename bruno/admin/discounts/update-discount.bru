@@ -1,0 +1,41 @@
+meta {
+  name: Update Discount
+  type: http
+  seq: 7
+}
+
+patch {
+  url: {{baseUrl}}/v1/admin/discounts/{{discountId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+body:json {
+  {
+    "name": "10% Off Everything (Updated)",
+    "minOrderCents": 3000
+  }
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("name updated", function() {
+    expect(res.body.name).to.equal("10% Off Everything (Updated)");
+  });
+
+  test("minOrderCents updated", function() {
+    expect(res.body.minOrderCents).to.equal(3000);
+  });
+
+  test("type unchanged", function() {
+    expect(res.body.type).to.equal("percentage");
+    expect(res.body.value).to.equal(10);
+  });
+}

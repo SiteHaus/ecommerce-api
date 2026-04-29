@@ -1,7 +1,10 @@
 import { z } from "zod";
+import { optionItem, variantOptionValueRef } from "./options.schemas.js";
 
-export const StatusEnum = z.enum(["draft", "active", "archived"]);
+export const StatusEnum = z.enum(["draft", "scheduled", "active", "archived"]);
 export type Status = z.infer<typeof StatusEnum>;
+
+export const ConditionEnum = z.enum(["new", "refurbished", "used"]);
 
 export const productIdParams = z.object({
   id: z.string().uuid(),
@@ -12,6 +15,10 @@ export const createProductSchema = z.object({
   description: z.string().optional(),
   status: StatusEnum.default("draft"),
   goesLiveAt: z.string().datetime({ offset: true }).nullable().optional(),
+  brand: z.string().optional(),
+  gtin: z.string().max(14).optional(),
+  mpn: z.string().optional(),
+  condition: ConditionEnum.optional(),
 });
 
 export const updateProductSchema = createProductSchema.partial();
@@ -32,6 +39,7 @@ const variantPublic = z.object({
   priceCents: z.number().int(),
   compareAtCents: z.number().int().nullable(),
   availability: z.enum(["in_stock", "low_stock", "out_of_stock"]),
+  optionValues: z.array(variantOptionValueRef),
 });
 
 export const productItem = z.object({
@@ -57,6 +65,7 @@ const variantAdmin = z.object({
   availability: z.enum(["in_stock", "low_stock", "out_of_stock"]),
   stock: z.number().int(),
   reserved: z.number().int(),
+  optionValues: z.array(variantOptionValueRef),
 });
 
 export const productDetail = z.object({
@@ -65,14 +74,49 @@ export const productDetail = z.object({
   description: z.string().nullable(),
   status: StatusEnum,
   goesLiveAt: z.string().nullable(),
+  brand: z.string().nullable(),
+  gtin: z.string().nullable(),
+  mpn: z.string().nullable(),
+  condition: ConditionEnum,
   createdAt: z.string(),
   updatedAt: z.string(),
+  options: z.array(optionItem),
   variants: z.array(variantAdmin),
+});
+
+export const productPublicDetail = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  description: z.string().nullable(),
+  status: StatusEnum,
+  goesLiveAt: z.string().nullable(),
+  primaryImage: z.object({ cdnUrl: z.string(), altText: z.string().nullable() }).nullable(),
+  variants: z.array(variantPublic).nullable(),
 });
 
 export const productList = z.object({
   items: z.array(productItem),
   total: z.number().int(),
+});
+
+export const publicProductList = z.object({
+  items: z.array(productPublicDetail),
+  total: z.number().int(),
+});
+
+const productImage = z.object({ cdnUrl: z.string(), altText: z.string().nullable() });
+
+export const publicProductDetailFull = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  description: z.string().nullable(),
+  brand: z.string().nullable(),
+  scheduled: z.boolean(),
+  goesLiveAt: z.string().nullable(),
+  primaryImage: productImage.nullable(),
+  images: z.array(productImage),
+  options: z.array(optionItem),
+  variants: z.array(variantPublic).nullable(),
 });
 
 export const deleteProductResponse = z.object({
@@ -84,8 +128,12 @@ export type UpdateProductDto = {
   id: string;
   name?: string;
   description?: string | null;
-  status?: "draft" | "active" | "archived";
+  status?: "draft" | "scheduled" | "active" | "archived";
   goesLiveAt?: string | null;
+  brand?: string | null;
+  gtin?: string | null;
+  mpn?: string | null;
+  condition?: "new" | "refurbished" | "used";
 };
 export type AdminQueryParams = z.infer<typeof adminQueryParams>;
 export type PublicQueryParams = z.infer<typeof publicQueryParams>;

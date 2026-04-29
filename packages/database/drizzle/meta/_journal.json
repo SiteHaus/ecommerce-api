@@ -22,6 +22,41 @@
       "when": 1776101169652,
       "tag": "0002_perfect_barracuda",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1777324328914,
+      "tag": "0003_parched_tag",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1777343349119,
+      "tag": "0004_nebulous_spirit",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1777345867400,
+      "tag": "0005_brave_black_tarantula",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1777346413574,
+      "tag": "0006_dear_the_initiative",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1777347108037,
+      "tag": "0007_adorable_supernaut",
+      "breakpoints": true
     }
   ]
 }

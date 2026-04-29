@@ -1,7 +1,16 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { RpcException } from "@nestjs/microservices";
-import { eq, orderItemsTable, ordersTable, storesTable, type Db } from "@sitehaus-ecom/database";
+import {
+  and,
+  customersTable,
+  eq,
+  orderItemsTable,
+  ordersTable,
+  shippingRatesTable,
+  storesTable,
+  type Db,
+} from "@sitehaus-ecom/database";
 import { DB_TOKEN } from "@sitehaus-ecom/shared";
 import Stripe from "stripe";
 
@@ -22,6 +31,7 @@ export class IntentService {
     successUrl: string,
     cancelUrl: string,
     cartId?: string,
+    stripeCouponId?: string | null,
   ): Promise<{ checkoutUrl: string }> {
     const order = await this.db.query.ordersTable.findFirst({
       where: eq(ordersTable.id, orderId),
@@ -83,11 +93,66 @@ export class IntentService {
       .from(orderItemsTable)
       .where(eq(orderItemsTable.orderId, orderId));
 
+    let shippingOption: Stripe.Checkout.SessionCreateParams.ShippingOption | undefined;
+    if (order.shippingRateId) {
+      const [rate] = await this.db
+        .select({
+          name: shippingRatesTable.name,
+          estimatedDays: shippingRatesTable.estimatedDays,
+        })
+        .from(shippingRatesTable)
+        .where(eq(shippingRatesTable.id, order.shippingRateId));
+
+      if (rate) {
+        shippingOption = {
+          shipping_rate_data: {
+            type: "fixed_amount",
+            fixed_amount: { amount: order.shippingCents, currency: order.currency },
+            display_name: rate.name,
+            ...(rate.estimatedDays
+              ? {
+                  delivery_estimate: {
+                    maximum: { unit: "business_day", value: rate.estimatedDays },
+                  },
+                }
+              : {}),
+          },
+        };
+      }
+    }
+
+    // Look up Stripe Customer for pre-fill if this is an authenticated user
+    let stripeCustomerParam: { customer: string } | { customer_email?: string } = order.email
+      ? { customer_email: order.email }
+      : {};
+    if (order.userId) {
+      const customerRecord = await this.db.query.customersTable.findFirst({
+        where: and(
+          eq(customersTable.storeId, order.storeId),
+          eq(customersTable.userId, order.userId),
+        ),
+        columns: { stripeCustomerId: true },
+      });
+      if (customerRecord?.stripeCustomerId) {
+        stripeCustomerParam = { customer: customerRecord.stripeCustomerId };
+      }
+    }
+
+    // Automatic discount takes precedence; if none, allow customer to enter a promo code
+    const discountParams: Pick<
+      Stripe.Checkout.SessionCreateParams,
+      "discounts" | "allow_promotion_codes"
+    > = stripeCouponId
+      ? { discounts: [{ coupon: stripeCouponId }] }
+      : { allow_promotion_codes: true };
+
     let session: Stripe.Checkout.Session;
     try {
       session = await this.stripe.checkout.sessions.create({
         mode: "payment",
-        ...(order.email ? { customer_email: order.email } : {}),
+        ...stripeCustomerParam,
+        ...(shippingOption ? { shipping_options: [shippingOption] } : {}),
+        ...discountParams,
         line_items: items.map((item) => ({
           price_data: {
             currency: order.currency,

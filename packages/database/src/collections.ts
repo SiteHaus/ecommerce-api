@@ -23,6 +23,10 @@ export const collectionsTable = pgTable(
     sortOrder: integer("sort_order").notNull().default(0),
     goesLiveAt: timestamp("goes_live_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdateFn(() => new Date()),
   },
   (t) => [
     index("collections_store_idx").on(t.storeId),

@@ -5,6 +5,7 @@ import { IntentService } from "./intent.service";
 
 const ORDER_ID = "aaaaaaaa-0000-4000-8000-000000000001";
 const STORE_ID = "aaaaaaaa-0000-4000-8000-000000000002";
+const RATE_ID = "aaaaaaaa-0000-4000-8000-000000000003";
 const STRIPE_ACCOUNT_ID = "acct_test123";
 const CHECKOUT_URL = "https://checkout.stripe.com/pay/test_session_xyz";
 const SUCCESS_URL = "https://example.com/success";
@@ -15,6 +16,8 @@ const mockOrder = {
   storeId: STORE_ID,
   email: "customer@example.com",
   currency: "usd",
+  shippingRateId: null,
+  shippingCents: 0,
 };
 
 const mockStore = {
@@ -52,6 +55,17 @@ function selectChain(rows: any[]) {
       where: jest.fn().mockResolvedValue(rows),
     }),
   };
+}
+
+function selectChainWithJoin(rows: any[]) {
+  const chain: any = {
+    from: jest.fn(),
+    innerJoin: jest.fn(),
+    where: jest.fn().mockResolvedValue(rows),
+  };
+  chain.from.mockReturnValue(chain);
+  chain.innerJoin.mockReturnValue(chain);
+  return chain;
 }
 
 describe("IntentService", () => {
@@ -139,6 +153,46 @@ describe("IntentService", () => {
       await expect(service.createIntent(ORDER_ID, SUCCESS_URL, CANCEL_URL)).rejects.toThrow(
         RpcException,
       );
+    });
+
+    it("passes shipping_options to Stripe when order has a shipping rate", async () => {
+      const orderWithRate = { ...mockOrder, shippingRateId: RATE_ID, shippingCents: 1500 };
+      const mockRate = { name: "Standard Shipping", estimatedDays: 5 };
+
+      db.query.ordersTable.findFirst.mockResolvedValue(orderWithRate);
+      db.query.storesTable.findFirst.mockResolvedValue(mockStore);
+      db.select
+        .mockReturnValueOnce(selectChain(mockOrderItems))
+        .mockReturnValueOnce(selectChain([mockRate]));
+      db.update.mockReturnValue(updateChain());
+
+      await service.createIntent(ORDER_ID, SUCCESS_URL, CANCEL_URL);
+
+      expect(mockSessionsCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          shipping_options: [
+            expect.objectContaining({
+              shipping_rate_data: expect.objectContaining({
+                type: "fixed_amount",
+                fixed_amount: { amount: 1500, currency: "usd" },
+                display_name: "Standard Shipping",
+              }),
+            }),
+          ],
+        }),
+      );
+    });
+
+    it("omits shipping_options when order has no shipping rate", async () => {
+      db.query.ordersTable.findFirst.mockResolvedValue(mockOrder);
+      db.query.storesTable.findFirst.mockResolvedValue(mockStore);
+      db.select.mockReturnValue(selectChain(mockOrderItems));
+      db.update.mockReturnValue(updateChain());
+
+      await service.createIntent(ORDER_ID, SUCCESS_URL, CANCEL_URL);
+
+      const callArgs = mockSessionsCreate.mock.calls[0][0];
+      expect(callArgs.shipping_options).toBeUndefined();
     });
   });
 });

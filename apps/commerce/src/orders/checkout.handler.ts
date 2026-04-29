@@ -21,6 +21,7 @@ export class CheckoutHandler {
       shippingState?: string;
       shippingZip?: string;
       shippingCountry?: string;
+      shippingRateId?: string;
     },
   ) {
     return this.checkout.createOrder(payload);

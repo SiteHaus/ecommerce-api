@@ -9,6 +9,8 @@ import {
   ordersTable,
   productVariantsTable,
   productsTable,
+  shippingRatesTable,
+  shippingZonesTable,
   storesTable,
   type Db,
 } from "@sitehaus-ecom/database";
@@ -35,6 +37,7 @@ export class CheckoutService {
     shippingState?: string;
     shippingZip?: string;
     shippingCountry?: string;
+    shippingRateId?: string;
   }) {
     // 1. Locate the cart
     const cartWhere = data.userId
@@ -71,9 +74,58 @@ export class CheckoutService {
 
     if (items.length === 0) throw new BadRequestException("Cart is empty");
 
-    // 3. Calculate totals
+    // 3. Calculate subtotal
     const subtotalCents = items.reduce((sum, i) => sum + i.priceCents * i.quantity, 0);
-    const shippingCents = 0; // TODO SIT-86: shipping rate lookup
+
+    // 4. Resolve shipping rate
+    let shippingCents = 0;
+    let resolvedShippingRateId: string | null = null;
+
+    if (data.shippingCountry) {
+      const zones = await this.db.query.shippingZonesTable.findMany({
+        where: eq(shippingZonesTable.storeId, data.storeId),
+      });
+      const coveringZones = zones.filter(
+        (z) => !z.countries || z.countries.includes(data.shippingCountry!),
+      );
+      if (coveringZones.length > 0 && !data.shippingRateId) {
+        throw new BadRequestException("shippingRateId is required for this destination");
+      }
+    }
+
+    if (data.shippingRateId) {
+      const [rateWithZone] = await this.db
+        .select({
+          rateId: shippingRatesTable.id,
+          rateCents: shippingRatesTable.rateCents,
+          minOrderCents: shippingRatesTable.minOrderCents,
+          zoneStoreId: shippingZonesTable.storeId,
+          zoneCountries: shippingZonesTable.countries,
+        })
+        .from(shippingRatesTable)
+        .innerJoin(shippingZonesTable, eq(shippingRatesTable.zoneId, shippingZonesTable.id))
+        .where(eq(shippingRatesTable.id, data.shippingRateId));
+
+      if (!rateWithZone || rateWithZone.zoneStoreId !== data.storeId) {
+        throw new BadRequestException("Invalid shipping rate");
+      }
+
+      if (
+        data.shippingCountry &&
+        rateWithZone.zoneCountries &&
+        !rateWithZone.zoneCountries.includes(data.shippingCountry)
+      ) {
+        throw new BadRequestException("Shipping rate does not cover the destination country");
+      }
+
+      // Honor free-shipping threshold
+      shippingCents =
+        rateWithZone.minOrderCents !== null && subtotalCents >= rateWithZone.minOrderCents
+          ? 0
+          : rateWithZone.rateCents;
+      resolvedShippingRateId = rateWithZone.rateId;
+    }
+
     const taxCents = 0;
     const totalCents = subtotalCents + shippingCents + taxCents;
 
@@ -97,6 +149,7 @@ export class CheckoutService {
         shippingState: data.shippingState ?? null,
         shippingZip: data.shippingZip ?? null,
         shippingCountry: data.shippingCountry ?? null,
+        shippingRateId: resolvedShippingRateId,
         subtotalCents,
         shippingCents,
         taxCents,

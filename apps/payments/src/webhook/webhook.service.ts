@@ -1,7 +1,20 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
 import { InjectQueue } from "@nestjs/bullmq";
 import { ConfigService } from "@nestjs/config";
-import { cartsTable, eq, ordersTable, storesTable, type Db } from "@sitehaus-ecom/database";
+import {
+  and,
+  cartsTable,
+  customersTable,
+  discountCodesTable,
+  discountsTable,
+  eq,
+  isNull,
+  orderDiscountsTable,
+  ordersTable,
+  sql,
+  storesTable,
+  type Db,
+} from "@sitehaus-ecom/database";
 import { AuditService, DB_TOKEN } from "@sitehaus-ecom/shared";
 import { Queue } from "bullmq";
 import Stripe from "stripe";
@@ -71,6 +84,7 @@ export class WebhookService {
     await this.reservations.commit(orderId);
 
     const taxCents = session.total_details?.amount_tax ?? 0;
+    const shippingCents = session.shipping_cost?.amount_total ?? order.shippingCents;
     const customerEmail = session.customer_details?.email;
     await this.db
       .update(ordersTable)
@@ -79,13 +93,21 @@ export class WebhookService {
         confirmedAt: new Date(),
         updatedAt: new Date(),
         taxCents,
-        totalCents: order.subtotalCents + order.shippingCents + taxCents,
+        shippingCents,
+        totalCents: order.subtotalCents + shippingCents + taxCents,
         ...(customerEmail && !order.email ? { email: customerEmail } : {}),
         ...(session.payment_intent
           ? { stripePaymentIntentId: session.payment_intent as string }
           : {}),
       })
       .where(eq(ordersTable.id, orderId));
+
+    await this.upsertCustomer(order, session);
+
+    const amountSavedCents = session.total_details?.amount_discount ?? 0;
+    if (amountSavedCents > 0 && session.discounts?.length) {
+      await this.snapshotDiscount(orderId, order.storeId, session, amountSavedCents);
+    }
 
     const cartId = session.metadata?.cartId;
     if (cartId) {
@@ -106,6 +128,164 @@ export class WebhookService {
       { attempts: 3, backoff: { type: "exponential", delay: 5000 } },
     );
     this.logger.log(`Order ${orderId} confirmed`);
+  }
+
+  private async upsertCustomer(
+    order: typeof ordersTable.$inferSelect,
+    session: Stripe.Checkout.Session,
+  ): Promise<void> {
+    try {
+      const email = session.customer_details?.email ?? order.email;
+      const { storeId, userId } = order;
+
+      if (userId) {
+        // Authenticated — upsert by (storeId, userId)
+        const existing = await this.db.query.customersTable.findFirst({
+          where: and(eq(customersTable.storeId, storeId), eq(customersTable.userId, userId)),
+        });
+
+        if (existing) {
+          // Delete stale anonymous record with same email to avoid duplicates
+          await this.db
+            .delete(customersTable)
+            .where(
+              and(
+                eq(customersTable.storeId, storeId),
+                eq(customersTable.email, email),
+                isNull(customersTable.userId),
+              ),
+            );
+
+          // Ensure stripeCustomerId is set
+          if (!existing.stripeCustomerId) {
+            const store = await this.db.query.storesTable.findFirst({
+              where: eq(storesTable.id, storeId),
+              columns: { stripeAccountId: true },
+            });
+            if (store?.stripeAccountId) {
+              const stripeCustomer = await this.stripe.customers.create(
+                { email },
+                { stripeAccount: store.stripeAccountId },
+              );
+              await this.db
+                .update(customersTable)
+                .set({ stripeCustomerId: stripeCustomer.id, updatedAt: new Date() })
+                .where(eq(customersTable.id, existing.id));
+            }
+          }
+        } else {
+          // Create new customer record + Stripe Customer
+          const store = await this.db.query.storesTable.findFirst({
+            where: eq(storesTable.id, storeId),
+            columns: { stripeAccountId: true },
+          });
+
+          let stripeCustomerId: string | null = null;
+          if (store?.stripeAccountId) {
+            const stripeCustomer = await this.stripe.customers.create(
+              { email },
+              { stripeAccount: store.stripeAccountId },
+            );
+            stripeCustomerId = stripeCustomer.id;
+          }
+
+          // If anon record exists with same email, promote it rather than insert
+          const anon = await this.db.query.customersTable.findFirst({
+            where: and(eq(customersTable.storeId, storeId), eq(customersTable.email, email)),
+          });
+
+          if (anon) {
+            await this.db
+              .update(customersTable)
+              .set({
+                userId,
+                stripeCustomerId: stripeCustomerId ?? anon.stripeCustomerId,
+                updatedAt: new Date(),
+              })
+              .where(eq(customersTable.id, anon.id));
+          } else {
+            await this.db
+              .insert(customersTable)
+              .values({ storeId, userId, email, stripeCustomerId });
+          }
+        }
+      } else {
+        // Anonymous — upsert by (storeId, email), no Stripe Customer
+        const anonExisting = await this.db.query.customersTable.findFirst({
+          where: and(
+            eq(customersTable.storeId, storeId),
+            eq(customersTable.email, email),
+            isNull(customersTable.userId),
+          ),
+        });
+        if (!anonExisting) {
+          await this.db.insert(customersTable).values({ storeId, email });
+        }
+      }
+    } catch (err: any) {
+      this.logger.error(`Failed to upsert customer for order ${order.id}: ${err.message}`);
+    }
+  }
+
+  private async snapshotDiscount(
+    orderId: string,
+    storeId: string,
+    session: Stripe.Checkout.Session,
+    amountSavedCents: number,
+  ): Promise<void> {
+    try {
+      const sessionDiscount = session.discounts![0];
+      const rawCoupon = sessionDiscount.coupon;
+      if (!rawCoupon) return;
+      const stripeCouponId = typeof rawCoupon === "string" ? rawCoupon : rawCoupon.id;
+
+      const discount = await this.db.query.discountsTable.findFirst({
+        where: and(
+          eq(discountsTable.storeId, storeId),
+          eq(discountsTable.stripeCouponId, stripeCouponId),
+        ),
+      });
+
+      if (!discount) {
+        this.logger.warn(
+          `checkout.session.completed: no discount found for Stripe coupon ${stripeCouponId}`,
+        );
+        return;
+      }
+
+      let discountCodeId: string | null = null;
+      let codeUsed: string | null = null;
+
+      const rawPromoCode = sessionDiscount.promotion_code;
+      if (rawPromoCode) {
+        const stripePromotionCodeId =
+          typeof rawPromoCode === "string" ? rawPromoCode : rawPromoCode.id;
+        const code = await this.db.query.discountCodesTable.findFirst({
+          where: eq(discountCodesTable.stripePromotionCodeId, stripePromotionCodeId),
+        });
+        if (code) {
+          discountCodeId = code.id;
+          codeUsed = code.code;
+        }
+      }
+
+      await this.db.insert(orderDiscountsTable).values({
+        orderId,
+        discountId: discount.id,
+        discountCodeId,
+        codeUsed,
+        amountSavedCents,
+      });
+
+      if (discountCodeId) {
+        await this.db
+          .update(discountCodesTable)
+          .set({ usageCount: sql`${discountCodesTable.usageCount} + 1` })
+          .where(eq(discountCodesTable.id, discountCodeId));
+      }
+    } catch (err: any) {
+      this.logger.error(`Failed to snapshot discount for order ${orderId}: ${err.message}`);
+    }
   }
 
   private async handleSessionExpired(session: Stripe.Checkout.Session): Promise<void> {

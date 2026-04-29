@@ -15,7 +15,7 @@ import {
   DeleteCollectionDto,
   VerifyProductDto,
 } from "@sitehaus-ecom/validation";
-import { and, eq, asc, sql, inArray } from "@sitehaus-ecom/database";
+import { and, eq, asc, sql, inArray, isNull, or, lte } from "@sitehaus-ecom/database";
 import { ConflictException } from "@nestjs/common";
 
 @Injectable()
@@ -126,10 +126,16 @@ export class CollectionsHandlerService {
   }
 
   async list(storeId: string) {
+    const now = new Date();
     const collections = await this.db
       .select()
       .from(collectionsTable)
-      .where(eq(collectionsTable.storeId, storeId))
+      .where(
+        and(
+          eq(collectionsTable.storeId, storeId),
+          or(isNull(collectionsTable.goesLiveAt), lte(collectionsTable.goesLiveAt, now)),
+        ),
+      )
       .orderBy(asc(collectionsTable.sortOrder));
 
     const ids = collections.map((c) => c.id);
@@ -146,7 +152,6 @@ export class CollectionsHandlerService {
         : [];
 
     const countMap = Object.fromEntries(counts.map((r) => [r.collectionId, r.count]));
-    const now = new Date();
 
     return collections.map((c) => ({
       id: c.id,
@@ -161,10 +166,17 @@ export class CollectionsHandlerService {
   }
 
   async getCollection(storeId: string, slug: string) {
+    const now = new Date();
     const [collection] = await this.db
       .select()
       .from(collectionsTable)
-      .where(and(eq(collectionsTable.storeId, storeId), eq(collectionsTable.slug, slug)))
+      .where(
+        and(
+          eq(collectionsTable.storeId, storeId),
+          eq(collectionsTable.slug, slug),
+          or(isNull(collectionsTable.goesLiveAt), lte(collectionsTable.goesLiveAt, now)),
+        ),
+      )
       .limit(1);
 
     if (!collection) {

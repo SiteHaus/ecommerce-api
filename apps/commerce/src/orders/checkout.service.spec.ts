@@ -8,6 +8,8 @@ const SESSION_TOKEN = "session-abc";
 const ORDER_ID = "aaaaaaaa-0000-0000-0000-000000000002";
 const CART_ID = "aaaaaaaa-0000-0000-0000-000000000003";
 const VARIANT_ID = "aaaaaaaa-0000-0000-0000-000000000004";
+const RATE_ID = "aaaaaaaa-0000-0000-0000-000000000005";
+const ZONE_ID = "aaaaaaaa-0000-0000-0000-000000000006";
 
 const futureDate = new Date(Date.now() + 86_400_000);
 const pastDate = new Date(Date.now() - 1000);
@@ -87,6 +89,7 @@ describe("CheckoutService", () => {
       query: {
         cartsTable: { findFirst: jest.fn() },
         storesTable: { findFirst: jest.fn() },
+        shippingZonesTable: { findMany: jest.fn().mockResolvedValue([]) },
       },
       select: jest.fn(),
       insert: jest.fn(),
@@ -188,6 +191,101 @@ describe("CheckoutService", () => {
       reservations.releaseByOrder.mockResolvedValue(undefined);
 
       await expect(service.createOrder(validPayload)).rejects.toThrow(/Red.*Blue|Blue.*Red/);
+    });
+
+    it("applies shipping cost when shippingRateId is provided", async () => {
+      const mockRate = {
+        rateId: RATE_ID,
+        rateCents: 1500,
+        minOrderCents: null,
+        zoneStoreId: STORE_ID,
+        zoneCountries: ["CA"],
+      };
+      db.query.cartsTable.findFirst.mockResolvedValue(mockCart);
+      db.select
+        .mockReturnValueOnce(selectChain(mockItems))
+        .mockReturnValueOnce(selectChain([mockRate]));
+      db.query.storesTable.findFirst.mockResolvedValue(mockStore);
+      db.insert
+        .mockReturnValueOnce(insertChain([mockOrder]))
+        .mockReturnValueOnce(insertNoReturnChain());
+      reservations.reserve.mockResolvedValue("reserved");
+
+      const result = await service.createOrder({ ...validPayload, shippingRateId: RATE_ID });
+
+      expect(result.shippingCents).toBe(1500);
+      expect(result.totalCents).toBe(3500); // 2000 subtotal + 1500 shipping
+    });
+
+    it("waives shipping when subtotal meets the free-shipping threshold", async () => {
+      const mockRate = {
+        rateId: RATE_ID,
+        rateCents: 1500,
+        minOrderCents: 2000,
+        zoneStoreId: STORE_ID,
+        zoneCountries: null,
+      };
+      db.query.cartsTable.findFirst.mockResolvedValue(mockCart);
+      db.select
+        .mockReturnValueOnce(selectChain(mockItems))
+        .mockReturnValueOnce(selectChain([mockRate]));
+      db.query.storesTable.findFirst.mockResolvedValue(mockStore);
+      db.insert
+        .mockReturnValueOnce(insertChain([mockOrder]))
+        .mockReturnValueOnce(insertNoReturnChain());
+      reservations.reserve.mockResolvedValue("reserved");
+
+      const result = await service.createOrder({ ...validPayload, shippingRateId: RATE_ID });
+
+      expect(result.shippingCents).toBe(0); // subtotal 2000 >= threshold 2000
+    });
+
+    it("throws when shippingRateId does not belong to the store", async () => {
+      const wrongStoreRate = {
+        rateId: RATE_ID,
+        rateCents: 1000,
+        minOrderCents: null,
+        zoneStoreId: "different-store-id",
+        zoneCountries: null,
+      };
+      db.query.cartsTable.findFirst.mockResolvedValue(mockCart);
+      db.select
+        .mockReturnValueOnce(selectChain(mockItems))
+        .mockReturnValueOnce(selectChain([wrongStoreRate]));
+      db.query.storesTable.findFirst.mockResolvedValue(mockStore);
+
+      await expect(
+        service.createOrder({ ...validPayload, shippingRateId: RATE_ID }),
+      ).rejects.toThrow("Invalid shipping rate");
+    });
+
+    it("throws when shipping rate does not cover the destination country", async () => {
+      const usOnlyRate = {
+        rateId: RATE_ID,
+        rateCents: 1000,
+        minOrderCents: null,
+        zoneStoreId: STORE_ID,
+        zoneCountries: ["US"],
+      };
+      db.query.cartsTable.findFirst.mockResolvedValue(mockCart);
+      db.select
+        .mockReturnValueOnce(selectChain(mockItems))
+        .mockReturnValueOnce(selectChain([usOnlyRate]));
+      db.query.storesTable.findFirst.mockResolvedValue(mockStore);
+
+      await expect(
+        service.createOrder({ ...validPayload, shippingRateId: RATE_ID }),
+      ).rejects.toThrow("does not cover the destination country");
+    });
+
+    it("throws when active zones exist but no shippingRateId is provided", async () => {
+      db.query.cartsTable.findFirst.mockResolvedValue(mockCart);
+      db.select.mockReturnValue(selectChain(mockItems));
+      db.query.shippingZonesTable.findMany.mockResolvedValue([
+        { id: ZONE_ID, storeId: STORE_ID, countries: ["CA"] },
+      ]);
+
+      await expect(service.createOrder(validPayload)).rejects.toThrow("shippingRateId is required");
     });
 
     it("falls back to usd currency when store not found", async () => {

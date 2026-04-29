@@ -1,0 +1,50 @@
+meta {
+  name: Create Fixed Amount Discount
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/v1/admin/discounts
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+body:json {
+  {
+    "name": "$5 Off",
+    "type": "fixed_amount",
+    "value": 500,
+    "isAutomatic": true,
+    "applicability": "order",
+    "minOrderCents": 5000,
+    "startsAt": "2026-01-01T00:00:00Z",
+    "endsAt": "2026-12-31T23:59:59Z"
+  }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    bru.setEnvVar("autoDiscountId", res.body.id);
+  }
+}
+
+tests {
+  test("status is 201", function() {
+    expect(res.status).to.equal(201);
+  });
+
+  test("is automatic", function() {
+    expect(res.body.isAutomatic).to.equal(true);
+    expect(res.body.type).to.equal("fixed_amount");
+    expect(res.body.value).to.equal(500);
+  });
+
+  test("min order set", function() {
+    expect(res.body.minOrderCents).to.equal(5000);
+  });
+}

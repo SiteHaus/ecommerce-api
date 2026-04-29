@@ -1,0 +1,46 @@
+meta {
+  name: Create Free Shipping Discount
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/v1/admin/discounts
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+body:json {
+  {
+    "name": "Free Shipping",
+    "type": "free_shipping",
+    "isAutomatic": false,
+    "applicability": "order",
+    "minOrderCents": 10000
+  }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    bru.setEnvVar("freeShippingDiscountId", res.body.id);
+  }
+}
+
+tests {
+  test("status is 201", function() {
+    expect(res.status).to.equal(201);
+  });
+
+  test("type is free_shipping", function() {
+    expect(res.body.type).to.equal("free_shipping");
+    expect(res.body.value).to.be.null;
+  });
+
+  test("min order set", function() {
+    expect(res.body.minOrderCents).to.equal(10000);
+  });
+}

@@ -32,6 +32,7 @@ describe("IntentHandler", () => {
       "https://example.com/success",
       "https://example.com/cancel",
       undefined,
+      null,
     );
   });
 });

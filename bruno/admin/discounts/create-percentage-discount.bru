@@ -1,0 +1,48 @@
+meta {
+  name: Create Percentage Discount
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/v1/admin/discounts
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+body:json {
+  {
+    "name": "10% Off Everything",
+    "type": "percentage",
+    "value": 10,
+    "isAutomatic": false,
+    "applicability": "order",
+    "minOrderCents": 2000
+  }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    bru.setEnvVar("discountId", res.body.id);
+  }
+}
+
+tests {
+  test("status is 201", function() {
+    expect(res.status).to.equal(201);
+  });
+
+  test("returns discount with id", function() {
+    expect(res.body.id).to.be.a("string");
+    expect(res.body.type).to.equal("percentage");
+    expect(res.body.value).to.equal(10);
+  });
+
+  test("starts with no codes", function() {
+    expect(res.body.codes).to.be.an("array").with.lengthOf(0);
+  });
+}

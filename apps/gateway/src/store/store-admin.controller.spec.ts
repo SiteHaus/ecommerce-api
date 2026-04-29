@@ -216,6 +216,9 @@ describe("StoreAdminController", () => {
         stripePayoutsEnabled: false,
         stripeDetailsSubmitted: true,
       };
+      mockPaymentsClient.send.mockReturnValue(
+        of({ chargesEnabled: true, payoutsEnabled: false, detailsSubmitted: true }),
+      );
 
       const res = await request(app.getHttpServer()).get("/v1/admin/stores/stripe-status");
 
