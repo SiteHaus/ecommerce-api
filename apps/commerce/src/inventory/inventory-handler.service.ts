@@ -1,4 +1,5 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from "@nestjs/common";
+import { InjectQueue } from "@nestjs/bullmq";
 import {
   and,
   Db,
@@ -8,12 +9,14 @@ import {
   storesTable,
 } from "@sitehaus-ecom/database";
 import { AuditService, DB_TOKEN } from "@sitehaus-ecom/shared";
+import type { Queue } from "bullmq";
 
 @Injectable()
 export class InventoryHandlerService {
   constructor(
     @Inject(DB_TOKEN) private readonly db: Db,
     private readonly audit: AuditService,
+    @InjectQueue("ecom-webhooks") private readonly webhooksQueue: Queue,
   ) {}
 
   async get(variantId: string, storeId: string) {
@@ -94,11 +97,20 @@ export class InventoryHandlerService {
       meta: { from: inv.stock, to: updated.stock },
     });
 
+    const available = updated.stock - updated.reserved;
+    if (data.stock !== undefined && available <= 0) {
+      void this.webhooksQueue.add("webhook.dispatch", {
+        storeId,
+        event: "inventory.low",
+        data: { variantId, stock: updated.stock, reserved: updated.reserved, available },
+      });
+    }
+
     return {
       variantId: updated.variantId,
       stock: updated.stock,
       reserved: updated.reserved,
-      available: updated.stock - updated.reserved,
+      available,
       allowBackorder: updated.allowBackorder,
       reservationTtlMinutes: store?.reservationTtlMinutes ?? 15,
       updatedAt: updated.updatedAt.toISOString(),

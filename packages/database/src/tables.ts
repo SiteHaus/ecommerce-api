@@ -24,3 +24,5 @@ export { storeAuditLogsTable } from "./store-audit-logs.js";
 export { storesTable } from "./stores.js";
 export { variantImagesTable } from "./variant-images.js";
 export { variantOptionValuesTable } from "./variant-option-values.js";
+export { webhookDeliveriesTable, webhookDeliveryStatusEnum } from "./webhook-deliveries.js";
+export { webhookEndpointsTable } from "./webhook-endpoints.js";

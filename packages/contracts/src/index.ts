@@ -13,6 +13,7 @@ import { collectionContract } from "./collection/collection.contract.js";
 import { shippingContract } from "./shipping/shipping.contract.js";
 import { customersContract } from "./customers/customers.contract.js";
 import { returnsContract } from "./returns/returns.contract.js";
+import { webhooksContract } from "./webhooks/webhooks.contract.js";
 const c = initContract();
 
 export const contract = c.router({
@@ -30,6 +31,7 @@ export const contract = c.router({
   image: imagesContract,
   collection: collectionContract,
   shipping: shippingContract,
+  webhooks: webhooksContract,
 });
 
 export {
@@ -47,4 +49,5 @@ export {
   imagesContract,
   collectionContract,
   shippingContract,
+  webhooksContract,
 };

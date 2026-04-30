@@ -24,6 +24,8 @@ export * from "./store-audit-logs.js";
 export * from "./stores.js";
 export * from "./variant-images.js";
 export * from "./variant-option-values.js";
+export * from "./webhook-deliveries.js";
+export * from "./webhook-endpoints.js";
 
 export {
   and,

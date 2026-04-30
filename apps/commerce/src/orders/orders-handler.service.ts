@@ -22,6 +22,7 @@ export class OrdersHandlerService {
     @Inject(DB_TOKEN) private readonly db: Db,
     private readonly audit: AuditService,
     @InjectQueue("ecom-notifications") private readonly notificationsQueue: Queue,
+    @InjectQueue("ecom-webhooks") private readonly webhooksQueue: Queue,
   ) {}
 
   async getForCustomer(data: {
@@ -268,6 +269,11 @@ export class OrdersHandlerService {
       { orderId: data.orderId, storeId: data.storeId },
       { attempts: 3, backoff: { type: "exponential", delay: 5000 } },
     );
+    void this.webhooksQueue.add("webhook.dispatch", {
+      storeId: data.storeId,
+      event: "order.shipped",
+      data: { orderId: data.orderId, trackingNumber: data.trackingNumber },
+    });
 
     void this.audit.log({
       storeId: data.storeId,

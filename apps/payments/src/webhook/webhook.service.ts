@@ -32,6 +32,7 @@ export class WebhookService {
     private readonly reservations: ReservationService,
     private readonly audit: AuditService,
     @InjectQueue("ecom-notifications") private readonly notificationsQueue: Queue,
+    @InjectQueue("ecom-webhooks") private readonly webhooksQueue: Queue,
   ) {
     this.stripe = new Stripe(config.getOrThrow("STRIPE_SECRET_KEY"));
     this.webhookSecret = config.getOrThrow("STRIPE_WEBHOOK_SECRET");
@@ -127,6 +128,11 @@ export class WebhookService {
       { orderId, storeId: order.storeId },
       { attempts: 3, backoff: { type: "exponential", delay: 5000 } },
     );
+    void this.webhooksQueue.add("webhook.dispatch", {
+      storeId: order.storeId,
+      event: "order.confirmed",
+      data: { orderId },
+    });
     this.logger.log(`Order ${orderId} confirmed`);
   }
 
