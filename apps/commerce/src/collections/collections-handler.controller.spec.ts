@@ -213,18 +213,21 @@ describe("CollectionsHandlerController", () => {
 
   // ─── getCollection ────────────────────────────────────────────────────────
   describe("getCollection", () => {
-    it("calls service.getCollection with storeId and slug", async () => {
+    it("calls service.getCollection with storeId and collectionId", async () => {
       mockService.getCollection.mockResolvedValue(collectionRow);
 
-      await controller.getCollection({ storeId: STORE_ID, slug: "summer-sale" });
+      await controller.getCollection({ storeId: STORE_ID, collectionId: COLLECTION_ID });
 
-      expect(mockService.getCollection).toHaveBeenCalledWith(STORE_ID, "summer-sale");
+      expect(mockService.getCollection).toHaveBeenCalledWith(STORE_ID, COLLECTION_ID);
     });
 
     it("returns the service result unchanged", async () => {
       mockService.getCollection.mockResolvedValue(collectionRow);
 
-      const result = await controller.getCollection({ storeId: STORE_ID, slug: "summer-sale" });
+      const result = await controller.getCollection({
+        storeId: STORE_ID,
+        collectionId: COLLECTION_ID,
+      });
 
       expect(result).toEqual(collectionRow);
     });

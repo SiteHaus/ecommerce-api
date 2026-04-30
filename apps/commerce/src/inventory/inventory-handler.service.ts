@@ -98,7 +98,7 @@ export class InventoryHandlerService {
     });
 
     const available = updated.stock - updated.reserved;
-    if (data.stock !== undefined && available <= 0) {
+    if (data.stock !== undefined && available <= updated.lowStockThreshold) {
       void this.webhooksQueue.add("webhook.dispatch", {
         storeId,
         event: "inventory.low",

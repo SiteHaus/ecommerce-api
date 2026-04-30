@@ -19,6 +19,7 @@ export const createProductSchema = z.object({
   gtin: z.string().max(14).optional(),
   mpn: z.string().optional(),
   condition: ConditionEnum.optional(),
+  tags: z.array(z.string()).optional(),
 });
 
 export const updateProductSchema = createProductSchema.partial();
@@ -28,9 +29,26 @@ export const adminQueryParams = z.object({
   offset: z.coerce.number().int().min(0).default(0),
 });
 
+export const publicSortEnum = z.enum(["newest", "price_asc", "price_desc", "bestselling"]);
+
 export const publicQueryParams = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(20),
   offset: z.coerce.number().int().min(0).default(0),
+  q: z.string().min(2).optional(),
+  minPrice: z.coerce.number().int().min(0).optional(),
+  maxPrice: z.coerce.number().int().min(0).optional(),
+  collectionId: z.string().uuid().optional(),
+  availability: z.enum(["in_stock", "low_stock", "out_of_stock"]).optional(),
+  sort: publicSortEnum.default("newest"),
+  tags: z
+    .string()
+    .transform((v) =>
+      v
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean),
+    )
+    .optional(),
 });
 
 const variantPublic = z.object({
@@ -78,6 +96,7 @@ export const productDetail = z.object({
   gtin: z.string().nullable(),
   mpn: z.string().nullable(),
   condition: ConditionEnum,
+  tags: z.array(z.string()),
   createdAt: z.string(),
   updatedAt: z.string(),
   options: z.array(optionItem),
@@ -90,6 +109,7 @@ export const productPublicDetail = z.object({
   description: z.string().nullable(),
   status: StatusEnum,
   goesLiveAt: z.string().nullable(),
+  tags: z.array(z.string()),
   primaryImage: z.object({ cdnUrl: z.string(), altText: z.string().nullable() }).nullable(),
   variants: z.array(variantPublic).nullable(),
 });
@@ -111,6 +131,7 @@ export const publicProductDetailFull = z.object({
   name: z.string(),
   description: z.string().nullable(),
   brand: z.string().nullable(),
+  tags: z.array(z.string()),
   scheduled: z.boolean(),
   goesLiveAt: z.string().nullable(),
   primaryImage: productImage.nullable(),
@@ -134,6 +155,7 @@ export type UpdateProductDto = {
   gtin?: string | null;
   mpn?: string | null;
   condition?: "new" | "refurbished" | "used";
+  tags?: string[];
 };
 export type AdminQueryParams = z.infer<typeof adminQueryParams>;
 export type PublicQueryParams = z.infer<typeof publicQueryParams>;

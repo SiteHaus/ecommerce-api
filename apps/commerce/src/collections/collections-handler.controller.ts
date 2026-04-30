@@ -45,7 +45,17 @@ export class CollectionsHandlerController {
   }
 
   @MessagePattern("catalog.collections.getCollection")
-  getCollection(@Payload() data: { storeId: string; slug: string }) {
-    return this.collectionService.getCollection(data.storeId, data.slug);
+  getCollection(@Payload() data: { storeId: string; collectionId: string }) {
+    return this.collectionService.getCollection(data.storeId, data.collectionId);
+  }
+
+  @MessagePattern("catalog.collections.listPublic")
+  listPublic(@Payload() data: { storeId: string }) {
+    return this.collectionService.listPublic(data.storeId);
+  }
+
+  @MessagePattern("catalog.collections.getPublicCollection")
+  getPublicCollection(@Payload() data: { storeId: string; slug: string }) {
+    return this.collectionService.getPublicCollection(data.storeId, data.slug);
   }
 }

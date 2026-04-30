@@ -20,6 +20,7 @@ export const productsTable = pgTable(
     description: text("description"),
     status: productStatusEnum("status").notNull().default("draft"),
     goesLiveAt: timestamp("goes_live_at", { withTimezone: true }), // null = live immediately
+    tags: text("tags").array().notNull().default([]),
     // Channel-required attributes (Google Merchant Center, Meta Commerce, TikTok Shop)
     brand: text("brand"),
     gtin: varchar("gtin", { length: 14 }), // barcode / UPC / EAN / ISBN
