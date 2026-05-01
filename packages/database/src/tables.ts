@@ -1,3 +1,4 @@
+export { analyticsEventsTable, analyticsEventTypeEnum } from "./analytics-events.js";
 export { cartItemsTable } from "./cart-items.js";
 export { customersTable } from "./customers.js";
 export { returnItemsTable } from "./return-items.js";

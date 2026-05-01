@@ -1,3 +1,4 @@
+export * from "./analytics-events.js";
 export * from "./cart-items.js";
 export * from "./customers.js";
 export * from "./return-items.js";
@@ -30,6 +31,9 @@ export * from "./webhook-endpoints.js";
 export {
   and,
   asc,
+  avg,
+  count,
+  countDistinct,
   desc,
   eq,
   gt,
@@ -46,6 +50,7 @@ export {
   or,
   sql,
   max,
+  sum,
 } from "drizzle-orm";
 
 import { drizzle, NodePgDatabase } from "drizzle-orm/node-postgres";

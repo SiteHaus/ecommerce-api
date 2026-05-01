@@ -1,3 +1,4 @@
+export * from "./analytics.schemas.js";
 export * from "./cart.schemas.js";
 export * from "./customers.schemas.js";
 export * from "./returns.schemas.js";
