@@ -2,13 +2,20 @@ import { BadRequestException, Inject, Injectable, NotFoundException } from "@nes
 import { InjectQueue } from "@nestjs/bullmq";
 import {
   and,
+  asc,
+  count,
   Db,
   eq,
+  gt,
   inventoryTable,
+  lte,
+  productsTable,
   productVariantsTable,
+  sql,
   storesTable,
 } from "@sitehaus-ecom/database";
 import { AuditService, DB_TOKEN } from "@sitehaus-ecom/shared";
+import type { ListInventoryQuery } from "@sitehaus-ecom/validation";
 import type { Queue } from "bullmq";
 
 @Injectable()
@@ -115,5 +122,48 @@ export class InventoryHandlerService {
       reservationTtlMinutes: store?.reservationTtlMinutes ?? 15,
       updatedAt: updated.updatedAt.toISOString(),
     };
+  }
+
+  async list(storeId: string, query: ListInventoryQuery) {
+    const { limit, offset, stockFilter, threshold } = query;
+
+    const available = sql<number>`(${inventoryTable.stock} - ${inventoryTable.reserved})`;
+
+    const conditions = [eq(inventoryTable.storeId, storeId)];
+    if (stockFilter === "low") {
+      conditions.push(gt(available, sql`0`), lte(available, sql`${threshold}`));
+    } else if (stockFilter === "out") {
+      conditions.push(lte(available, sql`0`));
+    }
+
+    const [items, totals] = await Promise.all([
+      this.db
+        .select({
+          variantId: inventoryTable.variantId,
+          productId: productVariantsTable.productId,
+          productName: productsTable.name,
+          variantName: productVariantsTable.name,
+          sku: productVariantsTable.sku,
+          stock: inventoryTable.stock,
+          reserved: inventoryTable.reserved,
+          available,
+          allowBackorder: inventoryTable.allowBackorder,
+        })
+        .from(inventoryTable)
+        .innerJoin(productVariantsTable, eq(productVariantsTable.id, inventoryTable.variantId))
+        .innerJoin(productsTable, eq(productsTable.id, productVariantsTable.productId))
+        .where(and(...conditions))
+        .orderBy(asc(productsTable.name), asc(productVariantsTable.sortOrder))
+        .limit(limit)
+        .offset(offset),
+      this.db
+        .select({ total: count() })
+        .from(inventoryTable)
+        .innerJoin(productVariantsTable, eq(productVariantsTable.id, inventoryTable.variantId))
+        .innerJoin(productsTable, eq(productsTable.id, productVariantsTable.productId))
+        .where(and(...conditions)),
+    ]);
+
+    return { items, total: totals[0]?.total ?? 0 };
   }
 }

@@ -10,6 +10,7 @@ export interface ResolvedStore {
   stripePayoutsEnabled: boolean;
   stripeDetailsSubmitted: boolean;
   reservationTtlMinutes: number;
+  fulfillmentType: "shipping" | "pickup";
 }
 
 export interface StoreContext {

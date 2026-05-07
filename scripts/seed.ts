@@ -397,6 +397,315 @@ try {
     console.log(`✅  Product:  ${product.name} — ${stockSummary}`);
   }
 
+  // ── orders + analytics ────────────────────────────────────────────────────────
+
+  const { faker } = await import("@faker-js/faker");
+  faker.seed(42); // deterministic
+
+  const NOW_MS = new Date("2026-05-02T18:00:00.000Z").getTime();
+  const DAY_MS = 86_400_000;
+
+  // Biased variant pool — popular products appear multiple times so top-products chart is interesting
+  const VARIANT_POOL = [
+    // Vitamin D3 60 (most popular)
+    {
+      id: products[9].variants[0].id,
+      productId: products[9].id,
+      productName: products[9].name,
+      variantName: products[9].variants[0].name,
+      sku: products[9].variants[0].sku,
+      priceCents: products[9].variants[0].priceCents,
+    },
+    {
+      id: products[9].variants[0].id,
+      productId: products[9].id,
+      productName: products[9].name,
+      variantName: products[9].variants[0].name,
+      sku: products[9].variants[0].sku,
+      priceCents: products[9].variants[0].priceCents,
+    },
+    {
+      id: products[9].variants[0].id,
+      productId: products[9].id,
+      productName: products[9].name,
+      variantName: products[9].variants[0].name,
+      sku: products[9].variants[0].sku,
+      priceCents: products[9].variants[0].priceCents,
+    },
+    // Essential Mag 120 (2nd)
+    {
+      id: products[4].variants[1].id,
+      productId: products[4].id,
+      productName: products[4].name,
+      variantName: products[4].variants[1].name,
+      sku: products[4].variants[1].sku,
+      priceCents: products[4].variants[1].priceCents,
+    },
+    {
+      id: products[4].variants[1].id,
+      productId: products[4].id,
+      productName: products[4].name,
+      variantName: products[4].variants[1].name,
+      sku: products[4].variants[1].sku,
+      priceCents: products[4].variants[1].priceCents,
+    },
+    // B Essentials 60 (3rd)
+    {
+      id: products[0].variants[0].id,
+      productId: products[0].id,
+      productName: products[0].name,
+      variantName: products[0].variants[0].name,
+      sku: products[0].variants[0].sku,
+      priceCents: products[0].variants[0].priceCents,
+    },
+    {
+      id: products[0].variants[0].id,
+      productId: products[0].id,
+      productName: products[0].name,
+      variantName: products[0].variants[0].name,
+      sku: products[0].variants[0].sku,
+      priceCents: products[0].variants[0].priceCents,
+    },
+    // Vivere Essential 60 (4th)
+    {
+      id: products[10].variants[1].id,
+      productId: products[10].id,
+      productName: products[10].name,
+      variantName: products[10].variants[1].name,
+      sku: products[10].variants[1].sku,
+      priceCents: products[10].variants[1].priceCents,
+    },
+    {
+      id: products[10].variants[1].id,
+      productId: products[10].id,
+      productName: products[10].name,
+      variantName: products[10].variants[1].name,
+      sku: products[10].variants[1].sku,
+      priceCents: products[10].variants[1].priceCents,
+    },
+    // Bone Support 60
+    {
+      id: products[1].variants[0].id,
+      productId: products[1].id,
+      productName: products[1].name,
+      variantName: products[1].variants[0].name,
+      sku: products[1].variants[0].sku,
+      priceCents: products[1].variants[0].priceCents,
+    },
+    // Digestive Enzymes 60
+    {
+      id: products[2].variants[0].id,
+      productId: products[2].id,
+      productName: products[2].name,
+      variantName: products[2].variants[0].name,
+      sku: products[2].variants[0].sku,
+      priceCents: products[2].variants[0].priceCents,
+    },
+    // Melatonin 60
+    {
+      id: products[5].variants[0].id,
+      productId: products[5].id,
+      productName: products[5].name,
+      variantName: products[5].variants[0].name,
+      sku: products[5].variants[0].sku,
+      priceCents: products[5].variants[0].priceCents,
+    },
+    // Micro DHEA-25
+    {
+      id: products[6].variants[0].id,
+      productId: products[6].id,
+      productName: products[6].name,
+      variantName: products[6].variants[0].name,
+      sku: products[6].variants[0].sku,
+      priceCents: products[6].variants[0].priceCents,
+    },
+    // Essential Mag 60
+    {
+      id: products[4].variants[0].id,
+      productId: products[4].id,
+      productName: products[4].name,
+      variantName: products[4].variants[0].name,
+      sku: products[4].variants[0].sku,
+      priceCents: products[4].variants[0].priceCents,
+    },
+    // B12 Liquid
+    {
+      id: products[8].variants[0].id,
+      productId: products[8].id,
+      productName: products[8].name,
+      variantName: products[8].variants[0].name,
+      sku: products[8].variants[0].sku,
+      priceCents: products[8].variants[0].priceCents,
+    },
+  ];
+
+  const ORDER_COUNT = 95;
+  let orderCount = 0;
+  let itemCount = 0;
+
+  for (let i = 0; i < ORDER_COUNT; i++) {
+    // Weight distribution toward recent days
+    const t = i / ORDER_COUNT;
+    const daysAgo = Math.round((1 - Math.pow(t, 0.7)) * 89);
+    const orderedAt = new Date(NOW_MS - daysAgo * DAY_MS);
+
+    const status = daysAgo > 21 ? "delivered" : daysAgo > 7 ? "shipped" : "confirmed";
+
+    // Build items — avoid duplicate variants per order
+    const numItems = [1, 1, 2, 1, 2, 3, 1, 2][i % 8];
+    const usedVariantIds = new Set<string>();
+    const items: Array<{
+      variantId: string;
+      productName: string;
+      variantName: string;
+      sku: string;
+      quantity: number;
+      unitPriceCents: number;
+      totalCents: number;
+    }> = [];
+
+    for (let j = 0; j < numItems; j++) {
+      let v = VARIANT_POOL[(i * 7 + j * 13) % VARIANT_POOL.length];
+      for (let k = 0; usedVariantIds.has(v.id) && k < VARIANT_POOL.length; k++) {
+        v = VARIANT_POOL[(i * 7 + j * 13 + k + 1) % VARIANT_POOL.length];
+      }
+      usedVariantIds.add(v.id);
+      items.push({
+        variantId: v.id,
+        productName: v.productName,
+        variantName: v.variantName,
+        sku: v.sku,
+        quantity: 1,
+        unitPriceCents: v.priceCents,
+        totalCents: v.priceCents,
+      });
+    }
+
+    const subtotalCents = items.reduce((s, it) => s + it.totalCents, 0);
+    const shippingCents = subtotalCents >= 5000 ? 0 : 599;
+    const taxCents = Math.round(subtotalCents * 0.085);
+    const totalCents = subtotalCents + shippingCents + taxCents;
+
+    const firstName = faker.person.firstName();
+    const lastName = faker.person.lastName();
+    const orderId = randomUUID();
+
+    await client.query(
+      `INSERT INTO orders (
+        id, store_id, email, status,
+        shipping_name, shipping_line1, shipping_city, shipping_state, shipping_zip, shipping_country,
+        shipping_cents, subtotal_cents, tax_cents, total_cents, currency,
+        confirmed_at, created_at, updated_at
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'US',$10,$11,$12,$13,'usd',$14,$14,$14)`,
+      [
+        orderId,
+        STORE_ID,
+        faker.internet.email({ firstName, lastName }).toLowerCase(),
+        status,
+        `${firstName} ${lastName}`,
+        faker.location.streetAddress(),
+        faker.location.city(),
+        faker.location.state({ abbreviated: true }),
+        faker.location.zipCode(),
+        shippingCents,
+        subtotalCents,
+        taxCents,
+        totalCents,
+        orderedAt,
+      ],
+    );
+    orderCount++;
+
+    for (const item of items) {
+      await client.query(
+        `INSERT INTO order_items (id, order_id, variant_id, product_name, variant_name, sku, quantity, unit_price_cents, total_cents)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+        [
+          randomUUID(),
+          orderId,
+          item.variantId,
+          item.productName,
+          item.variantName,
+          item.sku,
+          item.quantity,
+          item.unitPriceCents,
+          item.totalCents,
+        ],
+      );
+      itemCount++;
+    }
+  }
+  console.log(`✅  Orders:   ${orderCount} orders, ${itemCount} line items`);
+
+  // Analytics events — simulate a conversion funnel with realistic drop-off
+  const SESSION_COUNT = 220;
+  const PRODUCT_POOL = [
+    { productId: products[9].id, variantId: products[9].variants[0].id }, // Vitamin D3 (most viewed)
+    { productId: products[9].id, variantId: products[9].variants[0].id },
+    { productId: products[4].id, variantId: products[4].variants[1].id }, // Essential Mag
+    { productId: products[4].id, variantId: products[4].variants[1].id },
+    { productId: products[0].id, variantId: products[0].variants[0].id }, // B Essentials
+    { productId: products[0].id, variantId: products[0].variants[0].id },
+    { productId: products[10].id, variantId: products[10].variants[1].id }, // Vivere Essential
+    { productId: products[1].id, variantId: products[1].variants[0].id }, // Bone Support
+    { productId: products[2].id, variantId: products[2].variants[0].id }, // Digestive Enzymes
+    { productId: products[5].id, variantId: products[5].variants[0].id }, // Melatonin
+  ];
+
+  let eventCount = 0;
+  for (let i = 0; i < SESSION_COUNT; i++) {
+    const sessionId = randomUUID();
+    const daysAgo = Math.floor((i / SESSION_COUNT) * 89);
+    const sessionAt = new Date(NOW_MS - daysAgo * DAY_MS);
+    const product = PRODUCT_POOL[i % PRODUCT_POOL.length];
+
+    // product_viewed — 100%
+    await client.query(
+      `INSERT INTO analytics_events (id, store_id, session_id, event, product_id, variant_id, created_at)
+       VALUES ($1,$2,$3,'product_viewed',$4,$5,$6)`,
+      [randomUUID(), STORE_ID, sessionId, product.productId, product.variantId, sessionAt],
+    );
+    eventCount++;
+
+    if (i % 10 >= 3) {
+      // 70% add_to_cart
+      await client.query(
+        `INSERT INTO analytics_events (id, store_id, session_id, event, product_id, variant_id, created_at)
+         VALUES ($1,$2,$3,'add_to_cart',$4,$5,$6)`,
+        [
+          randomUUID(),
+          STORE_ID,
+          sessionId,
+          product.productId,
+          product.variantId,
+          new Date(sessionAt.getTime() + 60_000),
+        ],
+      );
+      eventCount++;
+
+      if (i % 10 >= 5) {
+        // 50% checkout_started
+        await client.query(
+          `INSERT INTO analytics_events (id, store_id, session_id, event, created_at)
+           VALUES ($1,$2,$3,'checkout_started',$4)`,
+          [randomUUID(), STORE_ID, sessionId, new Date(sessionAt.getTime() + 180_000)],
+        );
+        eventCount++;
+
+        if (i % 10 >= 7) {
+          // 30% order_completed
+          await client.query(
+            `INSERT INTO analytics_events (id, store_id, session_id, event, created_at)
+             VALUES ($1,$2,$3,'order_completed',$4)`,
+            [randomUUID(), STORE_ID, sessionId, new Date(sessionAt.getTime() + 300_000)],
+          );
+          eventCount++;
+        }
+      }
+    }
+  }
+  console.log(`✅  Analytics: ${eventCount} events (${SESSION_COUNT} sessions)`);
+
   // ── summary ─────────────────────────────────────────────────────────────────
   console.log(`
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

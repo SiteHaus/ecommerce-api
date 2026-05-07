@@ -22,6 +22,7 @@ export const updateStoreSchema = z.object({
   timezone: z.string().optional(),
   notificationEmail: z.string().email().nullable().optional(),
   reservationTtlMinutes: z.number().int().min(5).max(60).optional(),
+  fulfillmentType: z.enum(["shipping", "pickup"]).optional(),
 });
 
 export const storeItem = z.object({
@@ -36,6 +37,7 @@ export const storeItem = z.object({
   stripePayoutsEnabled: z.boolean(),
   stripeDetailsSubmitted: z.boolean(),
   reservationTtlMinutes: z.number(),
+  fulfillmentType: z.enum(["shipping", "pickup"]),
 });
 
 export const connectStripeSchema = z.object({

@@ -13,6 +13,17 @@ export class InventoryAdminController {
   constructor(@Inject("COMMERCE_SERVICE") private readonly commerce: ClientProxy) {}
 
   @CommercePerm("products:read")
+  @TsRestHandler(contract.inventory.listInventory)
+  list(@Req() req: Request) {
+    return tsRestHandler(contract.inventory.listInventory, async ({ query }) => {
+      const result = await firstValueFrom(
+        this.commerce.send("inventory.list", { storeId: req.store!.id, ...query }),
+      );
+      return { status: 200 as const, body: result };
+    });
+  }
+
+  @CommercePerm("products:read")
   @TsRestHandler(contract.inventory.getInventory)
   get(@Req() req: Request) {
     return tsRestHandler(contract.inventory.getInventory, async ({ params }) => {

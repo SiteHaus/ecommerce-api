@@ -1,11 +1,15 @@
 import { Inject, Injectable } from "@nestjs/common";
 import {
   analyticsEventsTable,
+  and,
   avg,
   count,
   countDistinct,
   desc,
   eq,
+  gte,
+  inArray,
+  lte,
   orderItemsTable,
   ordersTable,
   productsTable,
@@ -66,20 +70,22 @@ export class AnalyticsHandlerService {
       })
       .from(ordersTable)
       .where(
-        sql`${ordersTable.storeId} = ${storeId}
-          AND ${ordersTable.status} = ANY(${CONFIRMED_STATUSES})
-          AND ${ordersTable.confirmedAt} >= ${new Date(from)}
-          AND ${ordersTable.confirmedAt} <= ${new Date(to)}`,
+        and(
+          eq(ordersTable.storeId, storeId),
+          inArray(ordersTable.status, [...CONFIRMED_STATUSES]),
+          gte(ordersTable.confirmedAt, new Date(from)),
+          lte(ordersTable.confirmedAt, new Date(to)),
+        ),
       )
       .groupBy(periodCol)
       .orderBy(periodCol);
 
     return {
       periods: rows.map((r) => ({
-        date: (r.date as Date).toISOString().split("T")[0],
-        revenue: Math.round(Number(r.revenue ?? 0)) / 100,
+        date: new Date(r.date as string | Date).toISOString().split("T")[0],
+        revenue: Math.round(Number(r.revenue ?? 0)),
         orderCount: r.orderCount,
-        aov: Math.round(Number(r.aov ?? 0)) / 100,
+        aov: Math.round(Number(r.aov ?? 0)),
       })),
     };
   }
@@ -101,10 +107,12 @@ export class AnalyticsHandlerService {
         .innerJoin(productVariantsTable, eq(orderItemsTable.variantId, productVariantsTable.id))
         .innerJoin(productsTable, eq(productVariantsTable.productId, productsTable.id))
         .where(
-          sql`${ordersTable.storeId} = ${storeId}
-            AND ${ordersTable.status} = ANY(${CONFIRMED_STATUSES})
-            AND ${ordersTable.confirmedAt} >= ${fromDate}
-            AND ${ordersTable.confirmedAt} <= ${toDate}`,
+          and(
+            eq(ordersTable.storeId, storeId),
+            inArray(ordersTable.status, [...CONFIRMED_STATUSES]),
+            gte(ordersTable.confirmedAt, fromDate),
+            lte(ordersTable.confirmedAt, toDate),
+          ),
         )
         .groupBy(productVariantsTable.productId, productsTable.name)
         .orderBy(desc(sum(orderItemsTable.totalCents)))
@@ -134,7 +142,7 @@ export class AnalyticsHandlerService {
       byRevenue: byRevenue.map((r) => ({
         productId: r.productId,
         name: r.name,
-        revenue: Math.round(Number(r.revenue ?? 0)) / 100,
+        revenue: Math.round(Number(r.revenue ?? 0)),
       })),
       byViews: byViews.map((r) => ({
         productId: r.productId,

@@ -285,6 +285,42 @@ export class OrdersHandlerService {
     return this.adminGet({ storeId: data.storeId, orderId: data.orderId });
   }
 
+  async collect(data: { storeId: string; orderId: string }) {
+    const order = await this.db.query.ordersTable.findFirst({
+      where: eq(ordersTable.id, data.orderId),
+    });
+
+    if (!order || order.storeId !== data.storeId) {
+      throw new RpcException({ status: 404, message: "Order not found" });
+    }
+
+    const now = new Date();
+    const updated = await this.db
+      .update(ordersTable)
+      .set({ status: "delivered", updatedAt: now })
+      .where(
+        and(
+          eq(ordersTable.id, data.orderId),
+          eq(ordersTable.storeId, data.storeId),
+          eq(ordersTable.status, "confirmed"),
+        ),
+      )
+      .returning({ id: ordersTable.id });
+
+    if (updated.length === 0) {
+      throw new RpcException({ status: 400, message: "Only confirmed orders can be collected" });
+    }
+
+    void this.audit.log({
+      storeId: data.storeId,
+      action: "order.collected",
+      targetType: "order",
+      targetId: data.orderId,
+    });
+
+    return this.adminGet({ storeId: data.storeId, orderId: data.orderId });
+  }
+
   async listForCustomer(data: { storeId: string; userId: string; limit: number; offset: number }) {
     const where = and(eq(ordersTable.storeId, data.storeId), eq(ordersTable.userId, data.userId));
 
