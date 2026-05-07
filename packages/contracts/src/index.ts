@@ -1,4 +1,5 @@
 import { initContract } from "@ts-rest/core";
+import { analyticsContract } from "./analytics/analytics.contract.js";
 import { cartContract } from "./cart/cart.contract.js";
 import { checkoutContract } from "./checkout/checkout.contract.js";
 import { discountContract } from "./discounts/discounts.contract.js";
@@ -13,9 +14,11 @@ import { collectionContract } from "./collection/collection.contract.js";
 import { shippingContract } from "./shipping/shipping.contract.js";
 import { customersContract } from "./customers/customers.contract.js";
 import { returnsContract } from "./returns/returns.contract.js";
+import { webhooksContract } from "./webhooks/webhooks.contract.js";
 const c = initContract();
 
 export const contract = c.router({
+  analytics: analyticsContract,
   cart: cartContract,
   checkout: checkoutContract,
   customer: customersContract,
@@ -30,9 +33,11 @@ export const contract = c.router({
   image: imagesContract,
   collection: collectionContract,
   shipping: shippingContract,
+  webhooks: webhooksContract,
 });
 
 export {
+  analyticsContract,
   cartContract,
   checkoutContract,
   customersContract,
@@ -47,4 +52,5 @@ export {
   imagesContract,
   collectionContract,
   shippingContract,
+  webhooksContract,
 };

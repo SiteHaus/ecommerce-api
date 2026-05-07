@@ -18,6 +18,7 @@ const mockStore: ResolvedStore = {
   stripePayoutsEnabled: false,
   stripeDetailsSubmitted: false,
   reservationTtlMinutes: 15,
+  fulfillmentType: "shipping" as const,
   notificationEmail: null,
 };
 

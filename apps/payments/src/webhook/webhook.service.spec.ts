@@ -67,6 +67,7 @@ describe("WebhookService", () => {
   let reservations: jest.Mocked<ReservationService>;
   let audit: { log: jest.Mock };
   let notificationsQueue: { add: jest.Mock };
+  let webhooksQueue: { add: jest.Mock };
   let mockConstructEvent: jest.Mock;
   let mockUpdateFn: jest.Mock;
   let mockDeleteFn: jest.Mock;
@@ -98,6 +99,7 @@ describe("WebhookService", () => {
 
     audit = { log: jest.fn().mockResolvedValue(undefined) };
     notificationsQueue = { add: jest.fn().mockResolvedValue(undefined) };
+    webhooksQueue = { add: jest.fn().mockResolvedValue(undefined) };
 
     service = new (WebhookService as any)(
       { getOrThrow: (key: string) => (key === "STRIPE_SECRET_KEY" ? "sk_test" : "whsec_test") },
@@ -105,6 +107,7 @@ describe("WebhookService", () => {
       reservations,
       audit,
       notificationsQueue,
+      webhooksQueue,
     );
 
     jest.spyOn(Logger.prototype, "warn").mockImplementation(() => {});

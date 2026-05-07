@@ -23,6 +23,8 @@ import { CustomersModule } from "./customers/customers.module";
 import { ReturnsModule } from "./returns/returns.module";
 import { ShippingAdminModule } from "./shipping/shipping.module";
 import { OptionsModule } from "./options/options.module";
+import { WebhooksModule } from "./webhooks/webhooks.module";
+import { AnalyticsModule } from "./analytics/analytics.module";
 // TODO SIT-69: import SharedModule
 // TODO SIT-67+: import HTTP controller modules as they are built
 
@@ -105,6 +107,8 @@ import { OptionsModule } from "./options/options.module";
     ReturnsModule,
     ShippingAdminModule,
     OptionsModule,
+    WebhooksModule,
+    AnalyticsModule,
   ],
   providers: [
     // Map RpcException from TCP services → HTTP responses

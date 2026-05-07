@@ -23,6 +23,7 @@ export const inventoryTable = pgTable(
     stock: integer("stock").notNull().default(0),
     reserved: integer("reserved").notNull().default(0), // count of active reservations
     allowBackorder: boolean("allow_backorder").notNull().default(false),
+    lowStockThreshold: integer("low_stock_threshold").notNull().default(5),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow()

@@ -1,3 +1,4 @@
+import { getQueueToken } from "@nestjs/bullmq";
 import { ConfigService } from "@nestjs/config";
 import { RpcException } from "@nestjs/microservices";
 import { AuditService, DB_TOKEN } from "@sitehaus-ecom/shared";
@@ -87,6 +88,7 @@ describe("RefundService", () => {
         { provide: DB_TOKEN, useValue: db },
         { provide: AuditService, useValue: mockAudit },
         { provide: ConfigService, useValue: { getOrThrow: () => "sk_test_dummy" } },
+        { provide: getQueueToken("ecom-webhooks"), useValue: { add: jest.fn() } },
       ],
     }).compile();
 

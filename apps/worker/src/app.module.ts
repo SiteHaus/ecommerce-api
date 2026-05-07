@@ -8,6 +8,8 @@ import { CartExpireProcessor } from "./processors/cart-expire.processor";
 import { NotificationsProcessor } from "./processors/order-confirmed.processor";
 import { PublishScheduledProcessor } from "./processors/publish-scheduled.processor";
 import { ReturnRefundProcessor } from "./processors/return-refund.processor";
+import { WebhookProcessor } from "./processors/webhook.processor";
+import { AnalyticsRetentionProcessor } from "./processors/analytics-retention.processor";
 
 @Module({
   imports: [
@@ -26,19 +28,23 @@ import { ReturnRefundProcessor } from "./processors/return-refund.processor";
       }),
     }),
     BullModule.registerQueue(
+      { name: "ecom-analytics" },
       { name: "ecom-inventory" },
       { name: "ecom-orders" },
       { name: "ecom-notifications" },
       { name: "ecom-catalog" },
       { name: "ecom-returns" },
+      { name: "ecom-webhooks" },
     ),
   ],
   providers: [
+    AnalyticsRetentionProcessor,
     ReservationExpireProcessor,
     CartExpireProcessor,
     NotificationsProcessor,
     PublishScheduledProcessor,
     ReturnRefundProcessor,
+    WebhookProcessor,
   ],
 })
 export class AppModule {}

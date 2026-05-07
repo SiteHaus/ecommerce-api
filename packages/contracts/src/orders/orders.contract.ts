@@ -80,4 +80,16 @@ export const ordersContract = c.router({
     },
     metadata: { openApiTags: ["Orders Admin"] } as const,
   },
+  adminCollectOrder: {
+    method: "POST",
+    path: "/v1/admin/orders/:orderId/collect",
+    pathParams: z.object({ orderId: z.string().uuid() }),
+    body: z.object({}),
+    responses: {
+      200: adminOrderDetailSchema,
+      400: apiError,
+      404: apiError,
+    },
+    metadata: { openApiTags: ["Orders Admin"] } as const,
+  },
 });

@@ -3,8 +3,11 @@ import { RpcException } from "@nestjs/microservices";
 import { AuditService, DB_TOKEN } from "@sitehaus-ecom/shared";
 import { Inject } from "@nestjs/common";
 import {
+  collectionProductsTable,
   Db,
   inventoryTable,
+  orderItemsTable,
+  ordersTable,
   productImagesTable,
   productOptionValuesTable,
   productOptionsTable,
@@ -12,7 +15,7 @@ import {
   productVariantsTable,
   variantOptionValuesTable,
 } from "@sitehaus-ecom/database";
-import { and, eq, sql, inArray } from "@sitehaus-ecom/database";
+import { and, desc, eq, sql, inArray } from "@sitehaus-ecom/database";
 import {
   AdminQueryParams,
   CreateProductDto,
@@ -355,6 +358,7 @@ export class ProductsHandlerService {
           compareAtCents: productVariantsTable.compareAtCents,
           stock: inventoryTable.stock,
           reserved: inventoryTable.reserved,
+          lowStockThreshold: inventoryTable.lowStockThreshold,
         })
         .from(productVariantsTable)
         .leftJoin(
@@ -399,7 +403,11 @@ export class ProductsHandlerService {
         name: v.name,
         priceCents: v.priceCents,
         compareAtCents: v.compareAtCents ?? null,
-        availability: getAvailability({ stock: v.stock ?? 0, reserved: v.reserved ?? 0 }),
+        availability: getAvailability({
+          stock: v.stock ?? 0,
+          reserved: v.reserved ?? 0,
+          lowStockThreshold: v.lowStockThreshold ?? 5,
+        }),
         optionValues: optionValuesForVariants
           .filter((ov) => ov.variantId === v.id)
           .map((ov) => ({
@@ -428,18 +436,84 @@ export class ProductsHandlerService {
   }
 
   async listPublic(data: PublicQueryParams & { storeId: string }) {
-    const where = and(eq(productsTable.storeId, data.storeId), eq(productsTable.status, "active"));
+    const where = and(
+      eq(productsTable.storeId, data.storeId),
+      eq(productsTable.status, "active"),
+      data.q
+        ? sql`to_tsvector('english', ${productsTable.name} || ' ' || COALESCE(${productsTable.description}, '')) @@ plainto_tsquery('english', ${data.q})`
+        : undefined,
+      data.tags && data.tags.length > 0
+        ? sql`${productsTable.tags} @> ARRAY[${sql.join(
+            data.tags.map((t) => sql`${t}`),
+            sql`, `,
+          )}]::text[]`
+        : undefined,
+      data.collectionId
+        ? sql`EXISTS (
+            SELECT 1 FROM collection_products cp
+            WHERE cp.product_id = ${productsTable.id}
+            AND cp.collection_id = ${data.collectionId}
+          )`
+        : undefined,
+      data.minPrice !== undefined
+        ? sql`EXISTS (
+            SELECT 1 FROM product_variants pv
+            WHERE pv.product_id = ${productsTable.id}
+            AND pv.price_cents >= ${data.minPrice}
+          )`
+        : undefined,
+      data.maxPrice !== undefined
+        ? sql`EXISTS (
+            SELECT 1 FROM product_variants pv
+            WHERE pv.product_id = ${productsTable.id}
+            AND pv.price_cents <= ${data.maxPrice}
+          )`
+        : undefined,
+      data.availability
+        ? sql`EXISTS (
+            SELECT 1 FROM product_variants pv
+            LEFT JOIN inventory i ON i.variant_id = pv.id AND i.store_id = ${data.storeId}
+            WHERE pv.product_id = ${productsTable.id}
+            AND ${
+              data.availability === "in_stock"
+                ? sql`(COALESCE(i.stock, 0) - COALESCE(i.reserved, 0)) > COALESCE(i.low_stock_threshold, 5)`
+                : data.availability === "low_stock"
+                  ? sql`(COALESCE(i.stock, 0) - COALESCE(i.reserved, 0)) > 0 AND (COALESCE(i.stock, 0) - COALESCE(i.reserved, 0)) <= COALESCE(i.low_stock_threshold, 5)`
+                  : sql`(COALESCE(i.stock, 0) - COALESCE(i.reserved, 0)) <= 0`
+            }
+          )`
+        : undefined,
+    );
+
+    const orderBy =
+      data.sort === "price_asc"
+        ? sql`(SELECT MIN(pv.price_cents) FROM product_variants pv WHERE pv.product_id = ${productsTable.id}) ASC NULLS LAST`
+        : data.sort === "price_desc"
+          ? sql`(SELECT MAX(pv.price_cents) FROM product_variants pv WHERE pv.product_id = ${productsTable.id}) DESC NULLS LAST`
+          : data.sort === "bestselling"
+            ? sql`(
+                SELECT COUNT(*) FROM order_items oi
+                JOIN product_variants pv ON pv.id = oi.variant_id
+                JOIN orders o ON o.id = oi.order_id
+                WHERE pv.product_id = ${productsTable.id}
+                AND o.status IN ('confirmed', 'shipped', 'delivered')
+              ) DESC NULLS LAST`
+            : desc(productsTable.createdAt);
 
     const [{ count }] = await this.db
       .select({ count: sql<string>`count(*)` })
       .from(productsTable)
       .where(where);
 
-    const products = await this.db.query.productsTable.findMany({
-      where,
-      limit: data.limit,
-      offset: data.offset,
-    });
+    const products = await this.db
+      .select()
+      .from(productsTable)
+      .where(where)
+      .orderBy(orderBy)
+      .limit(data.limit)
+      .offset(data.offset);
+
+    if (products.length === 0) return { items: [], total: Number(count) };
 
     const productIds = products.map((p) => p.id);
 
@@ -456,6 +530,7 @@ export class ProductsHandlerService {
           compareAtCents: productVariantsTable.compareAtCents,
           stock: inventoryTable.stock,
           reserved: inventoryTable.reserved,
+          lowStockThreshold: inventoryTable.lowStockThreshold,
         })
         .from(productVariantsTable)
         .leftJoin(
@@ -503,6 +578,7 @@ export class ProductsHandlerService {
         name: p.name,
         description: p.description ?? null,
         status: p.status,
+        tags: p.tags,
         goesLiveAt: p.goesLiveAt?.toISOString() ?? null,
         primaryImage: primaryImage
           ? { cdnUrl: primaryImage.cdnUrl, altText: primaryImage.altText ?? null }
@@ -514,7 +590,11 @@ export class ProductsHandlerService {
               name: v.name,
               priceCents: v.priceCents,
               compareAtCents: v.compareAtCents ?? null,
-              availability: getAvailability({ stock: v.stock ?? 0, reserved: v.reserved ?? 0 }),
+              availability: getAvailability({
+                stock: v.stock ?? 0,
+                reserved: v.reserved ?? 0,
+                lowStockThreshold: v.lowStockThreshold ?? 5,
+              }),
               optionValues: allVariantOptionValues
                 .filter((ov) => ov.variantId === v.id)
                 .map((ov) => ({
@@ -534,10 +614,12 @@ export class ProductsHandlerService {
 function getAvailability(inventory: {
   stock: number;
   reserved: number;
+  lowStockThreshold?: number;
 }): "in_stock" | "low_stock" | "out_of_stock" {
   const available = inventory.stock - inventory.reserved;
+  const threshold = inventory.lowStockThreshold ?? 5;
   if (available <= 0) return "out_of_stock";
-  if (available <= 5) return "low_stock";
+  if (available <= threshold) return "low_stock";
   return "in_stock";
 }
 

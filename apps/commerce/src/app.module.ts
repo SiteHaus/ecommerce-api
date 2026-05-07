@@ -16,6 +16,8 @@ import { CollectionsHandlerModule } from "./collections/collections-handler.modu
 import { OptionsHandlerModule } from "./options/options-handler.module";
 import { CustomersHandlerModule } from "./customers/customers-handler.module";
 import { ReturnsHandlerModule } from "./returns/returns-handler.module";
+import { WebhooksHandlersModule } from "./webhooks/webhooks-handlers.module";
+import { AnalyticsHandlersModule } from "./analytics/analytics-handlers.module";
 
 @Module({
   imports: [
@@ -46,6 +48,8 @@ import { ReturnsHandlerModule } from "./returns/returns-handler.module";
     OptionsHandlerModule,
     CustomersHandlerModule,
     ReturnsHandlerModule,
+    WebhooksHandlersModule,
+    AnalyticsHandlersModule,
   ],
 })
 export class AppModule {}

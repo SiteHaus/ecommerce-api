@@ -1,5 +1,6 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { BadRequestException, NotFoundException } from "@nestjs/common";
+import { getQueueToken } from "@nestjs/bullmq";
 import { DB_TOKEN, AuditService } from "@sitehaus-ecom/shared";
 import { InventoryHandlerService } from "./inventory-handler.service";
 
@@ -68,6 +69,7 @@ describe("InventoryHandlerService", () => {
         InventoryHandlerService,
         { provide: DB_TOKEN, useValue: mockDb },
         { provide: AuditService, useValue: { log: mockAuditLog } },
+        { provide: getQueueToken("ecom-webhooks"), useValue: { add: jest.fn() } },
       ],
     }).compile();
 

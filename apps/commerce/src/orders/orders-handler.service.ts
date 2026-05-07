@@ -22,6 +22,7 @@ export class OrdersHandlerService {
     @Inject(DB_TOKEN) private readonly db: Db,
     private readonly audit: AuditService,
     @InjectQueue("ecom-notifications") private readonly notificationsQueue: Queue,
+    @InjectQueue("ecom-webhooks") private readonly webhooksQueue: Queue,
   ) {}
 
   async getForCustomer(data: {
@@ -268,10 +269,51 @@ export class OrdersHandlerService {
       { orderId: data.orderId, storeId: data.storeId },
       { attempts: 3, backoff: { type: "exponential", delay: 5000 } },
     );
+    void this.webhooksQueue.add("webhook.dispatch", {
+      storeId: data.storeId,
+      event: "order.shipped",
+      data: { orderId: data.orderId, trackingNumber: data.trackingNumber },
+    });
 
     void this.audit.log({
       storeId: data.storeId,
       action: "order.shipped",
+      targetType: "order",
+      targetId: data.orderId,
+    });
+
+    return this.adminGet({ storeId: data.storeId, orderId: data.orderId });
+  }
+
+  async collect(data: { storeId: string; orderId: string }) {
+    const order = await this.db.query.ordersTable.findFirst({
+      where: eq(ordersTable.id, data.orderId),
+    });
+
+    if (!order || order.storeId !== data.storeId) {
+      throw new RpcException({ status: 404, message: "Order not found" });
+    }
+
+    const now = new Date();
+    const updated = await this.db
+      .update(ordersTable)
+      .set({ status: "delivered", updatedAt: now })
+      .where(
+        and(
+          eq(ordersTable.id, data.orderId),
+          eq(ordersTable.storeId, data.storeId),
+          eq(ordersTable.status, "confirmed"),
+        ),
+      )
+      .returning({ id: ordersTable.id });
+
+    if (updated.length === 0) {
+      throw new RpcException({ status: 400, message: "Only confirmed orders can be collected" });
+    }
+
+    void this.audit.log({
+      storeId: data.storeId,
+      action: "order.collected",
       targetType: "order",
       targetId: data.orderId,
     });

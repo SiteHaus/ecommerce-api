@@ -1,4 +1,5 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
+import { InjectQueue } from "@nestjs/bullmq";
 import { ConfigService } from "@nestjs/config";
 import { RpcException } from "@nestjs/microservices";
 import {
@@ -11,6 +12,7 @@ import {
   type Db,
 } from "@sitehaus-ecom/database";
 import { AuditService, DB_TOKEN } from "@sitehaus-ecom/shared";
+import { Queue } from "bullmq";
 import Stripe from "stripe";
 
 @Injectable()
@@ -22,6 +24,7 @@ export class RefundService {
     private readonly config: ConfigService,
     @Inject(DB_TOKEN) private readonly db: Db,
     private readonly audit: AuditService,
+    @InjectQueue("ecom-webhooks") private readonly webhooksQueue: Queue,
   ) {
     this.stripe = new Stripe(config.getOrThrow("STRIPE_SECRET_KEY"));
   }
@@ -81,6 +84,11 @@ export class RefundService {
       targetType: "order",
       targetId: data.orderId,
       meta: { stripePaymentIntentId: order.stripePaymentIntentId },
+    });
+    void this.webhooksQueue.add("webhook.dispatch", {
+      storeId: data.storeId,
+      event: "order.refunded",
+      data: { orderId: data.orderId },
     });
 
     const [{ itemCount }] = await this.db
