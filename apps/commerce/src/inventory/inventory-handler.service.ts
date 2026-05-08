@@ -59,7 +59,7 @@ export class InventoryHandlerService {
   async adjust(
     variantId: string,
     storeId: string,
-    data: { stock?: number; allowBackorder?: boolean },
+    data: { stock?: number; allowBackorder?: boolean; reason?: string },
   ) {
     const variant = await this.db.query.productVariantsTable.findFirst({
       where: (v) => and(eq(v.id, variantId), eq(v.storeId, storeId)),
@@ -101,7 +101,7 @@ export class InventoryHandlerService {
       action: "inventory.adjusted",
       targetType: "variant",
       targetId: variantId,
-      meta: { from: inv.stock, to: updated.stock },
+      meta: { from: inv.stock, to: updated.stock, ...(data.reason && { reason: data.reason }) },
     });
 
     const available = updated.stock - updated.reserved;

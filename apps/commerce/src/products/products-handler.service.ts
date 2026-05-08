@@ -211,6 +211,7 @@ export class ProductsHandlerService {
           sortOrder: productVariantsTable.sortOrder,
           stock: inventoryTable.stock,
           reserved: inventoryTable.reserved,
+          allowBackorder: inventoryTable.allowBackorder,
         })
         .from(productVariantsTable)
         .leftJoin(
@@ -300,6 +301,7 @@ export class ProductsHandlerService {
         sortOrder: v.sortOrder,
         stock: v.stock ?? 0,
         reserved: v.reserved ?? 0,
+        allowBackorder: v.allowBackorder ?? false,
         availability: getAvailability({ stock: v.stock ?? 0, reserved: v.reserved ?? 0 }),
         optionValues: optionValuesForVariants
           .filter((ov) => ov.variantId === v.id)
