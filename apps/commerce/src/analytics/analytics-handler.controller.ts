@@ -57,4 +57,11 @@ export class AnalyticsHandlerController {
   abandonedCarts(@Payload() data: { storeId: string; from: string; to: string }) {
     return this.analytics.abandonedCarts(data);
   }
+
+  @MessagePattern("analytics.abandonedCartsList")
+  abandonedCartsList(
+    @Payload() data: { storeId: string; from: string; to: string; limit: number; offset: number },
+  ) {
+    return this.analytics.abandonedCartsList(data);
+  }
 }

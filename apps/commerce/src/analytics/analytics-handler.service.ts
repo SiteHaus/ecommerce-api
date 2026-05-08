@@ -3,12 +3,15 @@ import {
   analyticsEventsTable,
   and,
   avg,
+  cartItemsTable,
+  cartsTable,
   count,
   countDistinct,
   desc,
   eq,
   gte,
   inArray,
+  lt,
   lte,
   orderItemsTable,
   ordersTable,
@@ -220,6 +223,68 @@ export class AnalyticsHandlerService {
       totalCartsWithItems: total,
       abandoned,
       abandonedRate: total === 0 ? 0 : abandoned / total,
+    };
+  }
+
+  async abandonedCartsList(data: {
+    storeId: string;
+    from: string;
+    to: string;
+    limit: number;
+    offset: number;
+  }) {
+    const { storeId, from, to, limit, offset } = data;
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+    const now = new Date();
+
+    const conditions = and(
+      eq(cartsTable.storeId, storeId),
+      gte(cartsTable.createdAt, fromDate),
+      lte(cartsTable.createdAt, toDate),
+      lt(cartsTable.expiresAt, now),
+    );
+
+    const [items, totals] = await Promise.all([
+      this.db
+        .select({
+          cartId: cartsTable.id,
+          itemCount: count(cartItemsTable.id),
+          estimatedValueCents: sum(
+            sql<number>`${productVariantsTable.priceCents} * ${cartItemsTable.quantity}`,
+          ),
+          createdAt: cartsTable.createdAt,
+          lastActivityAt: cartsTable.updatedAt,
+          sessionToken: cartsTable.sessionToken,
+          userId: cartsTable.userId,
+        })
+        .from(cartsTable)
+        .innerJoin(cartItemsTable, eq(cartItemsTable.cartId, cartsTable.id))
+        .innerJoin(productVariantsTable, eq(productVariantsTable.id, cartItemsTable.variantId))
+        .where(conditions)
+        .groupBy(cartsTable.id)
+        .orderBy(desc(cartsTable.updatedAt))
+        .limit(limit)
+        .offset(offset),
+      this.db
+        .select({ total: count(cartsTable.id) })
+        .from(cartsTable)
+        .innerJoin(cartItemsTable, eq(cartItemsTable.cartId, cartsTable.id))
+        .where(conditions)
+        .groupBy(cartsTable.id)
+        .then((rows) => [{ total: rows.length }]),
+    ]);
+
+    return {
+      items: items.map((r) => ({
+        cartId: r.cartId,
+        itemCount: r.itemCount,
+        estimatedValueCents: Math.round(Number(r.estimatedValueCents ?? 0)),
+        createdAt: r.createdAt.toISOString(),
+        lastActivityAt: r.lastActivityAt.toISOString(),
+        isAnonymous: r.userId === null,
+      })),
+      total: totals[0]?.total ?? 0,
     };
   }
 }
