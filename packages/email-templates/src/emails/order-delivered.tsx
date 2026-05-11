@@ -18,6 +18,7 @@ import { Header } from "../components/header";
 import { OrderItemsTable, OrderItem } from "../components/order-items";
 
 interface OrderDeliveredProps {
+  storeName: string;
   name: string;
   orderNumber: string;
   orderDate: string;
@@ -27,12 +28,27 @@ interface OrderDeliveredProps {
   shipping: number;
   tax: number;
   total: number;
-  deliveryAddress: string;
+  currency: string;
+  // Full address breakdown
+  shippingName: string;
+  shippingLine1: string;
+  shippingLine2?: string | null;
+  shippingCity: string;
+  shippingState?: string | null;
+  shippingZip: string;
+  shippingCountry: string;
+  // extras
+  trackingNumber?: string | null;
   reviewUrl: string;
   supportEmail: string;
 }
 
+// Helper at top of file
+const formatAmount = (amount: number, currency: string) =>
+  new Intl.NumberFormat("en-US", { style: "currency", currency }).format(amount);
+
 export const OrderDeliveredEmail = ({
+  storeName,
   name,
   orderNumber,
   orderDate,
@@ -42,13 +58,21 @@ export const OrderDeliveredEmail = ({
   shipping,
   tax,
   total,
-  deliveryAddress,
+  shippingLine1,
+  shippingCity,
+  shippingCountry,
+  shippingName,
+  shippingZip,
+  shippingLine2,
+  shippingState,
+  trackingNumber,
+  currency,
   reviewUrl,
   supportEmail,
 }: OrderDeliveredProps) => (
   <Html>
     <Head />
-    <Header />
+    <Header storeName={storeName} />
     <Tailwind>
       <Preview>Your order #{orderNumber} has been delivered!</Preview>
       <Body className="bg-white">
@@ -92,7 +116,7 @@ export const OrderDeliveredEmail = ({
               <Text className="text-[#333] text-sm my-1">Subtotal</Text>
             </Column>
             <Column className="text-right">
-              <Text className="text-[#333] text-sm my-1">${subtotal.toFixed(2)}</Text>
+              <Text className="text-[#333] text-sm my-1">{formatAmount(subtotal, currency)}</Text>
             </Column>
           </Row>
           <Row>
@@ -101,7 +125,7 @@ export const OrderDeliveredEmail = ({
             </Column>
             <Column className="text-right">
               <Text className="text-[#333] text-sm my-1">
-                {shipping === 0 ? "Free" : `$${shipping.toFixed(2)}`}
+                {shipping === 0 ? "Free" : formatAmount(shipping, currency)}
               </Text>
             </Column>
           </Row>
@@ -110,7 +134,7 @@ export const OrderDeliveredEmail = ({
               <Text className="text-[#333] text-sm my-1">Tax</Text>
             </Column>
             <Column className="text-right">
-              <Text className="text-[#333] text-sm my-1">${tax.toFixed(2)}</Text>
+              <Text className="text-[#333] text-sm my-1">{formatAmount(tax, currency)}</Text>
             </Column>
           </Row>
           <Row>
@@ -118,7 +142,9 @@ export const OrderDeliveredEmail = ({
               <Text className="text-[#333] text-sm font-bold my-1">Total</Text>
             </Column>
             <Column className="text-right">
-              <Text className="text-[#333] text-sm font-bold my-1">${total.toFixed(2)}</Text>
+              <Text className="text-[#333] text-sm font-bold my-1">
+                {formatAmount(total, currency)}
+              </Text>
             </Column>
           </Row>
 
@@ -127,7 +153,26 @@ export const OrderDeliveredEmail = ({
           <Text className="text-[#898989] text-[11px] font-bold uppercase tracking-wide mt-4 mb-2">
             Delivered to
           </Text>
-          <Text className="text-[#333] text-sm my-1">{deliveryAddress}</Text>
+          <Text className="text-[#333] text-sm my-0">{shippingName}</Text>
+          <Text className="text-[#333] text-sm my-0">{shippingLine1}</Text>
+          {shippingLine2 && <Text className="text-[#333] text-sm my-0">{shippingLine2}</Text>}
+          <Text className="text-[#333] text-sm my-0">
+            {shippingCity}
+            {shippingState ? `, ${shippingState}` : ""} {shippingZip}
+          </Text>
+          <Text className="text-[#333] text-sm my-0">{shippingCountry}</Text>
+
+          {trackingNumber && (
+            <>
+              <Hr className="border-[#eee] my-4" />
+              <Text className="text-[#898989] text-[11px] font-bold uppercase tracking-wide mt-4 mb-2">
+                Tracking
+              </Text>
+              <Text className="text-[#333] text-sm my-1">
+                Tracking number: <span style={{ fontWeight: "bold" }}>{trackingNumber}</span>
+              </Text>
+            </>
+          )}
 
           <Hr className="border-[#eee] my-4" />
 
@@ -158,6 +203,7 @@ export const OrderDeliveredEmail = ({
 );
 
 OrderDeliveredEmail.PreviewProps = {
+  storeName: "OneHealth Store",
   name: "Jane",
   orderNumber: "10492",
   orderDate: "May 2, 2026",
@@ -182,7 +228,15 @@ OrderDeliveredEmail.PreviewProps = {
   shipping: 0,
   tax: 8.48,
   total: 114.45,
-  deliveryAddress: "123 Main St, Salt Lake City, UT 84101",
+  currency: "USD",
+  shippingName: "Jane Doe",
+  shippingLine1: "123 Main St",
+  shippingLine2: null,
+  shippingCity: "Salt Lake City",
+  shippingState: "UT",
+  shippingZip: "84101",
+  shippingCountry: "US",
+  trackingNumber: "1Z999AA10123456784",
   reviewUrl: "https://sitehaus.dev/review/10492",
   supportEmail: "support@sitehaus.dev",
 } satisfies OrderDeliveredProps;

@@ -9,21 +9,22 @@
     }
   },
   "scripts": {
-    "build": "email build",
-    "dev": "email dev",
-    "export": "email export"
+    "build": "tsup",
+    "dev": "email dev --dir src/emails",
+    "export": "email export --dir src/emails"
   },
   "dependencies": {
-    "react-email": "6.0.5",
+    "react": "19.2.4",
     "react-dom": "19.2.4",
-    "react": "19.2.4"
+    "react-email": "6.0.5"
   },
   "devDependencies": {
-    "@sitehaus-ecom/typescript-config": "workspace:*",
     "@react-email/ui": "6.0.5",
+    "@sitehaus-ecom/typescript-config": "workspace:*",
+    "@types/node": "^22.10.7",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
-    "@types/node": "^22.10.7",
+    "tsup": "^8.5.1",
     "typescript": "^5.7.3"
   }
 }

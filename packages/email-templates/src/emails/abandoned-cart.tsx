@@ -16,6 +16,7 @@ import {
 } from "react-email";
 import { Footer } from "../components/footer";
 import { Header } from "../components/header";
+
 interface CartItem {
   name: string;
   variant?: string;
@@ -25,25 +26,30 @@ interface CartItem {
 }
 
 interface AbandonedCartProps {
+  storeName: string;
   name: string;
   cartItems: CartItem[];
   cartTotal: number;
+  currency: string;
   cartUrl: string;
-  storeName: string;
-  supportEmail: string;
+  supportEmail?: string;
 }
 
+const formatAmount = (amount: number, currency: string) =>
+  new Intl.NumberFormat("en-US", { style: "currency", currency }).format(amount);
+
 export const AbandonedCartEmail = ({
+  storeName,
   name,
   cartItems,
   cartTotal,
+  currency,
   cartUrl,
-  storeName,
-  supportEmail,
+  supportEmail = "support@sitehaus.dev",
 }: AbandonedCartProps) => (
   <Html>
     <Head />
-    <Header />
+    <Header storeName={storeName} />
     <Tailwind>
       <Preview>You left something behind — your cart is waiting.</Preview>
       <Body className="bg-white">
@@ -84,7 +90,7 @@ export const AbandonedCartEmail = ({
               </Column>
               <Column className="text-right">
                 <Text className="text-[#333] text-sm font-bold m-0">
-                  ${(item.price * item.quantity).toFixed(2)}
+                  {formatAmount(item.price * item.quantity, currency)}
                 </Text>
               </Column>
             </Row>
@@ -97,7 +103,9 @@ export const AbandonedCartEmail = ({
               <Text className="text-[#333] text-sm font-bold my-1">Cart total</Text>
             </Column>
             <Column className="text-right">
-              <Text className="text-[#333] text-sm font-bold my-1">${cartTotal.toFixed(2)}</Text>
+              <Text className="text-[#333] text-sm font-bold my-1">
+                {formatAmount(cartTotal, currency)}
+              </Text>
             </Column>
           </Row>
 
@@ -126,8 +134,9 @@ export const AbandonedCartEmail = ({
 );
 
 AbandonedCartEmail.PreviewProps = {
+  storeName: "One Health",
   name: "Jane",
-  storeName: "Sitehaus",
+  currency: "USD",
   cartItems: [
     {
       name: "Wireless Headphones",

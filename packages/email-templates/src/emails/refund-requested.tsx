@@ -15,28 +15,32 @@ import {
 } from "react-email";
 import { Footer } from "../components/footer";
 import { Header } from "../components/header";
+import { OrderItemsTable, OrderItem } from "../components/order-items";
+
 interface ReturnRequestedProps {
+  storeName: string;
   name: string;
   orderNumber: string;
   returnRequestDate: string;
-  returnItems: string[];
+  items: OrderItem[];
   returnReason: string;
   returnPortalUrl: string;
-  supportEmail: string;
+  supportEmail?: string;
 }
 
 export const ReturnRequestedEmail = ({
+  storeName,
   name,
   orderNumber,
   returnRequestDate,
-  returnItems,
+  items,
   returnReason,
   returnPortalUrl,
-  supportEmail,
+  supportEmail = "support@sitehaus.dev",
 }: ReturnRequestedProps) => (
   <Html>
     <Head />
-    <Header />
+    <Header storeName={storeName} />
     <Tailwind>
       <Preview>We've received your return request for order #{orderNumber}.</Preview>
       <Body className="bg-white">
@@ -71,14 +75,7 @@ export const ReturnRequestedEmail = ({
 
           <Hr className="border-[#eee] my-4" />
 
-          <Text className="text-[#898989] text-[11px] font-bold uppercase tracking-wide mt-4 mb-2">
-            Items to return
-          </Text>
-          {returnItems.map((item, i) => (
-            <Text key={i} className="text-[#333] text-sm my-1">
-              {item}
-            </Text>
-          ))}
+          <OrderItemsTable items={items} />
 
           <Hr className="border-[#eee] my-4" />
 
@@ -110,10 +107,19 @@ export const ReturnRequestedEmail = ({
 );
 
 ReturnRequestedEmail.PreviewProps = {
+  storeName: "One Health",
   name: "Jane",
   orderNumber: "10492",
   returnRequestDate: "May 4, 2026",
-  returnItems: ["Wireless Headphones × 1"],
+  items: [
+    {
+      productName: "Wireless Headphones",
+      variantName: "Midnight Black",
+      quantity: 1,
+      unitPriceCents: 8999,
+      totalCents: 8999,
+    },
+  ],
   returnReason: "Item not as described",
   returnPortalUrl: "https://sitehaus.dev/returns/10492",
   supportEmail: "support@sitehaus.dev",
