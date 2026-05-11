@@ -3,21 +3,9 @@ import { Inject, Injectable, Logger } from "@nestjs/common";
 import { Job } from "bullmq";
 import { eq, orderItemsTable, ordersTable, storesTable, type Db } from "@sitehaus-ecom/database";
 import { DB_TOKEN, EmailService } from "@sitehaus-ecom/shared";
-
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
-function formatCents(cents: number, currency: string): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: currency.toUpperCase(),
-  }).format(cents / 100);
-}
+import { render } from "@react-email/render";
+import { OrderConfirmedEmail } from "@sitehaus-ecom/email-templates/emails/order-confirmed";
+import { OrderShippedEmail } from "@sitehaus-ecom/email-templates/emails/order-shipped";
 
 @Injectable()
 @Processor("ecom-notifications")
@@ -71,59 +59,34 @@ export class NotificationsProcessor extends WorkerHost {
       }),
     ]);
 
-    const storeName = escapeHtml(store?.name ?? "Your Store");
     const ref = orderId.slice(0, 8).toUpperCase();
-    const cur = order.currency;
 
-    const itemRows = items
-      .map(
-        (i) =>
-          `<tr>
-            <td style="padding:6px 0">${escapeHtml(i.productName)} — ${escapeHtml(i.variantName)}</td>
-            <td style="padding:6px 0;text-align:right">x${i.quantity}</td>
-            <td style="padding:6px 0;text-align:right">${formatCents(i.totalCents, cur)}</td>
-          </tr>`,
-      )
-      .join("");
-
-    const html = `
-      <div style="font-family:sans-serif;max-width:600px;margin:0 auto;color:#111">
-        <h2 style="margin-bottom:4px">${storeName}</h2>
-        <h3 style="color:#444;font-weight:normal">Order confirmed — #${ref}</h3>
-        <p>Thanks for your order!</p>
-
-        <table style="width:100%;border-collapse:collapse;margin:24px 0">
-          <thead>
-            <tr style="border-bottom:2px solid #eee">
-              <th style="text-align:left;padding:6px 0">Item</th>
-              <th style="text-align:right;padding:6px 0">Qty</th>
-              <th style="text-align:right;padding:6px 0">Price</th>
-            </tr>
-          </thead>
-          <tbody>${itemRows}</tbody>
-          <tfoot style="border-top:2px solid #eee">
-            <tr>
-              <td colspan="2" style="padding:6px 0">Subtotal</td>
-              <td style="text-align:right">${formatCents(order.subtotalCents, cur)}</td>
-            </tr>
-            <tr>
-              <td colspan="2" style="padding:6px 0">Tax</td>
-              <td style="text-align:right">${formatCents(order.taxCents, cur)}</td>
-            </tr>
-            <tr style="font-weight:bold">
-              <td colspan="2" style="padding:6px 0">Total</td>
-              <td style="text-align:right">${formatCents(order.totalCents, cur)}</td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-    `;
+    const html = await render(
+      OrderConfirmedEmail({
+        storeName: store?.name ?? "Your Store",
+        name: order.userId,
+        orderNumber: ref,
+        items: items,
+        orderDate: new Intl.DateTimeFormat("en-US", {
+          month: "long",
+          day: "numeric",
+          year: "numeric",
+        }).format(order.createdAt),
+        products: items.map((i) => `${i.productName} — ${i.variantName} × ${i.quantity}`),
+        subtotal: order.subtotalCents / 100,
+        shipping: order.shippingCents / 100,
+        tax: order.taxCents / 100,
+        total: order.totalCents / 100,
+        deliveryAddress: order.shippingLine1,
+      }),
+    );
 
     const recipients: string[] = [order.email];
     if (store?.notificationEmail) recipients.push(store.notificationEmail);
 
     await this.email.send({
       to: recipients,
+      from: `${store?.name ?? "Your Store"} <orders@sitehaus.io>`,
       subject: `Order confirmed — #${ref}`,
       html,
     });
@@ -150,25 +113,21 @@ export class NotificationsProcessor extends WorkerHost {
       columns: { name: true },
     });
 
-    const storeName = escapeHtml(store?.name ?? "Your Store");
     const ref = orderId.slice(0, 8).toUpperCase();
 
-    const trackingSection = order.trackingNumber
-      ? `<p><strong>Tracking number:</strong> ${escapeHtml(order.trackingNumber)}</p>`
-      : "";
-
-    const html = `
-      <div style="font-family:sans-serif;max-width:600px;margin:0 auto;color:#111">
-        <h2 style="margin-bottom:4px">${storeName}</h2>
-        <h3 style="color:#444;font-weight:normal">Your order has shipped! — #${ref}</h3>
-        <p>Your order is on its way.</p>
-        ${trackingSection}
-      </div>
-    `;
+    const html = await render(
+      OrderShippedEmail({
+        storeName: store?.name ?? "Your Store",
+        name: order.userId,
+        orderNumber: ref,
+        trackingNumber: order.trackingNumber ?? undefined,
+      }),
+    );
 
     await this.email.send({
       to: order.email,
-      subject: "Your order has shipped!",
+      from: `${store?.name ?? "Your Store"} <orders@sitehaus.io>`,
+      subject: `Your order has shipped! — #${ref}`,
       html,
     });
 
