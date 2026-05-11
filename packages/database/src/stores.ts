@@ -2,6 +2,7 @@ import {
   boolean,
   index,
   integer,
+  jsonb,
   pgTable,
   text,
   timestamp,
@@ -25,6 +26,13 @@ export const storesTable = pgTable(
     currency: varchar("currency", { length: 3 }).notNull().default("usd"),
     timezone: text("timezone").notNull().default("UTC"),
     notificationEmail: text("notification_email"),
+    notificationPreferences: jsonb("notification_preferences").$type<{
+      newOrder?: boolean;
+      returnRequested?: boolean;
+      lowStock?: boolean;
+      paymentFailed?: boolean;
+    }>(),
+    abandonedCartEmailsEnabled: boolean("abandoned_cart_emails_enabled").notNull().default(false),
     reservationTtlMinutes: integer("reservation_ttl_minutes").notNull().default(15),
     isActive: boolean("is_active").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

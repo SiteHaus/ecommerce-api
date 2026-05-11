@@ -3,6 +3,7 @@ export * from "./carts.js";
 export * from "./collection-products.js";
 export * from "./collections.js";
 export * from "./inventory.js";
+export * from "./notification-logs.js";
 export * from "./order-items.js";
 export * from "./orders.js";
 export * from "./product-images.js";

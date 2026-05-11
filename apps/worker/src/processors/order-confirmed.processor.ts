@@ -1,10 +1,18 @@
 import { Processor, WorkerHost } from "@nestjs/bullmq";
 import { Inject, Injectable, Logger } from "@nestjs/common";
 import { Job } from "bullmq";
-import { eq, orderItemsTable, ordersTable, storesTable, type Db } from "@sitehaus-ecom/database";
+import {
+  eq,
+  notificationLogsTable,
+  orderItemsTable,
+  ordersTable,
+  storesTable,
+  type Db,
+} from "@sitehaus-ecom/database";
 import { DB_TOKEN, EmailService } from "@sitehaus-ecom/shared";
 import { render } from "@react-email/render";
 import {
+  AbandonedCart,
   OrderConfirmed,
   OrderDelivered,
   OrderShipped,
@@ -39,8 +47,32 @@ export class NotificationsProcessor extends WorkerHost {
         return this.handleReturnRequested(job);
       case "order.return_refunded":
         return this.handleReturnRefunded(job);
+      case "cart.abandoned":
+        return this.handleAbandonedCart(job);
       default:
         this.logger.warn(`Unhandled notification job: ${job.name}`);
+    }
+  }
+
+  private async logNotification(data: {
+    storeId: string;
+    recipientEmail: string;
+    event: string;
+    status: "sent" | "failed";
+    resendMessageId?: string;
+    errorMessage?: string;
+  }): Promise<void> {
+    try {
+      await this.db.insert(notificationLogsTable).values({
+        storeId: data.storeId,
+        recipientEmail: data.recipientEmail,
+        event: data.event,
+        status: data.status,
+        resendMessageId: data.resendMessageId,
+        errorMessage: data.errorMessage,
+      });
+    } catch (error) {
+      this.logger.error(`Failed to log notification: ${error}`);
     }
   }
 
@@ -102,19 +134,63 @@ export class NotificationsProcessor extends WorkerHost {
       }),
     );
 
-    const recipients: string[] = [order.email];
-    if (store?.notificationEmail) recipients.push(store.notificationEmail);
+    // Send to customer
+    try {
+      await this.email.send({
+        to: order.email,
+        from: `${store?.name ?? "Your Store"} <orders@sitehaus.io>`,
+        subject: `Order confirmed — #${ref}`,
+        html,
+      });
 
-    await this.email.send({
-      to: recipients,
-      from: `${store?.name ?? "Your Store"} <orders@sitehaus.io>`,
-      subject: `Order confirmed — #${ref}`,
-      html,
-    });
+      await this.logNotification({
+        storeId,
+        recipientEmail: order.email,
+        event: "order.confirmed",
+        status: "sent",
+      });
 
-    this.logger.log(
-      `Order confirmation email sent for order ${orderId} to ${recipients.join(", ")}`,
-    );
+      this.logger.log(`Order confirmation email sent for order ${orderId} to ${order.email}`);
+    } catch (error) {
+      this.logger.error(`Failed to send order confirmation to ${order.email}: ${error}`);
+      await this.logNotification({
+        storeId,
+        recipientEmail: order.email,
+        event: "order.confirmed",
+        status: "failed",
+        errorMessage: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    // Send merchant notification if enabled
+    if (store?.notificationEmail && store.notificationPreferences?.newOrder !== false) {
+      try {
+        await this.email.send({
+          to: store.notificationEmail,
+          from: `${store.name} Orders <orders@sitehaus.io>`,
+          subject: `New order received — #${ref}`,
+          html,
+        });
+
+        await this.logNotification({
+          storeId,
+          recipientEmail: store.notificationEmail,
+          event: "merchant.new_order",
+          status: "sent",
+        });
+
+        this.logger.log(`Merchant notification sent for order ${orderId}`);
+      } catch (error) {
+        this.logger.error(`Failed to send merchant notification: ${error}`);
+        await this.logNotification({
+          storeId,
+          recipientEmail: store.notificationEmail,
+          event: "merchant.new_order",
+          status: "failed",
+          errorMessage: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
   }
 
   private async handleOrderShipped(job: Job): Promise<void> {
@@ -174,14 +250,32 @@ export class NotificationsProcessor extends WorkerHost {
       }),
     );
 
-    await this.email.send({
-      to: order.email,
-      from: `${store?.name ?? "Your Store"} <orders@sitehaus.io>`,
-      subject: `Your order has shipped! — #${ref}`,
-      html,
-    });
+    try {
+      await this.email.send({
+        to: order.email,
+        from: `${store?.name ?? "Your Store"} <orders@sitehaus.io>`,
+        subject: `Your order has shipped! — #${ref}`,
+        html,
+      });
 
-    this.logger.log(`Order shipped email sent for order ${orderId}`);
+      await this.logNotification({
+        storeId,
+        recipientEmail: order.email,
+        event: "order.shipped",
+        status: "sent",
+      });
+
+      this.logger.log(`Order shipped email sent for order ${orderId}`);
+    } catch (error) {
+      this.logger.error(`Failed to send order shipped email: ${error}`);
+      await this.logNotification({
+        storeId,
+        recipientEmail: order.email,
+        event: "order.shipped",
+        status: "failed",
+        errorMessage: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 
   private async handleOrderDelivered(job: Job): Promise<void> {
@@ -249,17 +343,32 @@ export class NotificationsProcessor extends WorkerHost {
       }),
     );
 
-    const recipients: string[] = [order.email];
-    if (store?.notificationEmail) recipients.push(store.notificationEmail);
+    try {
+      await this.email.send({
+        to: order.email,
+        from: `${store?.name ?? "Your Store"} <orders@sitehaus.io>`,
+        subject: `Your order has been delivered! — #${ref}`,
+        html,
+      });
 
-    await this.email.send({
-      to: recipients,
-      from: `${store?.name ?? "Your Store"} <orders@sitehaus.io>`,
-      subject: `Your order has been delivered! — #${ref}`,
-      html,
-    });
+      await this.logNotification({
+        storeId,
+        recipientEmail: order.email,
+        event: "order.delivered",
+        status: "sent",
+      });
 
-    this.logger.log(`Order delivered email sent for order ${orderId} to ${recipients.join(", ")}`);
+      this.logger.log(`Order delivered email sent for order ${orderId}`);
+    } catch (error) {
+      this.logger.error(`Failed to send order delivered email: ${error}`);
+      await this.logNotification({
+        storeId,
+        recipientEmail: order.email,
+        event: "order.delivered",
+        status: "failed",
+        errorMessage: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 
   private async handleOrderRefunded(job: Job): Promise<void> {
@@ -307,17 +416,32 @@ export class NotificationsProcessor extends WorkerHost {
       }),
     );
 
-    const recipients: string[] = [order.email];
-    if (store?.notificationEmail) recipients.push(store.notificationEmail);
+    try {
+      await this.email.send({
+        to: order.email,
+        from: `${store?.name ?? "Your Store"} <orders@sitehaus.io>`,
+        subject: `Your refund has been processed — #${ref}`,
+        html,
+      });
 
-    await this.email.send({
-      to: recipients,
-      from: `${store?.name ?? "Your Store"} <orders@sitehaus.io>`,
-      subject: `Your refund has been processed — #${ref}`,
-      html,
-    });
+      await this.logNotification({
+        storeId,
+        recipientEmail: order.email,
+        event: "order.refunded",
+        status: "sent",
+      });
 
-    this.logger.log(`Refund email sent for order ${orderId} to ${recipients.join(", ")}`);
+      this.logger.log(`Refund email sent for order ${orderId}`);
+    } catch (error) {
+      this.logger.error(`Failed to send refund email: ${error}`);
+      await this.logNotification({
+        storeId,
+        recipientEmail: order.email,
+        event: "order.refunded",
+        status: "failed",
+        errorMessage: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 
   private async handleReturnRequested(job: Job): Promise<void> {
@@ -372,17 +496,62 @@ export class NotificationsProcessor extends WorkerHost {
       }),
     );
 
-    const recipients: string[] = [order.email];
-    if (store?.notificationEmail) recipients.push(store.notificationEmail);
+    try {
+      await this.email.send({
+        to: order.email,
+        from: `${store?.name ?? "Your Store"} <orders@sitehaus.io>`,
+        subject: `Return request received — #${ref}`,
+        html,
+      });
 
-    await this.email.send({
-      to: recipients,
-      from: `${store?.name ?? "Your Store"} <orders@sitehaus.io>`,
-      subject: `Return request received — #${ref}`,
-      html,
-    });
+      await this.logNotification({
+        storeId,
+        recipientEmail: order.email,
+        event: "order.return_requested",
+        status: "sent",
+      });
 
-    this.logger.log(`Return requested email sent for order ${orderId}`);
+      this.logger.log(`Return requested email sent for order ${orderId}`);
+    } catch (error) {
+      this.logger.error(`Failed to send return requested email: ${error}`);
+      await this.logNotification({
+        storeId,
+        recipientEmail: order.email,
+        event: "order.return_requested",
+        status: "failed",
+        errorMessage: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    // Send merchant notification if enabled
+    if (store?.notificationEmail && store.notificationPreferences?.returnRequested !== false) {
+      try {
+        await this.email.send({
+          to: store.notificationEmail,
+          from: `${store.name} Orders <orders@sitehaus.io>`,
+          subject: `Return requested — #${ref}`,
+          html,
+        });
+
+        await this.logNotification({
+          storeId,
+          recipientEmail: store.notificationEmail,
+          event: "merchant.return_requested",
+          status: "sent",
+        });
+
+        this.logger.log(`Merchant return notification sent for order ${orderId}`);
+      } catch (error) {
+        this.logger.error(`Failed to send merchant return notification: ${error}`);
+        await this.logNotification({
+          storeId,
+          recipientEmail: store.notificationEmail,
+          event: "merchant.return_requested",
+          status: "failed",
+          errorMessage: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
   }
 
   private async handleReturnRefunded(job: Job): Promise<void> {
@@ -435,16 +604,68 @@ export class NotificationsProcessor extends WorkerHost {
       }),
     );
 
-    const recipients: string[] = [order.email];
-    if (store?.notificationEmail) recipients.push(store.notificationEmail);
+    try {
+      await this.email.send({
+        to: order.email,
+        from: `${store?.name ?? "Your Store"} <orders@sitehaus.io>`,
+        subject: `Your return has been refunded — #${ref}`,
+        html,
+      });
 
-    await this.email.send({
-      to: recipients,
-      from: `${store?.name ?? "Your Store"} <orders@sitehaus.io>`,
-      subject: `Your return has been refunded — #${ref}`,
-      html,
+      await this.logNotification({
+        storeId,
+        recipientEmail: order.email,
+        event: "order.return_refunded",
+        status: "sent",
+      });
+
+      this.logger.log(`Return refunded email sent for order ${orderId}`);
+    } catch (error) {
+      this.logger.error(`Failed to send return refunded email: ${error}`);
+      await this.logNotification({
+        storeId,
+        recipientEmail: order.email,
+        event: "order.return_refunded",
+        status: "failed",
+        errorMessage: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  private async handleAbandonedCart(job: Job): Promise<void> {
+    const { cartId, storeId, customerEmail, customerName } = job.data as {
+      cartId: string;
+      storeId: string;
+      customerEmail: string;
+      customerName?: string;
+    };
+
+    // Check if store has abandoned cart emails enabled
+    const store = await this.db.query.storesTable.findFirst({
+      where: eq(storesTable.id, storeId),
+      columns: {
+        name: true,
+        abandonedCartEmailsEnabled: true,
+      },
     });
 
-    this.logger.log(`Return refunded email sent for order ${orderId}`);
+    if (!store?.abandonedCartEmailsEnabled) {
+      this.logger.log(
+        `Abandoned cart emails disabled for store ${storeId}, skipping cart ${cartId}`,
+      );
+      return;
+    }
+
+    // TODO: Fetch cart items and build recovery URL
+    // For now, this is a placeholder until cart recovery is fully implemented
+    this.logger.warn(
+      `Abandoned cart handler called but not fully implemented: cart ${cartId}, store ${storeId}`,
+    );
+
+    // Once implemented, structure:
+    // 1. Fetch cart items from DB
+    // 2. Generate cart recovery token/URL
+    // 3. Render AbandonedCart template
+    // 4. Send email with try/catch + notification logging
   }
 }
