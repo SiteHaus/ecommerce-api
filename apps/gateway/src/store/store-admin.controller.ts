@@ -106,9 +106,11 @@ export class StoreAdminController {
         };
       }
 
-      // If webhook hasn't fired yet (all flags false), sync live from Stripe
+      // Sync live from Stripe whenever onboarding is still incomplete.
+      // The old check required ALL flags to be false, so a partially-onboarded
+      // account (charges enabled, payouts/details not yet) was never re-synced.
       const needsSync =
-        !store.stripeChargesEnabled && !store.stripePayoutsEnabled && !store.stripeDetailsSubmitted;
+        !store.stripeChargesEnabled || !store.stripePayoutsEnabled || !store.stripeDetailsSubmitted;
       const flags = needsSync
         ? await firstValueFrom(
             this.paymentsClient.send<{

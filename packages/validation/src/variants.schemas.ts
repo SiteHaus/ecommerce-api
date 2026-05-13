@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { variantOptionValueRef } from "./options.schemas.js";
 
 export const inventorySchema = z.object({
   id: z.string(),
@@ -21,6 +22,7 @@ export const variantItem = z.object({
   createdAt: z.date(),
   updatedAt: z.date(),
   inventory: inventorySchema,
+  optionValues: z.array(variantOptionValueRef),
 });
 
 export const variantPathParams = z.object({
@@ -43,6 +45,7 @@ export const createVariantSchema = z.object({
   weightGrams: z.number().int().min(0).optional(),
   sortOrder: z.number().int().min(0).optional(),
   isActive: z.boolean().optional(),
+  optionValueIds: z.array(z.string().uuid()).optional(),
 });
 
 export const updateVariantSchema = z
@@ -54,6 +57,7 @@ export const updateVariantSchema = z
     weightGrams: z.number().int().min(0).optional(),
     sortOrder: z.number().int().min(0).optional(),
     isActive: z.boolean().optional(),
+    optionValueIds: z.array(z.string().uuid()).optional(),
   })
   .refine((data) => Object.values(data).some((v) => v !== undefined), {
     message: "At least one field must be provided",

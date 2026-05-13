@@ -12,6 +12,7 @@
     "prepare": "husky"
   },
   "devDependencies": {
+    "@faker-js/faker": "^10.4.0",
     "@types/pg": "^8.18.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",

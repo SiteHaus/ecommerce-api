@@ -3,6 +3,7 @@ import {
   index,
   integer,
   jsonb,
+  pgEnum,
   pgTable,
   text,
   timestamp,
@@ -10,6 +11,8 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
+
+export const fulfillmentTypeEnum = pgEnum("fulfillment_type", ["shipping", "pickup"]);
 
 export const storesTable = pgTable(
   "stores",
@@ -34,6 +37,7 @@ export const storesTable = pgTable(
     }>(),
     abandonedCartEmailsEnabled: boolean("abandoned_cart_emails_enabled").notNull().default(false),
     reservationTtlMinutes: integer("reservation_ttl_minutes").notNull().default(15),
+    fulfillmentType: fulfillmentTypeEnum("fulfillment_type").notNull().default("shipping"),
     isActive: boolean("is_active").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })

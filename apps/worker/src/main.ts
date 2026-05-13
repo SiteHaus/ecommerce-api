@@ -34,6 +34,28 @@ async function bootstrap() {
     },
   );
 
+  const catalogQueue = app.get(getQueueToken("ecom-catalog"));
+  await catalogQueue.add(
+    "catalog.publish-scheduled",
+    {},
+    {
+      repeat: { pattern: "* * * * *" }, // every minute
+      removeOnComplete: 10,
+      removeOnFail: 50,
+    },
+  );
+
+  const analyticsQueue = app.get(getQueueToken("ecom-analytics"));
+  await analyticsQueue.add(
+    "analytics.purgeExpired",
+    {},
+    {
+      repeat: { pattern: "0 2 * * *" }, // daily 2am UTC
+      removeOnComplete: 5,
+      removeOnFail: 10,
+    },
+  );
+
   Logger.log("Repeatable jobs registered", "Bootstrap");
 }
 

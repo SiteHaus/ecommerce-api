@@ -87,4 +87,26 @@ export class OrdersAdminController {
       return { status: 200 as const, body: result };
     });
   }
+
+  @CommercePerm("orders:write")
+  @TsRestHandler(contract.orders.adminCollectOrder)
+  adminCollectOrder(@Req() req: Request) {
+    return tsRestHandler(contract.orders.adminCollectOrder, async ({ params }) => {
+      try {
+        const result = await firstValueFrom(
+          this.commerce.send("orders.collect", {
+            storeId: req.store!.id,
+            orderId: params.orderId,
+          }),
+        );
+        return { status: 200 as const, body: result };
+      } catch (err: any) {
+        const status = err?.error?.status ?? err?.status ?? 500;
+        const message = err?.error?.message ?? err?.message ?? "Internal server error";
+        if (status === 404) return { status: 404 as const, body: { message } };
+        if (status === 400) return { status: 400 as const, body: { message } };
+        throw err;
+      }
+    });
+  }
 }

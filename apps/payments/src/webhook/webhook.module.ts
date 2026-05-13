@@ -6,7 +6,10 @@ import { WebhookHandler } from "./webhook.handler";
 import { WebhookService } from "./webhook.service";
 
 @Module({
-  imports: [AuditModule, BullModule.registerQueue({ name: "ecom-notifications" })],
+  imports: [
+    AuditModule,
+    BullModule.registerQueue({ name: "ecom-notifications" }, { name: "ecom-webhooks" }),
+  ],
   controllers: [WebhookHandler],
   providers: [WebhookService, ReservationService],
 })

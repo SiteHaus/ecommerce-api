@@ -36,6 +36,14 @@ export class CheckoutController {
           shippingState: body.address?.state,
           shippingZip: body.address?.zip,
           shippingCountry: body.address?.country,
+          shippingRateId: body.shippingRateId,
+        }),
+      );
+
+      const automaticDiscount = await firstValueFrom(
+        this.commerce.send("discounts.findApplicableAutomatic", {
+          storeId,
+          subtotalCents: order.subtotalCents,
         }),
       );
 
@@ -45,6 +53,7 @@ export class CheckoutController {
           cartId: order.cartId,
           successUrl: body.successUrl,
           cancelUrl: body.cancelUrl,
+          stripeCouponId: automaticDiscount?.stripeCouponId ?? null,
         }),
       );
 

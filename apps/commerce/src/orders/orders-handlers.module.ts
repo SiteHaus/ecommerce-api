@@ -11,7 +11,7 @@ import { OrdersHandlerService } from "./orders-handler.service";
   imports: [
     InventoryHandlersModule,
     AuditModule,
-    BullModule.registerQueue({ name: "ecom-notifications" }),
+    BullModule.registerQueue({ name: "ecom-notifications" }, { name: "ecom-webhooks" }),
   ],
   controllers: [CheckoutHandler, OrdersHandlerController],
   providers: [CheckoutService, OrdersHandlerService],

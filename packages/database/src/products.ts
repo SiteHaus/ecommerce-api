@@ -1,7 +1,13 @@
-import { index, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { index, pgEnum, pgTable, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 import { storesTable } from "./stores.js";
 
-export const productStatusEnum = pgEnum("product_status", ["draft", "active", "archived"]);
+export const productStatusEnum = pgEnum("product_status", [
+  "draft",
+  "scheduled",
+  "active",
+  "archived",
+]);
+export const productConditionEnum = pgEnum("product_condition", ["new", "refurbished", "used"]);
 
 export const productsTable = pgTable(
   "products",
@@ -14,6 +20,12 @@ export const productsTable = pgTable(
     description: text("description"),
     status: productStatusEnum("status").notNull().default("draft"),
     goesLiveAt: timestamp("goes_live_at", { withTimezone: true }), // null = live immediately
+    tags: text("tags").array().notNull().default([]),
+    // Channel-required attributes (Google Merchant Center, Meta Commerce, TikTok Shop)
+    brand: text("brand"),
+    gtin: varchar("gtin", { length: 14 }), // barcode / UPC / EAN / ISBN
+    mpn: text("mpn"), // manufacturer part number
+    condition: productConditionEnum("condition").notNull().default("new"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()

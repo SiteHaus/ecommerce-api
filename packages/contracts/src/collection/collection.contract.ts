@@ -10,6 +10,8 @@ import {
   collectionListSchema,
   slugIdParams,
   verifyProduct,
+  publicCollectionListSchema,
+  publicCollectionDetail,
 } from "@sitehaus-ecom/validation";
 import { initContract } from "@ts-rest/core";
 
@@ -61,7 +63,7 @@ export const collectionContract = c.router({
   },
   reorder: {
     method: "POST",
-    path: "/v1/admin/collections/:id/products",
+    path: "/v1/admin/collections/:id/reorder",
     body: reorderCollectionSchema,
     pathParams: collectionIdParams,
     responses: {
@@ -72,7 +74,7 @@ export const collectionContract = c.router({
   },
   list: {
     method: "GET",
-    path: "/v1/catalog/collections/",
+    path: "/v1/admin/collections",
     responses: {
       200: collectionListSchema,
       409: apiError,
@@ -81,12 +83,31 @@ export const collectionContract = c.router({
   },
   getCollection: {
     method: "GET",
-    path: "/v1/catalog/collections/:slug",
-    pathParams: slugIdParams,
+    path: "/v1/admin/collections/:id",
+    pathParams: collectionIdParams,
     responses: {
       200: collectionDetail,
       409: apiError,
     },
     metadata: { openApiTags: ["Collections"] } as const,
+  },
+  // Public storefront routes
+  listCatalogCollections: {
+    method: "GET",
+    path: "/v1/catalog/collections",
+    responses: {
+      200: publicCollectionListSchema,
+    },
+    metadata: { openApiTags: ["Catalog"] } as const,
+  },
+  getCatalogCollection: {
+    method: "GET",
+    path: "/v1/catalog/collections/:slug",
+    pathParams: slugIdParams,
+    responses: {
+      200: publicCollectionDetail,
+      404: apiError,
+    },
+    metadata: { openApiTags: ["Catalog"] } as const,
   },
 });

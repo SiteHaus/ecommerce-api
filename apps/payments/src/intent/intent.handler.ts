@@ -8,13 +8,21 @@ export class IntentHandler {
 
   @MessagePattern("stripe.intent.create")
   createIntent(
-    @Payload() payload: { orderId: string; cartId?: string; successUrl: string; cancelUrl: string },
+    @Payload()
+    payload: {
+      orderId: string;
+      cartId?: string;
+      successUrl: string;
+      cancelUrl: string;
+      stripeCouponId?: string | null;
+    },
   ) {
     return this.intent.createIntent(
       payload.orderId,
       payload.successUrl,
       payload.cancelUrl,
       payload.cartId,
+      payload.stripeCouponId ?? null,
     );
   }
 }

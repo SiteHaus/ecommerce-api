@@ -1,0 +1,36 @@
+meta {
+  name: List Discounts
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/v1/admin/discounts
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+params:query {
+  limit: 20
+  offset: 0
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("returns items array", function() {
+    expect(res.body.items).to.be.an("array");
+    expect(res.body.total).to.be.a("number");
+  });
+
+  test("includes created discounts", function() {
+    const ids = res.body.items.map(d => d.id);
+    expect(ids).to.include(bru.getEnvVar("discountId"));
+    expect(ids).to.include(bru.getEnvVar("autoDiscountId"));
+  });
+}

@@ -44,4 +44,9 @@ export class OrdersHandlerController {
   ship(@Payload() data: { storeId: string; orderId: string; trackingNumber: string }) {
     return this.orders.ship(data);
   }
+
+  @MessagePattern("orders.collect")
+  collect(@Payload() data: { storeId: string; orderId: string }) {
+    return this.orders.collect(data);
+  }
 }

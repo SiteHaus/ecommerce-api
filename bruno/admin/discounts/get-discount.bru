@@ -1,0 +1,30 @@
+meta {
+  name: Get Discount
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/v1/admin/discounts/{{discountId}}
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("returns correct discount", function() {
+    expect(res.body.id).to.equal(bru.getEnvVar("discountId"));
+    expect(res.body.type).to.equal("percentage");
+    expect(res.body.value).to.equal(10);
+  });
+
+  test("has codes array", function() {
+    expect(res.body.codes).to.be.an("array");
+  });
+}

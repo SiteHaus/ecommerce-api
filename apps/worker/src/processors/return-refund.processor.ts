@@ -1,0 +1,89 @@
+import { Processor, WorkerHost } from "@nestjs/bullmq";
+import { Inject, Logger } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { Job } from "bullmq";
+import { DB_TOKEN } from "@sitehaus-ecom/shared";
+import {
+  Db,
+  eq,
+  ordersTable,
+  returnItemsTable,
+  returnsTable,
+  storesTable,
+} from "@sitehaus-ecom/database";
+import Stripe from "stripe";
+
+@Processor("ecom-returns")
+export class ReturnRefundProcessor extends WorkerHost {
+  private readonly logger = new Logger(ReturnRefundProcessor.name);
+  private readonly stripe: Stripe;
+
+  constructor(
+    @Inject(DB_TOKEN) private readonly db: Db,
+    private readonly config: ConfigService,
+  ) {
+    super();
+    this.stripe = new Stripe(config.getOrThrow("STRIPE_SECRET_KEY"));
+  }
+
+  async process(job: Job): Promise<void> {
+    if (job.name !== "return.process-refund") return;
+    const { returnId, storeId } = job.data as { returnId: string; storeId: string };
+    await this.processRefund(returnId, storeId);
+  }
+
+  private async processRefund(returnId: string, storeId: string): Promise<void> {
+    const ret = await this.db.query.returnsTable.findFirst({
+      where: eq(returnsTable.id, returnId),
+    });
+
+    if (!ret || ret.status !== "received") {
+      this.logger.warn(`Return ${returnId} not in received status — skipping refund`);
+      return;
+    }
+
+    const order = await this.db.query.ordersTable.findFirst({
+      where: eq(ordersTable.id, ret.orderId),
+      columns: { stripePaymentIntentId: true },
+    });
+
+    if (!order?.stripePaymentIntentId) {
+      this.logger.error(`Order ${ret.orderId} has no Stripe payment intent — cannot refund`);
+      return;
+    }
+
+    const store = await this.db.query.storesTable.findFirst({
+      where: eq(storesTable.id, storeId),
+      columns: { stripeAccountId: true },
+    });
+
+    const items = await this.db
+      .select()
+      .from(returnItemsTable)
+      .where(eq(returnItemsTable.returnId, returnId));
+
+    const totalRefundCents = items.reduce((sum, i) => sum + i.refundCents, 0);
+
+    const refund = await this.stripe.refunds.create(
+      {
+        payment_intent: order.stripePaymentIntentId,
+        amount: totalRefundCents,
+      },
+      store?.stripeAccountId ? { stripeAccount: store.stripeAccountId } : undefined,
+    );
+
+    await this.db
+      .update(returnsTable)
+      .set({
+        status: "refunded",
+        refundedCents: totalRefundCents,
+        stripeRefundId: refund.id,
+        updatedAt: new Date(),
+      })
+      .where(eq(returnsTable.id, returnId));
+
+    this.logger.log(
+      `Refund ${refund.id} issued for return ${returnId} — ${totalRefundCents} cents`,
+    );
+  }
+}

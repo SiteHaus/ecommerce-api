@@ -228,7 +228,9 @@ describe("CollectionsHandlerService", () => {
 
   describe("getCollection", () => {
     it("should return a collection by slug", async () => {
-      mockSelectFn.mockReturnValueOnce(selectChain([collectionRow]));
+      mockSelectFn
+        .mockReturnValueOnce(selectChain([collectionRow]))
+        .mockReturnValueOnce(selectChain([])); // products join
 
       const result = await service.getCollection(STORE_ID, "summer-sale");
 
