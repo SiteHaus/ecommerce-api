@@ -5,7 +5,7 @@ import { DbModule, EmailModule, AuditModule } from "@sitehaus-ecom/shared";
 import { validateWorkerEnv } from "./config/env";
 import { ReservationExpireProcessor } from "./processors/reservation-expire.processor";
 import { CartExpireProcessor } from "./processors/cart-expire.processor";
-import { NotificationsProcessor } from "./processors/order-confirmed.processor";
+import { NotificationsProcessor } from "./processors/notifications.processor";
 import { PublishScheduledProcessor } from "./processors/publish-scheduled.processor";
 import { ReturnRefundProcessor } from "./processors/return-refund.processor";
 import { WebhookProcessor } from "./processors/webhook.processor";

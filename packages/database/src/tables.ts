@@ -10,6 +10,7 @@ export { collectionsTable } from "./collections.js";
 export { discountCodesTable } from "./discount-codes.js";
 export { discountsTable, discountTypeEnum, discountApplicabilityEnum } from "./discounts.js";
 export { inventoryTable } from "./inventory.js";
+export { notificationLogsTable } from "./notification-logs.js";
 export { orderDiscountsTable } from "./order-discounts.js";
 export { orderItemsTable } from "./order-items.js";
 export { ordersTable, orderStatusEnum } from "./orders.js";

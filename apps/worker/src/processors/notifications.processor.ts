@@ -1,0 +1,51 @@
+import { Processor, WorkerHost } from "@nestjs/bullmq";
+import { Inject, Injectable, Logger } from "@nestjs/common";
+import { Job } from "bullmq";
+import { type Db } from "@sitehaus-ecom/database";
+import { DB_TOKEN, EmailService } from "@sitehaus-ecom/shared";
+import type { HandlerContext } from "./handlers/handler.context";
+import { handleOrderConfirmed } from "./handlers/order-confirmed.handler";
+import { handleOrderShipped } from "./handlers/order-shipped.handler";
+import { handleOrderDelivered } from "./handlers/order-delivered.handler";
+import { handleOrderRefunded } from "./handlers/order-refunded.handler";
+import { handleReturnRequested } from "./handlers/return-requested.handler";
+import { handleReturnRefunded } from "./handlers/return-refunded.handler";
+import { handleAbandonedCart } from "./handlers/abandoned-cart.handler";
+
+@Injectable()
+@Processor("ecom-notifications")
+export class NotificationsProcessor extends WorkerHost {
+  private readonly logger = new Logger(NotificationsProcessor.name);
+
+  constructor(
+    @Inject(DB_TOKEN) private readonly db: Db,
+    private readonly email: EmailService,
+  ) {
+    super();
+  }
+
+  private get ctx(): HandlerContext {
+    return { db: this.db, email: this.email, logger: this.logger };
+  }
+
+  async process(job: Job): Promise<void> {
+    switch (job.name) {
+      case "order.confirmed":
+        return handleOrderConfirmed(job, this.ctx);
+      case "order.shipped":
+        return handleOrderShipped(job, this.ctx);
+      case "order.delivered":
+        return handleOrderDelivered(job, this.ctx);
+      case "order.refunded":
+        return handleOrderRefunded(job, this.ctx);
+      case "order.return_requested":
+        return handleReturnRequested(job, this.ctx);
+      case "order.return_refunded":
+        return handleReturnRefunded(job, this.ctx);
+      case "cart.abandoned":
+        return handleAbandonedCart(job, this.ctx);
+      default:
+        this.logger.warn(`Unhandled notification job: ${job.name}`);
+    }
+  }
+}

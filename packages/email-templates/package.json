@@ -1,0 +1,30 @@
+{
+  "name": "@sitehaus-ecom/email-templates",
+  "version": "0.0.1",
+  "private": true,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "email dev --dir src/emails",
+    "export": "email export --dir src/emails"
+  },
+  "dependencies": {
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "react-email": "6.0.5"
+  },
+  "devDependencies": {
+    "@react-email/ui": "6.0.5",
+    "@sitehaus-ecom/typescript-config": "workspace:*",
+    "@types/node": "^22.10.7",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "tsup": "^8.5.1",
+    "typescript": "^5.7.3"
+  }
+}

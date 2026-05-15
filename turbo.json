@@ -21,13 +21,7 @@
     "test": {
       "dependsOn": ["^build"],
       "cache": false,
-      "env": [
-        "NODE_ENV",
-        "DATABASE_URL",
-        "REDIS_URL",
-        "JWT_SECRET",
-        "SESSION_SECRET"
-      ]
+      "env": ["NODE_ENV", "DATABASE_URL", "REDIS_URL", "JWT_SECRET", "SESSION_SECRET"]
     }
   }
 }
