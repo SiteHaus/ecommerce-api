@@ -7,7 +7,7 @@ import { contract } from "@sitehaus-ecom/contracts";
 import type { Request } from "express";
 import { firstValueFrom } from "rxjs";
 
-@Controller("shipping-admin")
+@Controller()
 export class ShippingAdminController {
   constructor(@Inject("COMMERCE_SERVICE") private readonly commerce: ClientProxy) {}
 
