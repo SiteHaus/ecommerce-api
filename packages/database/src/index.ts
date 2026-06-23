@@ -10,6 +10,7 @@ export * from "./collections.js";
 export * from "./discount-codes.js";
 export * from "./discounts.js";
 export * from "./inventory.js";
+export * from "./notification-logs.js";
 export * from "./order-discounts.js";
 export * from "./order-items.js";
 export * from "./orders.js";

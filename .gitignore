@@ -16,6 +16,9 @@ coverage
 # Turbo
 .turbo
 
+# Emails
+.react-email
+
 # Build outputs
 dist
 build

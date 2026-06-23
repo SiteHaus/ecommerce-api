@@ -1,0 +1,10 @@
+{
+  "extends": "@sitehaus-ecom/typescript-config/base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "baseUrl": "./",
+    "jsx": "react-jsx"
+  },
+  "include": ["emails/**/*", "src/components/**/*"],
+  "exclude": ["node_modules", "dist"]
+}
