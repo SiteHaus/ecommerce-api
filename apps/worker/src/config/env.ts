@@ -14,6 +14,9 @@ const envSchema = z.object({
   EMAIL_FROM: z.email(),
   // When set, all outbound emails are redirected to this address (staging/dev only)
   EMAIL_DEV_REDIRECT: z.email().optional(),
+
+  // Stripe — required at boot by ReturnRefundProcessor (refunds)
+  STRIPE_SECRET_KEY: z.string().min(1),
 });
 
 export type Env = z.infer<typeof envSchema>;
