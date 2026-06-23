@@ -18,7 +18,7 @@ export class ShippingZoneHandlerService {
       where: (p) => eq(p.storeId, data.storeId),
     });
 
-    return zones;
+    return { items: zones };
   }
 
   async createZone(data: CreateShippingZoneDto & { storeId: string }) {
