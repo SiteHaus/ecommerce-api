@@ -2,7 +2,7 @@ import { ConflictException, Injectable, NotFoundException } from "@nestjs/common
 import { AuditService, DB_TOKEN } from "@sitehaus-ecom/shared";
 import { Inject } from "@nestjs/common";
 import { Db, shippingZonesTable, shippingRatesTable } from "@sitehaus-ecom/database";
-import { eq } from "@sitehaus-ecom/database";
+import { eq, inArray } from "@sitehaus-ecom/database";
 import { CreateShippingZoneDto, UpdateShippingZoneDto } from "@sitehaus-ecom/validation";
 
 @Injectable()
@@ -18,7 +18,19 @@ export class ShippingZoneHandlerService {
       where: (p) => eq(p.storeId, data.storeId),
     });
 
-    return { items: zones };
+    const zoneIds = zones.map((z) => z.id);
+    const rates = zoneIds.length
+      ? await this.db.query.shippingRatesTable.findMany({
+          where: (p) => inArray(p.zoneId, zoneIds),
+        })
+      : [];
+
+    return {
+      items: zones.map((z) => ({
+        ...z,
+        rates: rates.filter((r) => r.zoneId === z.id),
+      })),
+    };
   }
 
   async createZone(data: CreateShippingZoneDto & { storeId: string }) {
