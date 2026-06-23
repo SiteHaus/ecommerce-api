@@ -33,6 +33,15 @@ async function bootstrap() {
       removeOnFail: 10,
     },
   );
+  await ordersQueue.add(
+    "order.expire",
+    {},
+    {
+      repeat: { pattern: "15 3 * * *" }, // daily 3:15am UTC (offset from cart.expire 3:00)
+      removeOnComplete: 5,
+      removeOnFail: 10,
+    },
+  );
 
   const catalogQueue = app.get(getQueueToken("ecom-catalog"));
   await catalogQueue.add(
