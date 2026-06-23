@@ -28,9 +28,9 @@ export class ShippingAdminController {
   @UseGuards(AdminStoreGuard)
   @TsRestHandler(contract.shipping.createZone)
   async createZone(@Req() req: Request) {
-    return tsRestHandler(contract.shipping.createZone, async () => {
+    return tsRestHandler(contract.shipping.createZone, async ({ body }) => {
       const result = await firstValueFrom(
-        this.commerce.send("shipping.createZone", { storeId: req.store!.id }),
+        this.commerce.send("shipping.createZone", { storeId: req.store!.id, ...body }),
       );
 
       return { status: 200 as const, body: result };
@@ -46,7 +46,7 @@ export class ShippingAdminController {
         this.commerce.send("shipping.updateZone", {
           storeId: req.store!.id,
           zoneId: params.zoneId,
-          data: body,
+          ...body,
         }),
       );
 
@@ -79,7 +79,7 @@ export class ShippingAdminController {
         this.commerce.send("shipping.createRate", {
           storeId: req.store!.id,
           zoneId: params.zoneId,
-          data: body,
+          ...body,
         }),
       );
 
@@ -97,7 +97,7 @@ export class ShippingAdminController {
           storeId: req.store!.id,
           zoneId: params.zoneId,
           rateId: params.rateId,
-          data: body,
+          ...body,
         }),
       );
 
