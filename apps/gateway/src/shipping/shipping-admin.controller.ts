@@ -1,6 +1,7 @@
 import { Controller, UseGuards, Req, Inject } from "@nestjs/common";
 import { AdminStoreGuard } from "../store/admin-store.guard";
 import { CommercePerm } from "../store/commerce-perm.decorator";
+import { Public } from "@sitehaus/client-sdk/nestjs";
 import { ClientProxy } from "@nestjs/microservices";
 import { TsRestHandler, tsRestHandler } from "@ts-rest/nest";
 import { contract } from "@sitehaus-ecom/contracts";
@@ -122,12 +123,13 @@ export class ShippingAdminController {
     });
   }
 
-  @CommercePerm("orders:read")
-  @UseGuards(AdminStoreGuard)
+  @Public()
+  @TsRestHandler(contract.shipping.getRates)
   async getRates(@Req() req: Request) {
     return tsRestHandler(contract.shipping.getRates, async ({ query }) => {
       const result = await firstValueFrom(
         this.commerce.send("shipping.getRates", {
+          storeId: req.store!.id,
           country: query.country,
           subtotal: query.subtotal,
         }),

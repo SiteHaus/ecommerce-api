@@ -69,17 +69,17 @@ export class ShippingRatesHandlerService {
       orderBy: (z) => z.sortOrder,
     });
 
-    if (!zones.length) return [];
+    if (!zones.length) return { items: [] };
 
     let matchedZone = zones.find((z) => z.countries?.includes(data.country));
     if (!matchedZone) matchedZone = zones.find((z) => z.countries === null);
-    if (!matchedZone) return [];
+    if (!matchedZone) return { items: [] };
 
     const rates = await this.db.query.shippingRatesTable.findMany({
       where: (r) => eq(r.zoneId, matchedZone.id),
     });
 
-    return rates
+    const items = rates
       .map((rate) => ({
         id: rate.id,
         name: rate.name,
@@ -88,5 +88,7 @@ export class ShippingRatesHandlerService {
           rate.minOrderCents !== null && data.subtotal >= rate.minOrderCents ? 0 : rate.rateCents,
       }))
       .sort((a, b) => a.rateCents - b.rateCents);
+
+    return { items };
   }
 }
