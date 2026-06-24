@@ -44,20 +44,18 @@ export const ShippingRateListQuery = z.object({
   country: z.string().length(2).toUpperCase(),
   subtotal: z.coerce.number().int().nonnegative(),
 });
-// In your validation package
+// Path params only — storeId is resolved from auth (AdminStoreGuard), never the URL.
 export const shippingZoneParam = z.object({
-  storeId: z.string(),
   zoneId: z.string(),
 });
 
 export const shippingParams = z.object({
-  storeId: z.string(),
   zoneId: z.string(),
   rateId: z.string(),
 });
 export const shippingRateParam = z.object({
-  rateId: z.uuid(),
-  storeId: z.string(),
+  zoneId: z.string(),
+  rateId: z.string(),
 });
 
 export const updateShippingZoneSchema = createShippingZoneSchema.partial();

@@ -60,7 +60,7 @@ export class ShippingRatesHandlerService {
 
     if (!deleted) throw new NotFoundException("Rate not found");
 
-    return { message: "The zone was successfully deleted!" };
+    return { message: "The rate was successfully deleted!" };
   }
 
   async getRates(data: { storeId: string; country: string; subtotal: number }) {

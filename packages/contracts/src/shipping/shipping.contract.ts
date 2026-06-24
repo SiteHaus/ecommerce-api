@@ -91,9 +91,8 @@ export const shippingContract = c.router({
     method: "DELETE",
     path: "/v1/admin/shipping/zones/:zoneId/rates/:rateId",
     pathParams: shippingRateParam,
-    body: createShippingRateSchema,
     responses: {
-      200: ShippingRateItem,
+      200: DeleteResponse,
       404: apiError,
     },
     metadata: { openApiTags: ["Shipping Rate"] } as const,
