@@ -28,6 +28,10 @@ export interface UserContext {
   status: string;
   sessionId: string;
   permissions: string[];
+  // Set by the client-sdk AccessGuard from token introspection. True for
+  // SiteHaus first-party callers (e.g. the commerce admin), who may operate
+  // across tenants via x-client-id. Merchant tokens are false.
+  clientIsFirstParty: boolean;
 }
 
 declare global {

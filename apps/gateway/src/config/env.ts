@@ -17,6 +17,16 @@ const envSchema = z.object({
   // TCP service hosts
   COMMERCE_HOST: z.string().default("localhost"),
   PAYMENTS_HOST: z.string().default("localhost"),
+
+  // CORS allow-list. Static origins (admin UI + known storefronts), comma-
+  // separated. Active store domains are additionally allowed at request time.
+  CORS_ALLOWED_ORIGINS: z.string().default(""),
+  // When false, disallowed origins are logged but still permitted (soak mode);
+  // flip to "true" to enforce rejection after observing real traffic.
+  CORS_ENFORCE: z
+    .string()
+    .default("false")
+    .transform((v) => v === "true"),
 });
 
 export type Env = z.infer<typeof envSchema>;
