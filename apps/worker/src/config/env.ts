@@ -17,6 +17,12 @@ const envSchema = z.object({
 
   // Stripe — required at boot by ReturnRefundProcessor (refunds)
   STRIPE_SECRET_KEY: z.string().min(1),
+
+  // Lighthaus liveness heartbeat (both optional — pusher stays off without them).
+  // URL is the ingest endpoint, e.g. https://lighthaus-api.sitehaus.dev/heartbeat
+  LIGHTHAUS_HEARTBEAT_URL: z.url().optional(),
+  // Must match HEARTBEAT_SECRET configured on lighthaus-api.
+  LIGHTHAUS_HEARTBEAT_SECRET: z.string().min(1).optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

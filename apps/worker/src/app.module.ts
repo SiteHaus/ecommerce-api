@@ -11,6 +11,7 @@ import { PublishScheduledProcessor } from "./processors/publish-scheduled.proces
 import { ReturnRefundProcessor } from "./processors/return-refund.processor";
 import { WebhookProcessor } from "./processors/webhook.processor";
 import { AnalyticsRetentionProcessor } from "./processors/analytics-retention.processor";
+import { HeartbeatService } from "./heartbeat/heartbeat.service";
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { AnalyticsRetentionProcessor } from "./processors/analytics-retention.pr
     ),
   ],
   providers: [
+    HeartbeatService,
     AnalyticsRetentionProcessor,
     ReservationExpireProcessor,
     CartExpireProcessor,
