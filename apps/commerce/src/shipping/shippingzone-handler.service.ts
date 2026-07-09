@@ -2,7 +2,7 @@ import { ConflictException, Injectable, NotFoundException } from "@nestjs/common
 import { AuditService, DB_TOKEN } from "@sitehaus-ecom/shared";
 import { Inject } from "@nestjs/common";
 import { Db, shippingZonesTable, shippingRatesTable } from "@sitehaus-ecom/database";
-import { eq } from "@sitehaus-ecom/database";
+import { and, eq, inArray } from "@sitehaus-ecom/database";
 import { CreateShippingZoneDto, UpdateShippingZoneDto } from "@sitehaus-ecom/validation";
 
 @Injectable()
@@ -18,7 +18,19 @@ export class ShippingZoneHandlerService {
       where: (p) => eq(p.storeId, data.storeId),
     });
 
-    return zones;
+    const zoneIds = zones.map((z) => z.id);
+    const rates = zoneIds.length
+      ? await this.db.query.shippingRatesTable.findMany({
+          where: (p) => inArray(p.zoneId, zoneIds),
+        })
+      : [];
+
+    return {
+      items: zones.map((z) => ({
+        ...z,
+        rates: rates.filter((r) => r.zoneId === z.id),
+      })),
+    };
   }
 
   async createZone(data: CreateShippingZoneDto & { storeId: string }) {
@@ -43,6 +55,8 @@ export class ShippingZoneHandlerService {
   }
 
   async updateZone(data: UpdateShippingZoneDto & { storeId: string; zoneId: string }) {
+    // Scope by storeId: zone ids are UUIDs but must never be usable across
+    // tenants — a merchant token may only touch its own store's zones.
     const [zone] = await this.db
       .update(shippingZonesTable)
       .set({
@@ -50,8 +64,12 @@ export class ShippingZoneHandlerService {
         countries: data.countries,
         sortOrder: data.sortOrder,
       })
-      .where(eq(shippingZonesTable.id, data.zoneId))
+      .where(
+        and(eq(shippingZonesTable.id, data.zoneId), eq(shippingZonesTable.storeId, data.storeId)),
+      )
       .returning();
+
+    if (!zone) throw new NotFoundException("Zone not found");
 
     const rates = await this.db.query.shippingRatesTable.findMany({
       where: (p) => eq(p.zoneId, zone.id),
@@ -63,10 +81,12 @@ export class ShippingZoneHandlerService {
     };
   }
 
-  async deleteZone(data: { zoneId: string }) {
+  async deleteZone(data: { storeId: string; zoneId: string }) {
     const [deleted] = await this.db
       .delete(shippingZonesTable)
-      .where(eq(shippingZonesTable.id, data.zoneId))
+      .where(
+        and(eq(shippingZonesTable.id, data.zoneId), eq(shippingZonesTable.storeId, data.storeId)),
+      )
       .returning();
 
     if (!deleted) throw new NotFoundException("Zone not found");

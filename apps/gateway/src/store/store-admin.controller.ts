@@ -1,4 +1,4 @@
-import { Controller, Inject, Req, UseGuards } from "@nestjs/common";
+import { Controller, ForbiddenException, Inject, Req, UseGuards } from "@nestjs/common";
 import { ClientProxy } from "@nestjs/microservices";
 import { AdminStoreGuard } from "./admin-store.guard";
 import { contract } from "@sitehaus-ecom/contracts";
@@ -15,12 +15,20 @@ export class StoreAdminController {
   ) {}
 
   @TsRestHandler(contract.store.getAccessible)
-  async getAccessible() {
+  async getAccessible(@Req() req: Request) {
     return tsRestHandler(contract.store.getAccessible, async ({ query }) => {
-      const clientIds = query.clientIds
+      const requested = query.clientIds
         .split(",")
         .map((id) => id.trim())
         .filter(Boolean);
+
+      // Only first-party operators may resolve stores for arbitrary clientIds.
+      // Merchant tokens are scoped to their own client so they cannot enumerate
+      // other tenants' stores by supplying foreign clientIds.
+      const clientIds = req.user!.clientIsFirstParty
+        ? requested
+        : requested.filter((id) => id === req.user!.clientId);
+
       const stores = await this.storeService.findByClientIds(clientIds);
       return { status: 200 as const, body: { stores } };
     });
@@ -37,8 +45,21 @@ export class StoreAdminController {
   @TsRestHandler(contract.store.createStore)
   async create(@Req() req: Request) {
     return tsRestHandler(contract.store.createStore, async ({ body }) => {
+      const requestedClientId = req.headers["x-client-id"] as string | undefined;
+
+      // Mirror AdminStoreGuard's binding rule: a merchant token may only create
+      // a store for its own client. Only first-party operators may pass a
+      // foreign x-client-id to provision on a merchant's behalf.
+      if (
+        requestedClientId &&
+        requestedClientId !== req.user!.clientId &&
+        !req.user!.clientIsFirstParty
+      ) {
+        throw new ForbiddenException("You do not have access to this store");
+      }
+
+      const clientId = requestedClientId ?? req.user!.clientId;
       try {
-        const clientId = (req.headers["x-client-id"] as string | undefined) ?? req.user!.clientId;
         const store = await this.storeService.create(clientId, body);
         return { status: 201 as const, body: store };
       } catch (err: any) {

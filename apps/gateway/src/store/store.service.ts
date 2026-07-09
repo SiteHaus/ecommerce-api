@@ -66,6 +66,22 @@ export class StoreService {
     return rows;
   }
 
+  /**
+   * CORS support: true when `origin`'s host matches an active store domain.
+   * Backed by the Redis-cached `findByDomain`, so the allow-list tracks live
+   * store domains without a stale startup snapshot.
+   */
+  async isActiveStoreOrigin(origin: string): Promise<boolean> {
+    let host: string;
+    try {
+      host = new URL(origin).host;
+    } catch {
+      return false;
+    }
+    const store = await this.findByDomain(host);
+    return store !== null;
+  }
+
   async findByClientId(clientId: string): Promise<ResolvedStore | null> {
     const [row] = await this.db
       .select()

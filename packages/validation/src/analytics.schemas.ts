@@ -70,3 +70,24 @@ export const abandonedCartsSchema = z.object({
   abandoned: z.number(),
   abandonedRate: z.number(),
 });
+
+export const abandonedCartRowSchema = z.object({
+  cartId: z.string().uuid(),
+  itemCount: z.number().int(),
+  estimatedValueCents: z.number().int(),
+  createdAt: z.string(),
+  lastActivityAt: z.string(),
+  isAnonymous: z.boolean(),
+});
+
+export const abandonedCartsListSchema = z.object({
+  items: z.array(abandonedCartRowSchema),
+  total: z.number().int(),
+});
+
+export const abandonedCartsListQuerySchema = analyticsDateRangeSchema.extend({
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  offset: z.coerce.number().int().min(0).default(0),
+});
+
+export type AbandonedCartRow = z.infer<typeof abandonedCartRowSchema>;

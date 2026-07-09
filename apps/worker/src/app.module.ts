@@ -5,11 +5,13 @@ import { DbModule, EmailModule, AuditModule } from "@sitehaus-ecom/shared";
 import { validateWorkerEnv } from "./config/env";
 import { ReservationExpireProcessor } from "./processors/reservation-expire.processor";
 import { CartExpireProcessor } from "./processors/cart-expire.processor";
+import { OrderExpireProcessor } from "./processors/order-expire.processor";
 import { NotificationsProcessor } from "./processors/notifications.processor";
 import { PublishScheduledProcessor } from "./processors/publish-scheduled.processor";
 import { ReturnRefundProcessor } from "./processors/return-refund.processor";
 import { WebhookProcessor } from "./processors/webhook.processor";
 import { AnalyticsRetentionProcessor } from "./processors/analytics-retention.processor";
+import { HeartbeatService } from "./heartbeat/heartbeat.service";
 
 @Module({
   imports: [
@@ -38,9 +40,11 @@ import { AnalyticsRetentionProcessor } from "./processors/analytics-retention.pr
     ),
   ],
   providers: [
+    HeartbeatService,
     AnalyticsRetentionProcessor,
     ReservationExpireProcessor,
     CartExpireProcessor,
+    OrderExpireProcessor,
     NotificationsProcessor,
     PublishScheduledProcessor,
     ReturnRefundProcessor,

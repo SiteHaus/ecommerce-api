@@ -25,7 +25,7 @@ export class ShippingZoneHandlerController {
   }
 
   @MessagePattern("shipping.deleteZone")
-  deleteZone(@Payload() data: { zoneId: string }) {
+  deleteZone(@Payload() data: { storeId: string; zoneId: string }) {
     return this.shippingZonesService.deleteZone(data);
   }
 }

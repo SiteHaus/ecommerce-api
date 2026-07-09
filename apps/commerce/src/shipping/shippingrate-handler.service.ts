@@ -2,7 +2,7 @@ import { ConflictException, Injectable, NotFoundException } from "@nestjs/common
 import { AuditService, DB_TOKEN } from "@sitehaus-ecom/shared";
 import { Inject } from "@nestjs/common";
 import { Db, shippingZonesTable, shippingRatesTable } from "@sitehaus-ecom/database";
-import { eq } from "@sitehaus-ecom/database";
+import { and, eq } from "@sitehaus-ecom/database";
 import {
   CreateShippingRateDto,
   CreateShippingZoneDto,
@@ -18,7 +18,22 @@ export class ShippingRatesHandlerService {
     private readonly audit: AuditService,
   ) {}
 
+  /**
+   * Rates carry no storeId of their own — ownership flows through the zone.
+   * Every mutation must first prove the zone belongs to the calling store,
+   * otherwise rate ids (which are exposed publicly via getRates) become
+   * cross-tenant handles.
+   */
+  private async assertZoneOwned(zoneId: string, storeId: string) {
+    const zone = await this.db.query.shippingZonesTable.findFirst({
+      where: (z) => and(eq(z.id, zoneId), eq(z.storeId, storeId)),
+    });
+    if (!zone) throw new NotFoundException("Zone not found");
+  }
+
   async createRate(data: CreateShippingRateDto & { storeId: string; zoneId: string }) {
+    await this.assertZoneOwned(data.zoneId, data.storeId);
+
     const [rate] = await this.db
       .insert(shippingRatesTable)
       .values({
@@ -36,6 +51,8 @@ export class ShippingRatesHandlerService {
   async updateRate(
     data: UpdateShippingRateDto & { storeId: string; zoneId: string; rateId: string },
   ) {
+    await this.assertZoneOwned(data.zoneId, data.storeId);
+
     const [rate] = await this.db
       .update(shippingRatesTable)
       .set({
@@ -44,7 +61,9 @@ export class ShippingRatesHandlerService {
         minOrderCents: data.minOrderCents,
         estimatedDays: data.estimatedDays,
       })
-      .where(eq(shippingRatesTable.id, data.rateId))
+      .where(
+        and(eq(shippingRatesTable.id, data.rateId), eq(shippingRatesTable.zoneId, data.zoneId)),
+      )
       .returning();
 
     if (!rate) throw new NotFoundException("Rate not found");
@@ -53,14 +72,18 @@ export class ShippingRatesHandlerService {
   }
 
   async deleteRate(data: { storeId: string; zoneId: string; rateId: string }) {
+    await this.assertZoneOwned(data.zoneId, data.storeId);
+
     const [deleted] = await this.db
       .delete(shippingRatesTable)
-      .where(eq(shippingRatesTable.id, data.rateId))
+      .where(
+        and(eq(shippingRatesTable.id, data.rateId), eq(shippingRatesTable.zoneId, data.zoneId)),
+      )
       .returning();
 
     if (!deleted) throw new NotFoundException("Rate not found");
 
-    return { message: "The zone was successfully deleted!" };
+    return { message: "The rate was successfully deleted!" };
   }
 
   async getRates(data: { storeId: string; country: string; subtotal: number }) {
@@ -69,17 +92,17 @@ export class ShippingRatesHandlerService {
       orderBy: (z) => z.sortOrder,
     });
 
-    if (!zones.length) return [];
+    if (!zones.length) return { items: [] };
 
     let matchedZone = zones.find((z) => z.countries?.includes(data.country));
     if (!matchedZone) matchedZone = zones.find((z) => z.countries === null);
-    if (!matchedZone) return [];
+    if (!matchedZone) return { items: [] };
 
     const rates = await this.db.query.shippingRatesTable.findMany({
       where: (r) => eq(r.zoneId, matchedZone.id),
     });
 
-    return rates
+    const items = rates
       .map((rate) => ({
         id: rate.id,
         name: rate.name,
@@ -88,5 +111,7 @@ export class ShippingRatesHandlerService {
           rate.minOrderCents !== null && data.subtotal >= rate.minOrderCents ? 0 : rate.rateCents,
       }))
       .sort((a, b) => a.rateCents - b.rateCents);
+
+    return { items };
   }
 }

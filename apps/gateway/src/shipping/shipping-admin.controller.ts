@@ -1,13 +1,14 @@
 import { Controller, UseGuards, Req, Inject } from "@nestjs/common";
 import { AdminStoreGuard } from "../store/admin-store.guard";
 import { CommercePerm } from "../store/commerce-perm.decorator";
+import { Public } from "@sitehaus/client-sdk/nestjs";
 import { ClientProxy } from "@nestjs/microservices";
 import { TsRestHandler, tsRestHandler } from "@ts-rest/nest";
 import { contract } from "@sitehaus-ecom/contracts";
 import type { Request } from "express";
 import { firstValueFrom } from "rxjs";
 
-@Controller("shipping-admin")
+@Controller()
 export class ShippingAdminController {
   constructor(@Inject("COMMERCE_SERVICE") private readonly commerce: ClientProxy) {}
 
@@ -28,9 +29,9 @@ export class ShippingAdminController {
   @UseGuards(AdminStoreGuard)
   @TsRestHandler(contract.shipping.createZone)
   async createZone(@Req() req: Request) {
-    return tsRestHandler(contract.shipping.createZone, async () => {
+    return tsRestHandler(contract.shipping.createZone, async ({ body }) => {
       const result = await firstValueFrom(
-        this.commerce.send("shipping.createZone", { storeId: req.store!.id }),
+        this.commerce.send("shipping.createZone", { storeId: req.store!.id, ...body }),
       );
 
       return { status: 200 as const, body: result };
@@ -46,7 +47,7 @@ export class ShippingAdminController {
         this.commerce.send("shipping.updateZone", {
           storeId: req.store!.id,
           zoneId: params.zoneId,
-          data: body,
+          ...body,
         }),
       );
 
@@ -79,7 +80,7 @@ export class ShippingAdminController {
         this.commerce.send("shipping.createRate", {
           storeId: req.store!.id,
           zoneId: params.zoneId,
-          data: body,
+          ...body,
         }),
       );
 
@@ -97,7 +98,7 @@ export class ShippingAdminController {
           storeId: req.store!.id,
           zoneId: params.zoneId,
           rateId: params.rateId,
-          data: body,
+          ...body,
         }),
       );
 
@@ -122,12 +123,13 @@ export class ShippingAdminController {
     });
   }
 
-  @CommercePerm("orders:read")
-  @UseGuards(AdminStoreGuard)
+  @Public()
+  @TsRestHandler(contract.shipping.getRates)
   async getRates(@Req() req: Request) {
     return tsRestHandler(contract.shipping.getRates, async ({ query }) => {
       const result = await firstValueFrom(
         this.commerce.send("shipping.getRates", {
+          storeId: req.store!.id,
           country: query.country,
           subtotal: query.subtotal,
         }),

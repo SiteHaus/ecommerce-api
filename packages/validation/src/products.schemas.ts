@@ -83,6 +83,7 @@ const variantAdmin = z.object({
   availability: z.enum(["in_stock", "low_stock", "out_of_stock"]),
   stock: z.number().int(),
   reserved: z.number().int(),
+  allowBackorder: z.boolean(),
   optionValues: z.array(variantOptionValueRef),
 });
 

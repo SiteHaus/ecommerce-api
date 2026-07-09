@@ -14,8 +14,9 @@ export const updateInventorySchema = z
   .object({
     stock: z.number().int().min(0).optional(),
     allowBackorder: z.boolean().optional(),
+    reason: z.string().max(100).optional(),
   })
-  .refine((data) => Object.values(data).some((v) => v !== undefined), {
+  .refine((data) => data.stock !== undefined || data.allowBackorder !== undefined, {
     message: "At least one field must be provided",
   });
 

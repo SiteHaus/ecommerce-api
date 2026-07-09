@@ -1,4 +1,6 @@
 import {
+  abandonedCartsListQuerySchema,
+  abandonedCartsListSchema,
   abandonedCartsSchema,
   analyticsDateRangeSchema,
   apiError,
@@ -58,6 +60,15 @@ export const analyticsContract = c.router({
     query: analyticsDateRangeSchema,
     responses: {
       200: abandonedCartsSchema,
+    },
+    metadata: { openApiTags: ["Analytics Admin"] } as const,
+  },
+  adminAbandonedCartsList: {
+    method: "GET",
+    path: "/v1/admin/analytics/abandoned-carts/list",
+    query: abandonedCartsListQuerySchema,
+    responses: {
+      200: abandonedCartsListSchema,
     },
     metadata: { openApiTags: ["Analytics Admin"] } as const,
   },

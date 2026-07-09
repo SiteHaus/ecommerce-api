@@ -73,4 +73,21 @@ export class AnalyticsAdminController {
       return { status: 200 as const, body };
     });
   }
+
+  @CommercePerm("analytics:read")
+  @TsRestHandler(contract.analytics.adminAbandonedCartsList)
+  adminAbandonedCartsList(@Req() req: Request) {
+    return tsRestHandler(contract.analytics.adminAbandonedCartsList, async ({ query }) => {
+      const body = await firstValueFrom(
+        this.commerce.send("analytics.abandonedCartsList", {
+          storeId: req.store!.id,
+          from: query.from,
+          to: query.to,
+          limit: query.limit,
+          offset: query.offset,
+        }),
+      );
+      return { status: 200 as const, body };
+    });
+  }
 }
