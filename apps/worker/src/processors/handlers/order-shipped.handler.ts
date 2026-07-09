@@ -64,7 +64,7 @@ export async function handleOrderShipped(job: Job, ctx: HandlerContext): Promise
   try {
     await email.send({
       to: order.email,
-      from: `${store?.name ?? "Your Store"} <orders@notify.sitehaus.dev>`,
+      from: email.orderFrom(store?.name ?? "Your Store"),
       subject: `Your order has shipped! — #${ref}`,
       html,
     });
