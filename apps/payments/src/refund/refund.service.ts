@@ -50,10 +50,17 @@ export class RefundService {
     }
 
     try {
-      await this.stripe.refunds.create(
-        { payment_intent: order.stripePaymentIntentId },
-        { stripeAccount: data.store.stripeAccountId },
-      );
+      // Checkout uses a destination charge (payment_intent_data.transfer_data),
+      // so the PaymentIntent lives on the PLATFORM account, not the connected
+      // account. The refund must therefore be issued on the platform account
+      // (no stripeAccount header) — passing the connected account here makes
+      // Stripe look for the PI where it doesn't exist ("No such payment_intent").
+      // reverse_transfer pulls the transferred funds back from the store's
+      // balance so the platform doesn't eat the refund.
+      await this.stripe.refunds.create({
+        payment_intent: order.stripePaymentIntentId,
+        reverse_transfer: true,
+      });
     } catch (err: any) {
       this.logger.error(`Stripe refund failed for order ${data.orderId}: ${err.message}`);
       throw new RpcException({ status: 502, message: "Stripe refund failed" });
