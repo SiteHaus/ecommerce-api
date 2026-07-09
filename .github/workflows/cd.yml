@@ -55,16 +55,25 @@ jobs:
     name: Deploy to Staging
     needs: build-staging
     runs-on: ubuntu-latest
-    permissions: {}
+    permissions:
+      contents: read
+      packages: read
     steps:
       - uses: appleboy/ssh-action@master
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_ACTOR: ${{ github.actor }}
         with:
           host: ${{ secrets.VULTR_STAGING_IP }}
           username: deploy
           key: ${{ secrets.VULTR_SSH_KEY }}
+          envs: GHCR_TOKEN,GH_ACTOR
           script: |
             set -euo pipefail
             cd /srv/sitehaus-commerce
+            # Log in to GHCR every deploy so image pulls never depend on a hand-set
+            # server login that silently expires (the prior one lapsed 2026-07).
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GH_ACTOR" --password-stdin
             git fetch origin main
             git reset --hard origin/main
             export IMAGE_TAG=staging
@@ -124,16 +133,25 @@ jobs:
     name: Deploy to Production
     needs: build-production
     runs-on: ubuntu-latest
-    permissions: {}
+    permissions:
+      contents: read
+      packages: read
     steps:
       - uses: appleboy/ssh-action@master
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_ACTOR: ${{ github.actor }}
         with:
           host: ${{ secrets.VULTR_IP }}
           username: deploy
           key: ${{ secrets.VULTR_SSH_KEY }}
+          envs: GHCR_TOKEN,GH_ACTOR
           script: |
             set -euo pipefail
             cd /srv/sitehaus-commerce
+            # Log in to GHCR every deploy so image pulls never depend on a hand-set
+            # server login that silently expires (the prior one lapsed 2026-07).
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GH_ACTOR" --password-stdin
             git pull origin main
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml up -d --remove-orphans --force-recreate
