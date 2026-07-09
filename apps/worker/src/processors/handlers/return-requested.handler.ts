@@ -59,7 +59,7 @@ export async function handleReturnRequested(job: Job, ctx: HandlerContext): Prom
   try {
     await email.send({
       to: order.email,
-      from: `${store?.name ?? "Your Store"} <orders@sitehaus.io>`,
+      from: `${store?.name ?? "Your Store"} <orders@notify.sitehaus.dev>`,
       subject: `Return request received — #${ref}`,
       html,
     });
@@ -85,7 +85,7 @@ export async function handleReturnRequested(job: Job, ctx: HandlerContext): Prom
     try {
       await email.send({
         to: store.notificationEmail,
-        from: `${store.name} Orders <orders@sitehaus.io>`,
+        from: `${store.name} Orders <orders@notify.sitehaus.dev>`,
         subject: `Return requested — #${ref}`,
         html,
       });
