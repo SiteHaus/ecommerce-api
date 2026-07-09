@@ -12,6 +12,12 @@ export class StoreResolutionMiddleware implements NestMiddleware {
     // Note: req.path strips the version prefix in NestJS/Express 5 context, so use originalUrl.
     if (req.originalUrl?.includes("/admin/")) return next();
 
+    // Stripe webhooks carry no store context (Host is the API domain, no slug/Bearer).
+    // The payments handler resolves the store from the event's metadata.storeId, so
+    // skip resolution here — otherwise every webhook 404s with "Store not found"
+    // before the handler runs, and paid orders never move out of `pending`.
+    if (req.originalUrl?.includes("/webhooks/stripe")) return next();
+
     // 1. Explicit store slug header — highest priority, set by storefront clients
     //    via NEXT_PUBLIC_STORE_SLUG. Deterministic: no hostname magic required.
     const slugHeader = req.headers["x-store-slug"] as string | undefined;

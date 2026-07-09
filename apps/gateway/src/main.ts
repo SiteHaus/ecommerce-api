@@ -86,14 +86,25 @@ async function bootstrap() {
 
   app.enableCors({
     origin: async (origin, cb) => {
-      // No Origin header → non-browser / same-origin request; always allow.
-      if (!origin) return cb(null, true);
-      if (staticOrigins.has(origin)) return cb(null, true);
-      if (await storeService.isActiveStoreOrigin(origin)) return cb(null, true);
+      try {
+        // No Origin header → non-browser / same-origin request; always allow.
+        if (!origin) return cb(null, true);
+        if (staticOrigins.has(origin)) return cb(null, true);
+        if (await storeService.isActiveStoreOrigin(origin)) return cb(null, true);
 
-      Logger.warn(`Disallowed CORS origin: ${origin}`, "Cors");
-      if (corsEnforce) return cb(new Error("Not allowed by CORS"));
-      return cb(null, true); // soak mode — permit while observing
+        Logger.warn(`Disallowed CORS origin: ${origin}`, "Cors");
+        if (corsEnforce) return cb(new Error("Not allowed by CORS"));
+        return cb(null, true); // soak mode — permit while observing
+      } catch (err) {
+        // A failing store lookup (e.g. DB error) must NEVER crash the gateway —
+        // an unhandled rejection here previously took the whole process down on
+        // every CORS preflight. Log and fail per the soak/enforce policy instead.
+        Logger.error(
+          `CORS origin check failed for ${origin}: ${err instanceof Error ? err.message : String(err)}`,
+          "Cors",
+        );
+        return corsEnforce ? cb(new Error("Not allowed by CORS")) : cb(null, true);
+      }
     },
     credentials: true,
   });
