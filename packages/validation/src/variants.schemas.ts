@@ -63,6 +63,30 @@ export const updateVariantSchema = z
     message: "At least one field must be provided",
   });
 
+export const syncVariationsSchema = z.object({
+  dimensions: z
+    .array(
+      z.object({
+        name: z.string().trim().min(1),
+        values: z.array(z.string().trim().min(1)).min(1),
+      }),
+    )
+    .max(3),
+  rows: z
+    .array(
+      z.object({
+        values: z.array(z.string().trim().min(1)),
+        priceCents: z.number().int().min(0),
+        stock: z.number().int().min(0),
+        sku: z.string().trim().min(1).nullable().optional(),
+        isActive: z.boolean().optional(),
+        compareAtCents: z.number().int().min(0).nullable().optional(),
+      }),
+    )
+    .max(200),
+});
+
 export type CreateVariantDto = z.infer<typeof createVariantSchema>;
 export type UpdateVariantDto = z.infer<typeof updateVariantSchema>;
 export type VariantItem = z.infer<typeof variantItem>;
+export type SyncVariationsDto = z.infer<typeof syncVariationsSchema>;
