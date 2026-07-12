@@ -161,6 +161,12 @@ export class VariationsSyncService {
           .limit(1);
         if (active.length) {
           const v = existingVariants.find((e) => e.id === id)!;
+          // Can't hard-delete a variant with active orders — deactivate it so it's
+          // hidden from the storefront while preserved for order history.
+          await tx
+            .update(productVariantsTable)
+            .set({ isActive: false, updatedAt: new Date() })
+            .where(eq(productVariantsTable.id, id));
           blocked.push({ variantId: id, name: v.name });
           continue;
         }
