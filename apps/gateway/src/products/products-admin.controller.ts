@@ -76,6 +76,34 @@ export class ProductsController {
     });
   }
 
+  @CommercePerm("products:write")
+  @UseGuards(AdminStoreGuard)
+  @TsRestHandler(contract.variant.syncVariations)
+  syncVariations(@Req() req: Request) {
+    return tsRestHandler(contract.variant.syncVariations, async ({ params, body }) => {
+      const sync = await firstValueFrom(
+        this.commerce.send("catalog.variations.sync", {
+          productId: params.productId,
+          storeId: req.store!.id,
+          ...body,
+        }),
+      );
+      const product = await firstValueFrom(
+        this.commerce.send("catalog.products.get", {
+          id: params.productId,
+          storeId: req.store!.id,
+        }),
+      );
+      return {
+        status: 200 as const,
+        body: {
+          product,
+          blocked: (sync as { blocked: Array<{ variantId: string; name: string }> }).blocked,
+        },
+      };
+    });
+  }
+
   @Public()
   @TsRestHandler(contract.product.listPublic)
   listPublic(@Req() req: Request) {
