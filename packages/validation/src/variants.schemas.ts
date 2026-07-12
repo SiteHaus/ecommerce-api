@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { variantOptionValueRef } from "./options.schemas.js";
+import { productDetail } from "./products.schemas.js";
 
 export const inventorySchema = z.object({
   id: z.string(),
@@ -86,7 +87,14 @@ export const syncVariationsSchema = z.object({
     .max(200),
 });
 
+// Reuse the same product-detail schema that contract.product.getProduct returns as its 200 body.
+export const syncVariationsResultSchema = z.object({
+  product: productDetail,
+  blocked: z.array(z.object({ variantId: z.string().uuid(), name: z.string() })),
+});
+
 export type CreateVariantDto = z.infer<typeof createVariantSchema>;
 export type UpdateVariantDto = z.infer<typeof updateVariantSchema>;
 export type VariantItem = z.infer<typeof variantItem>;
 export type SyncVariationsDto = z.infer<typeof syncVariationsSchema>;
+export type SyncVariationsResult = z.infer<typeof syncVariationsResultSchema>;
