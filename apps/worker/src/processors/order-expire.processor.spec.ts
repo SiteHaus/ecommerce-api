@@ -29,13 +29,13 @@ describe("OrderExpireProcessor", () => {
     expect(db.execute).toHaveBeenCalledTimes(1);
   });
 
-  it("logs when abandoned orders are cancelled", async () => {
+  it("logs when stale checkouts are marked abandoned", async () => {
     db.execute.mockResolvedValue({ rowCount: 3 });
     await processor.process({ name: "order.expire", data: {} } as any);
-    expect(logSpy).toHaveBeenCalledWith("Cancelled 3 abandoned orders");
+    expect(logSpy).toHaveBeenCalledWith("Marked 3 stale checkouts as abandoned");
   });
 
-  it("does not log when nothing is cancelled", async () => {
+  it("does not log when nothing is expired", async () => {
     db.execute.mockResolvedValue({ rowCount: 0 });
     await processor.process({ name: "order.expire", data: {} } as any);
     expect(logSpy).not.toHaveBeenCalled();

@@ -19,6 +19,7 @@ export const orderDetailSchema = z.object({
     "failed",
     "refunded",
     "cancelled",
+    "abandoned",
   ]),
   email: z.string().email(),
   createdAt: z.string(),
@@ -67,6 +68,7 @@ const orderStatusEnum = z.enum([
   "failed",
   "refunded",
   "cancelled",
+  "abandoned",
 ]);
 
 export const adminOrderSummarySchema = z.object({

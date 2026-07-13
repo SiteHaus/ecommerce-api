@@ -19,6 +19,10 @@ export const orderStatusEnum = pgEnum("order_status", [
   "failed",
   "refunded",
   "cancelled",
+  // Checkout that expired without payment (auto-cleaned from `pending` after
+  // 72h). Never a paid order — kept distinct from `cancelled`, which is
+  // reserved for a real, paid order that gets explicitly cancelled.
+  "abandoned",
 ]);
 
 export const ordersTable = pgTable(

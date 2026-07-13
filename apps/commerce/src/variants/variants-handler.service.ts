@@ -168,7 +168,7 @@ export class VariantsHandlerService {
       .where(
         and(
           eq(orderItemsTable.variantId, data.id),
-          notInArray(ordersTable.status, ["cancelled", "refunded", "failed"]),
+          notInArray(ordersTable.status, ["cancelled", "abandoned", "refunded", "failed"]),
         ),
       )
       .limit(1);
