@@ -5,7 +5,10 @@ import { RefundHandler } from "./refund.handler";
 import { RefundService } from "./refund.service";
 
 @Module({
-  imports: [AuditModule, BullModule.registerQueue({ name: "ecom-webhooks" })],
+  imports: [
+    AuditModule,
+    BullModule.registerQueue({ name: "ecom-notifications" }, { name: "ecom-webhooks" }),
+  ],
   controllers: [RefundHandler],
   providers: [RefundService],
 })

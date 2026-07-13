@@ -24,6 +24,7 @@ export class RefundService {
     private readonly config: ConfigService,
     @Inject(DB_TOKEN) private readonly db: Db,
     private readonly audit: AuditService,
+    @InjectQueue("ecom-notifications") private readonly notificationsQueue: Queue,
     @InjectQueue("ecom-webhooks") private readonly webhooksQueue: Queue,
   ) {
     this.stripe = new Stripe(config.getOrThrow("STRIPE_SECRET_KEY"));
@@ -92,6 +93,15 @@ export class RefundService {
       targetId: data.orderId,
       meta: { stripePaymentIntentId: order.stripePaymentIntentId },
     });
+    void this.notificationsQueue.add(
+      "order.refunded",
+      { orderId: data.orderId, storeId: data.storeId },
+      {
+        attempts: 3,
+        backoff: { type: "exponential", delay: 5000 },
+        jobId: `order.refunded:${data.orderId}`,
+      },
+    );
     void this.webhooksQueue.add("webhook.dispatch", {
       storeId: data.storeId,
       event: "order.refunded",

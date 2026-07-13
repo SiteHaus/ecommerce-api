@@ -126,7 +126,13 @@ export class WebhookService {
     void this.notificationsQueue.add(
       "order.confirmed",
       { orderId, storeId: order.storeId },
-      { attempts: 3, backoff: { type: "exponential", delay: 5000 } },
+      // jobId dedupes duplicate Stripe webhook deliveries so the customer
+      // can't receive two confirmation emails for one order.
+      {
+        attempts: 3,
+        backoff: { type: "exponential", delay: 5000 },
+        jobId: `order.confirmed:${orderId}`,
+      },
     );
     void this.webhooksQueue.add("webhook.dispatch", {
       storeId: order.storeId,

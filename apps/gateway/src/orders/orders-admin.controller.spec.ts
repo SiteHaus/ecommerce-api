@@ -23,6 +23,7 @@ const mockStore: ResolvedStore = {
   reservationTtlMinutes: 15,
   fulfillmentType: "shipping" as const,
   notificationEmail: null,
+  notificationPreferences: null,
 };
 
 const mockUser = {

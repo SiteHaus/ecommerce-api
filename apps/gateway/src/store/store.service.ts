@@ -125,6 +125,9 @@ export class StoreService {
         ...(dto.currency !== undefined && { currency: dto.currency }),
         ...(dto.timezone !== undefined && { timezone: dto.timezone }),
         ...(dto.notificationEmail !== undefined && { notificationEmail: dto.notificationEmail }),
+        ...(dto.notificationPreferences !== undefined && {
+          notificationPreferences: dto.notificationPreferences,
+        }),
         ...(dto.reservationTtlMinutes !== undefined && {
           reservationTtlMinutes: dto.reservationTtlMinutes,
         }),
@@ -151,6 +154,7 @@ function toContext(row: typeof storesTable.$inferSelect): ResolvedStore {
     domain: row.domain,
     currency: row.currency,
     notificationEmail: row.notificationEmail,
+    notificationPreferences: row.notificationPreferences ?? null,
     stripeAccountId: row.stripeAccountId,
     stripeChargesEnabled: row.stripeChargesEnabled,
     stripePayoutsEnabled: row.stripePayoutsEnabled,

@@ -24,6 +24,8 @@ export class ReturnsHandlerService {
   constructor(
     @Inject(DB_TOKEN) private readonly db: Db,
     private readonly audit: AuditService,
+    @InjectQueue("ecom-notifications") private readonly notificationsQueue: Queue,
+    @InjectQueue("ecom-returns") private readonly returnsQueue: Queue,
   ) {}
 
   // ── Settings ────────────────────────────────────────────────────────────────
@@ -215,6 +217,16 @@ export class ReturnsHandlerService {
       targetId: ret.id,
     });
 
+    void this.notificationsQueue.add(
+      "order.return_requested",
+      { orderId: data.orderId, storeId, returnReason: data.reason },
+      {
+        attempts: 3,
+        backoff: { type: "exponential", delay: 5000 },
+        jobId: `order.return_requested:${ret.id}`,
+      },
+    );
+
     return this.getReturn(storeId, ret.id);
   }
 
@@ -308,6 +320,20 @@ export class ReturnsHandlerService {
       targetType: "return",
       targetId: id,
     });
+
+    // Once the items are physically received, issue the Stripe refund. The
+    // ReturnRefundProcessor sets status → refunded and fires the customer email.
+    // jobId dedupes so a double "mark received" can't refund twice.
+    void this.returnsQueue.add(
+      "return.process-refund",
+      { returnId: id, storeId },
+      {
+        attempts: 3,
+        backoff: { type: "exponential", delay: 5000 },
+        jobId: `return.process-refund:${id}`,
+      },
+    );
+
     return this.getReturn(storeId, id);
   }
 

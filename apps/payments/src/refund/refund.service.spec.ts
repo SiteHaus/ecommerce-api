@@ -71,10 +71,12 @@ describe("RefundService", () => {
   let db: any;
   let mockRefundsCreate: jest.Mock;
   let mockAudit: { log: jest.Mock };
+  let mockNotificationsQueue: { add: jest.Mock };
 
   beforeEach(async () => {
     mockRefundsCreate = jest.fn().mockResolvedValue({ id: "re_test123" });
     mockAudit = { log: jest.fn() };
+    mockNotificationsQueue = { add: jest.fn() };
 
     db = {
       query: { ordersTable: { findFirst: jest.fn() } },
@@ -88,6 +90,7 @@ describe("RefundService", () => {
         { provide: DB_TOKEN, useValue: db },
         { provide: AuditService, useValue: mockAudit },
         { provide: ConfigService, useValue: { getOrThrow: () => "sk_test_dummy" } },
+        { provide: getQueueToken("ecom-notifications"), useValue: mockNotificationsQueue },
         { provide: getQueueToken("ecom-webhooks"), useValue: { add: jest.fn() } },
       ],
     }).compile();
@@ -110,13 +113,31 @@ describe("RefundService", () => {
         store: mockStore,
       });
 
-      expect(mockRefundsCreate).toHaveBeenCalledWith(
-        { payment_intent: STRIPE_PI_ID },
-        { stripeAccount: STRIPE_ACCOUNT_ID },
-      );
+      // Destination charge → PI lives on the platform account, so the refund
+      // is issued there (no stripeAccount header) with reverse_transfer.
+      expect(mockRefundsCreate).toHaveBeenCalledWith({
+        payment_intent: STRIPE_PI_ID,
+        reverse_transfer: true,
+      });
       expect(db.update).toHaveBeenCalled();
       expect(result.status).toBe("refunded");
       expect(result.stripePaymentIntentId).toBe(STRIPE_PI_ID);
+    });
+
+    it("enqueues the order.refunded notification", async () => {
+      db.query.ordersTable.findFirst.mockResolvedValue(mockOrder);
+      db.update.mockReturnValue(updateChain());
+      db.select
+        .mockReturnValueOnce(selectChain([{ itemCount: 1 }]))
+        .mockReturnValueOnce(selectChain(mockItems));
+
+      await service.refund({ storeId: STORE_ID, orderId: ORDER_ID, store: mockStore });
+
+      expect(mockNotificationsQueue.add).toHaveBeenCalledWith(
+        "order.refunded",
+        { orderId: ORDER_ID, storeId: STORE_ID },
+        expect.objectContaining({ jobId: `order.refunded:${ORDER_ID}` }),
+      );
     });
 
     it("returns full admin order shape with items", async () => {
