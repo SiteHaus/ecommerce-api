@@ -46,8 +46,16 @@ export class VariationsSyncService {
       //    leave us diffing against corrupted (truncated, duplicated) keys — e.g. removing
       //    a dimension would collapse every variant to the same key and produce an empty
       //    toDelete, stranding orphaned sellable variants.
+      //
+      //    INACTIVE variants are TOMBSTONES, not part of the combination set: they're rows
+      //    we tried to delete but couldn't (active orders), so we deactivated them instead.
+      //    They must never be matched, updated, reactivated, or collided with — a retired
+      //    S/Red that kept its Size link would otherwise present as key ["S"] and fight the
+      //    live S variant for it. The editor never sends inactive rows, so excluding them
+      //    here is lossless. Ordered so the snapshot (and therefore the diff) is stable.
       const existingVariants = await tx.query.productVariantsTable.findMany({
-        where: (v) => eq(v.productId, data.productId),
+        where: (v) => and(eq(v.productId, data.productId), eq(v.isActive, true)),
+        orderBy: (v, { asc }) => [asc(v.createdAt), asc(v.id)],
       });
       const linkRows = existingVariants.length
         ? await tx
@@ -172,6 +180,13 @@ export class VariationsSyncService {
             .update(productVariantsTable)
             .set({ isActive: false, updatedAt: new Date() })
             .where(eq(productVariantsTable.id, id));
+          // Strip its option links too. A tombstone that keeps (some of) its links would
+          // carry a value-key — and after an option/value cascade that key is TRUNCATED,
+          // so it can collide with a live variant's key. Linkless, it can never collide,
+          // and its name still records the combination for order history.
+          await tx
+            .delete(variantOptionValuesTable)
+            .where(eq(variantOptionValuesTable.variantId, id));
           blocked.push({ variantId: id, name: v.name });
           continue;
         }

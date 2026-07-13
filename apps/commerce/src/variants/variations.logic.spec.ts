@@ -58,9 +58,11 @@ describe("diffVariants", () => {
       expect(d.toUpdate).toEqual([]);
     });
 
-    it("would strand orphaned variants if the snapshot were taken post-cascade", () => {
+    it("cleans up the duplicates a post-cascade snapshot would produce", () => {
       // What the old ordering produced: the Color links were already cascaded away, so
-      // every key truncated to its Size value and duplicates collapsed in the Map.
+      // every key truncated to its Size value and duplicates collapsed in the Map,
+      // stranding v2/v4 forever. The service no longer diffs a corrupted snapshot, but
+      // the diff itself must be duplicate-safe regardless: first wins, losers get deleted.
       const corrupted = [
         { id: "v1", valueKey: keyOf(["S"]) },
         { id: "v2", valueKey: keyOf(["S"]) },
@@ -68,7 +70,55 @@ describe("diffVariants", () => {
         { id: "v4", valueKey: keyOf(["M"]) },
       ];
       const d = diffVariants({ existing: corrupted, rows });
-      expect(d.toDelete).toEqual([]); // nothing cleaned up — v2/v4 survive as duplicates
+      expect(d.toUpdate.map((u) => u.id)).toEqual(["v1", "v3"]); // first-wins
+      expect(d.toDelete.sort()).toEqual(["v2", "v4"]); // losers are reaped, not stranded
+      expect(d.toCreate).toEqual([]);
+    });
+  });
+
+  // N1 — a retired (inactive) variant whose option links were cascaded away can end up
+  // sharing a live variant's value-key. If the Map collapsed them, the dead row would be
+  // invisible to toDelete (its key IS wanted) and could even win the match and be
+  // reactivated by `isActive: row.isActive ?? true`. Duplicates must never be silently
+  // dropped.
+  describe("duplicate existing keys", () => {
+    it("keeps the first, deletes the loser, and never reactivates it", () => {
+      const d = diffVariants({
+        existing: [
+          { id: "live-S", valueKey: keyOf(["S"]) },
+          { id: "retired-S-Red", valueKey: keyOf(["S"]) }, // truncated after the cascade
+        ],
+        rows: [{ values: ["S"], priceCents: 100, stock: 1 }],
+      });
+      expect(d.toUpdate).toEqual([
+        { id: "live-S", row: { values: ["S"], priceCents: 100, stock: 1 } },
+      ]);
+      expect(d.toDelete).toEqual(["retired-S-Red"]);
+      expect(d.toCreate).toEqual([]);
+    });
+
+    it("collapse-to-plain: the live plain row wins its empty key", () => {
+      const d = diffVariants({
+        existing: [
+          { id: "plain", valueKey: keyOf([]) },
+          { id: "retired", valueKey: keyOf([]) }, // lost ALL links
+        ],
+        rows: [{ values: [], priceCents: 500, stock: 9 }],
+      });
+      expect(d.toUpdate.map((u) => u.id)).toEqual(["plain"]);
+      expect(d.toDelete).toEqual(["retired"]);
+    });
+
+    it("reports an unwanted duplicate exactly once in toDelete", () => {
+      const d = diffVariants({
+        existing: [
+          { id: "a", valueKey: keyOf(["X"]) },
+          { id: "b", valueKey: keyOf(["X"]) },
+        ],
+        rows: [{ values: ["Y"], priceCents: 1, stock: 0 }],
+      });
+      expect(d.toDelete.sort()).toEqual(["a", "b"]);
+      expect(d.toCreate.map((c) => c.values)).toEqual([["Y"]]);
     });
   });
 

@@ -26,7 +26,21 @@ export function diffVariants(args: {
   toUpdate: { id: string; row: DesiredRow }[];
   toDelete: string[];
 } {
-  const existingByKey = new Map(args.existing.map((e) => [e.valueKey, e.id]));
+  // Duplicate value-keys should never reach us (the caller snapshots only ACTIVE
+  // variants, and a retired one has its option links stripped) — but if one ever
+  // does, collapsing it into a Map would silently drop the loser and strand a dead
+  // row that nothing ever cleans up. So: FIRST wins (deterministic, given the
+  // caller orders its snapshot), and every loser is routed to toDelete.
+  const existingByKey = new Map<string, string>();
+  const duplicateIds: string[] = [];
+  for (const e of args.existing) {
+    if (existingByKey.has(e.valueKey)) {
+      duplicateIds.push(e.id);
+      continue;
+    }
+    existingByKey.set(e.valueKey, e.id);
+  }
+
   const wantedKeys = new Set(args.rows.map((r) => keyOf(r.values)));
   const toCreate: DesiredRow[] = [];
   const toUpdate: { id: string; row: DesiredRow }[] = [];
@@ -35,6 +49,11 @@ export function diffVariants(args: {
     if (id) toUpdate.push({ id, row });
     else toCreate.push(row);
   }
-  const toDelete = args.existing.filter((e) => !wantedKeys.has(e.valueKey)).map((e) => e.id);
+
+  const unwantedIds = args.existing
+    .filter((e) => !wantedKeys.has(e.valueKey))
+    .map((e) => e.id)
+    .filter((id) => !duplicateIds.includes(id));
+  const toDelete = [...unwantedIds, ...duplicateIds];
   return { toCreate, toUpdate, toDelete };
 }
