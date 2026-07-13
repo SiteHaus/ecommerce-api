@@ -72,7 +72,12 @@ export const syncVariationsSchema = z.object({
         values: z.array(z.string().trim().min(1)).min(1),
       }),
     )
-    .max(3),
+    .max(3)
+    // Options are matched by name on sync, so two dimensions sharing a name would both
+    // resolve to the same product_option row and clobber each other's values.
+    .refine((dims) => new Set(dims.map((d) => d.name.trim().toLowerCase())).size === dims.length, {
+      message: "Each option must have a unique name.",
+    }),
   rows: z
     .array(
       z.object({

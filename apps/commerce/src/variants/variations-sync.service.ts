@@ -41,7 +41,52 @@ export class VariationsSyncService {
     const blocked: { variantId: string; name: string }[] = [];
 
     await this.db.transaction(async (tx) => {
-      // 1. Upsert options (by name, in order); delete options no longer present.
+      // 1. Snapshot the CURRENT variant value-keys BEFORE touching options/values.
+      //    Reconciling options first would cascade away variant_option_values rows and
+      //    leave us diffing against corrupted (truncated, duplicated) keys — e.g. removing
+      //    a dimension would collapse every variant to the same key and produce an empty
+      //    toDelete, stranding orphaned sellable variants.
+      const existingVariants = await tx.query.productVariantsTable.findMany({
+        where: (v) => eq(v.productId, data.productId),
+      });
+      const linkRows = existingVariants.length
+        ? await tx
+            .select({
+              variantId: variantOptionValuesTable.variantId,
+              value: productOptionValuesTable.value,
+              sortOrder: productOptionsTable.sortOrder,
+            })
+            .from(variantOptionValuesTable)
+            .innerJoin(
+              productOptionValuesTable,
+              eq(variantOptionValuesTable.optionValueId, productOptionValuesTable.id),
+            )
+            .innerJoin(
+              productOptionsTable,
+              eq(productOptionValuesTable.optionId, productOptionsTable.id),
+            )
+            .where(
+              inArray(
+                variantOptionValuesTable.variantId,
+                existingVariants.map((v) => v.id),
+              ),
+            )
+        : [];
+      const keyByVariant = new Map<string, string[]>();
+      for (const l of linkRows) {
+        const arr = keyByVariant.get(l.variantId) ?? [];
+        arr[l.sortOrder] = l.value;
+        keyByVariant.set(l.variantId, arr);
+      }
+      const existing = existingVariants.map((v) => ({
+        id: v.id,
+        valueKey: keyOf((keyByVariant.get(v.id) ?? []).filter((x) => x !== undefined)),
+      }));
+
+      // 2. Diff against the pre-mutation snapshot.
+      const { toCreate, toUpdate, toDelete } = diffVariants({ existing, rows: data.rows });
+
+      // 3. Reconcile options/values (create missing, resort, delete stale).
       const existingOptions = await tx.query.productOptionsTable.findMany({
         where: (o) => eq(o.productId, data.productId),
       });
@@ -106,47 +151,7 @@ export class VariationsSyncService {
         }
       }
 
-      // 2. Load existing variants with their value-key.
-      const existingVariants = await tx.query.productVariantsTable.findMany({
-        where: (v) => eq(v.productId, data.productId),
-      });
-      const linkRows = existingVariants.length
-        ? await tx
-            .select({
-              variantId: variantOptionValuesTable.variantId,
-              value: productOptionValuesTable.value,
-              sortOrder: productOptionsTable.sortOrder,
-            })
-            .from(variantOptionValuesTable)
-            .innerJoin(
-              productOptionValuesTable,
-              eq(variantOptionValuesTable.optionValueId, productOptionValuesTable.id),
-            )
-            .innerJoin(
-              productOptionsTable,
-              eq(productOptionValuesTable.optionId, productOptionsTable.id),
-            )
-            .where(
-              inArray(
-                variantOptionValuesTable.variantId,
-                existingVariants.map((v) => v.id),
-              ),
-            )
-        : [];
-      const keyByVariant = new Map<string, string[]>();
-      for (const l of linkRows) {
-        const arr = keyByVariant.get(l.variantId) ?? [];
-        arr[l.sortOrder] = l.value;
-        keyByVariant.set(l.variantId, arr);
-      }
-      const existing = existingVariants.map((v) => ({
-        id: v.id,
-        valueKey: keyOf((keyByVariant.get(v.id) ?? []).filter((x) => x !== undefined)),
-      }));
-
-      const { toCreate, toUpdate, toDelete } = diffVariants({ existing, rows: data.rows });
-
-      // 3. Deletes (guarded by active orders).
+      // 4. Deletes (guarded by active orders).
       for (const id of toDelete) {
         const active = await tx
           .select({ id: orderItemsTable.id })
@@ -173,7 +178,7 @@ export class VariationsSyncService {
         await tx.delete(productVariantsTable).where(eq(productVariantsTable.id, id));
       }
 
-      // 4. Updates.
+      // 5. Updates.
       for (const { id, row } of toUpdate) {
         await tx
           .update(productVariantsTable)
@@ -181,7 +186,10 @@ export class VariationsSyncService {
             name: row.values.length ? row.values.join(" / ") : product.name,
             priceCents: row.priceCents,
             sku: row.sku ?? null,
-            compareAtCents: row.compareAtCents ?? null,
+            // Only touch compare-at when the caller explicitly sends it: the editor grid
+            // doesn't carry the field, so writing `?? null` would wipe every sale price
+            // on the first save.
+            ...(row.compareAtCents !== undefined && { compareAtCents: row.compareAtCents }),
             isActive: row.isActive ?? true,
             updatedAt: new Date(),
           })
@@ -190,9 +198,22 @@ export class VariationsSyncService {
           .update(inventoryTable)
           .set({ stock: row.stock })
           .where(eq(inventoryTable.variantId, id));
+
+        // Re-link option values: a dimension rename keeps value-keys identical (so the
+        // variant survives as an update) but recreates the option/value rows under NEW
+        // ids, which would leave this variant with dangling/zero links.
+        await tx.delete(variantOptionValuesTable).where(eq(variantOptionValuesTable.variantId, id));
+        const optionValueIds = row.values.map(
+          (label, i) => valueIdByDimValue.get(`${i}:${label}`)!,
+        );
+        if (optionValueIds.length) {
+          await tx
+            .insert(variantOptionValuesTable)
+            .values(optionValueIds.map((optionValueId) => ({ variantId: id, optionValueId })));
+        }
       }
 
-      // 5. Creates.
+      // 6. Creates.
       for (const row of toCreate) {
         const [variant] = await tx
           .insert(productVariantsTable)

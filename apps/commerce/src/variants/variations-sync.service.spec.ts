@@ -1,4 +1,5 @@
 import { NotFoundException } from "@nestjs/common";
+import { syncVariationsSchema } from "@sitehaus-ecom/validation";
 import { VariationsSyncService } from "./variations-sync.service";
 
 // The pure diff/generation logic (Task 2) carries the correctness tests. Here we
@@ -28,5 +29,34 @@ describe("VariationsSyncService", () => {
         rows: [{ values: ["XL"], priceCents: 100, stock: 1 }],
       }),
     ).rejects.toBeInstanceOf(NotFoundException);
+  });
+});
+
+describe("syncVariationsSchema", () => {
+  const base = { rows: [] };
+
+  it("accepts distinct dimension names", () => {
+    const r = syncVariationsSchema.safeParse({
+      ...base,
+      dimensions: [
+        { name: "Size", values: ["S"] },
+        { name: "Color", values: ["Red"] },
+      ],
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it("rejects duplicate dimension names (case-insensitive)", () => {
+    // Two options with the same name both resolve to one product_option row on the next
+    // sync, and one's stale-value cleanup deletes the other's values.
+    const r = syncVariationsSchema.safeParse({
+      ...base,
+      dimensions: [
+        { name: "Size", values: ["S"] },
+        { name: "size", values: ["Red"] },
+      ],
+    });
+    expect(r.success).toBe(false);
+    expect(r.error?.issues[0].message).toBe("Each option must have a unique name.");
   });
 });
