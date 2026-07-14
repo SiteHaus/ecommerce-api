@@ -43,7 +43,12 @@ function daysAgo(days: number): Date {
   return new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 }
 
-async function insertOrder(opts: { createdAt: Date; line1: string; city?: string }) {
+async function insertOrder(opts: {
+  createdAt: Date;
+  line1: string | null;
+  line2?: string | null;
+  city?: string;
+}) {
   const [order] = await db
     .insert(ordersTable)
     .values({
@@ -54,7 +59,7 @@ async function insertOrder(opts: { createdAt: Date; line1: string; city?: string
       totalCents: 1000,
       shippingName: "Jamie Buyer",
       shippingLine1: opts.line1,
-      shippingLine2: "Apt 2",
+      shippingLine2: opts.line2 !== undefined ? opts.line2 : "Apt 2",
       shippingCity: opts.city ?? "Provo",
       shippingState: "UT",
       shippingZip: "84601",
@@ -72,6 +77,10 @@ async function readOrder(id: string) {
 
 async function readLine1(id: string) {
   return (await readOrder(id)).shippingLine1;
+}
+
+async function readLine2(id: string) {
+  return (await readOrder(id)).shippingLine2;
 }
 
 describe("AddressRedactionProcessor (real Postgres)", () => {
@@ -103,6 +112,21 @@ describe("AddressRedactionProcessor (real Postgres)", () => {
     await pool?.end();
   });
 
+  it("skips orders whose street is already redacted, so the count stays meaningful", async () => {
+    const alreadyRedacted = await insertOrder({
+      createdAt: daysAgo(200),
+      line1: null,
+      line2: null,
+    });
+    const stillHasStreet = await insertOrder({ createdAt: daysAgo(200), line1: "9 Old Rd" });
+
+    const result = await processor.process({ name: "address.redact", data: {} } as Job);
+
+    expect(result.redacted).toBe(1); // only the one that still had a street
+    expect(await readLine1(stillHasStreet)).toBeNull();
+    expect(await readLine1(alreadyRedacted)).toBeNull(); // unchanged, and not double-counted
+  });
+
   it("redacts only orders past the dispute window", async () => {
     const old = await insertOrder({ createdAt: daysAgo(121), line1: "9 Old Rd" });
     const edge = await insertOrder({ createdAt: daysAgo(119), line1: "8 Edge St" });
@@ -115,13 +139,29 @@ describe("AddressRedactionProcessor (real Postgres)", () => {
     expect(await readLine1(fresh)).toBe("1 New Ave");
   });
 
-  it("leaves city/state/zip alone — they are not the sensitive part", async () => {
+  it("redacts orders where only line2 still holds a street — the predicate is an OR, not an AND", async () => {
+    const line2Only = await insertOrder({
+      createdAt: daysAgo(200),
+      line1: null,
+      line2: "9 Old Rd",
+    });
+
+    await processor.process({ name: "address.redact", data: {} } as Job);
+
+    expect(await readLine1(line2Only)).toBeNull();
+    expect(await readLine2(line2Only)).toBeNull();
+  });
+
+  it("leaves city/state/zip/country alone — they are not the sensitive part", async () => {
     const old = await insertOrder({ createdAt: daysAgo(200), line1: "9 Old Rd", city: "Provo" });
     await processor.process({ name: "address.redact", data: {} } as Job);
 
     const row = await readOrder(old);
     expect(row.shippingLine1).toBeNull();
     expect(row.shippingCity).toBe("Provo");
+    expect(row.shippingState).toBe("UT");
+    expect(row.shippingZip).toBe("84601");
+    expect(row.shippingCountry).toBe("US");
     expect(row.shippingName).not.toBeNull();
   });
 
