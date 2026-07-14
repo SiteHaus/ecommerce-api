@@ -103,7 +103,6 @@ describe("CheckoutController", () => {
         sessionToken: "session-token-abc",
         email: validBody.email,
         shippingName: validBody.address.name,
-        shippingLine1: validBody.address.line1,
         shippingCity: validBody.address.city,
         shippingCountry: validBody.address.country,
       }),
@@ -122,6 +121,15 @@ describe("CheckoutController", () => {
       successUrl: "https://example.com/success",
       cancelUrl: "https://example.com/cancel",
       stripeCouponId: null,
+      shipping: {
+        name: validBody.address.name,
+        line1: validBody.address.line1,
+        line2: undefined,
+        city: validBody.address.city,
+        state: validBody.address.state,
+        zip: validBody.address.zip,
+        country: validBody.address.country,
+      },
     });
   });
 
@@ -148,5 +156,48 @@ describe("CheckoutController", () => {
     );
 
     await request(app.getHttpServer()).post("/v1/checkout/intent").send(validBody).expect(400);
+  });
+
+  it("sends the street to payments and NOT to commerce", async () => {
+    mockCommerceClient.send.mockReturnValue(of(mockOrderResult));
+    mockPaymentsClient.send.mockReturnValue(of(mockIntentResult));
+
+    const fullCheckoutBody = {
+      email: "customer@example.com",
+      address: {
+        name: "Ada Lovelace",
+        line1: "12 Baker St",
+        line2: "Flat 4",
+        city: "Provo",
+        state: "UT",
+        zip: "84604",
+        country: "US",
+      },
+      successUrl: "https://example.com/success",
+      cancelUrl: "https://example.com/cancel",
+    };
+
+    await request(app.getHttpServer()).post("/v1/checkout/intent").send(fullCheckoutBody);
+
+    const createOrderPayload = mockCommerceClient.send.mock.calls.find(
+      ([pattern]) => pattern === "checkout.createOrder",
+    )![1];
+    // The whole point: the street never reaches the service that owns the database.
+    expect(createOrderPayload).not.toHaveProperty("shippingLine1");
+    expect(createOrderPayload).not.toHaveProperty("shippingLine2");
+    expect(createOrderPayload.shippingCity).toBe("Provo"); // city/state/zip still persisted
+
+    const intentPayload = mockPaymentsClient.send.mock.calls.find(
+      ([pattern]) => pattern === "stripe.intent.create",
+    )![1];
+    expect(intentPayload.shipping).toEqual({
+      name: "Ada Lovelace",
+      line1: "12 Baker St",
+      line2: "Flat 4",
+      city: "Provo",
+      state: "UT",
+      zip: "84604",
+      country: "US",
+    });
   });
 });

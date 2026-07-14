@@ -30,8 +30,8 @@ export class CheckoutController {
           userId,
           email: body.email,
           shippingName: body.address?.name,
-          shippingLine1: body.address?.line1,
-          shippingLine2: body.address?.line2,
+          // line1/line2 deliberately NOT sent: the street goes to Stripe via payments below
+          // and is never written to our database. See the address-minimization spec.
           shippingCity: body.address?.city,
           shippingState: body.address?.state,
           shippingZip: body.address?.zip,
@@ -54,6 +54,16 @@ export class CheckoutController {
           successUrl: body.successUrl,
           cancelUrl: body.cancelUrl,
           stripeCouponId: automaticDiscount?.stripeCouponId ?? null,
+          // In memory for the length of this request, then Stripe's problem, not ours.
+          shipping: {
+            name: body.address?.name,
+            line1: body.address?.line1,
+            line2: body.address?.line2,
+            city: body.address?.city,
+            state: body.address?.state,
+            zip: body.address?.zip,
+            country: body.address?.country,
+          },
         }),
       );
 
