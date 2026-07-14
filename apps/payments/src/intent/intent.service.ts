@@ -32,6 +32,15 @@ export class IntentService {
     cancelUrl: string,
     cartId?: string,
     stripeCouponId?: string | null,
+    shipping?: {
+      name?: string;
+      line1?: string;
+      line2?: string;
+      city?: string;
+      state?: string;
+      zip?: string;
+      country?: string;
+    },
   ): Promise<{ checkoutUrl: string }> {
     const order = await this.db.query.ordersTable.findFirst({
       where: eq(ordersTable.id, orderId),
@@ -167,6 +176,24 @@ export class IntentService {
         payment_intent_data: {
           transfer_data: { destination: store.stripeAccountId },
           metadata: { orderId: order.id, storeId: order.storeId },
+          // Stripe is the system of record for the street — it is deliberately never written
+          // to our DB (see the address-minimization spec). Stripe requires BOTH name and
+          // line1: a partial address is a 400, so send all of it or none of it.
+          ...(shipping?.name && shipping.line1
+            ? {
+                shipping: {
+                  name: shipping.name,
+                  address: {
+                    line1: shipping.line1,
+                    ...(shipping.line2 ? { line2: shipping.line2 } : {}),
+                    ...(shipping.city ? { city: shipping.city } : {}),
+                    ...(shipping.state ? { state: shipping.state } : {}),
+                    ...(shipping.zip ? { postal_code: shipping.zip } : {}),
+                    ...(shipping.country ? { country: shipping.country } : {}),
+                  },
+                },
+              }
+            : {}),
         },
         metadata: { orderId: order.id, storeId: order.storeId, ...(cartId ? { cartId } : {}) },
         automatic_tax: { enabled: true },

@@ -15,6 +15,15 @@ export class IntentHandler {
       successUrl: string;
       cancelUrl: string;
       stripeCouponId?: string | null;
+      shipping?: {
+        name?: string;
+        line1?: string;
+        line2?: string;
+        city?: string;
+        state?: string;
+        zip?: string;
+        country?: string;
+      };
     },
   ) {
     return this.intent.createIntent(
@@ -23,6 +32,7 @@ export class IntentHandler {
       payload.cancelUrl,
       payload.cartId,
       payload.stripeCouponId ?? null,
+      payload.shipping,
     );
   }
 }
