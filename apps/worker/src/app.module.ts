@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { BullModule } from "@nestjs/bullmq";
+import { ClientsModule, Transport } from "@nestjs/microservices";
 import { DbModule, EmailModule, AuditModule } from "@sitehaus-ecom/shared";
 import { validateWorkerEnv } from "./config/env";
 import { ReservationExpireProcessor } from "./processors/reservation-expire.processor";
@@ -38,6 +39,24 @@ import { HeartbeatService } from "./heartbeat/heartbeat.service";
       { name: "ecom-returns" },
       { name: "ecom-webhooks" },
     ),
+
+    // The order emails print the customer's street, which now lives on the Stripe
+    // PaymentIntent rather than in our database — so the worker has to be able to ask
+    // payments for it. This is the one new coupling the address-minimization spec adds.
+    ClientsModule.registerAsync([
+      {
+        name: "PAYMENTS_SERVICE",
+        imports: [ConfigModule],
+        useFactory: (config: ConfigService) => ({
+          transport: Transport.TCP,
+          options: {
+            host: config.get("PAYMENTS_HOST", "localhost"),
+            port: 7022,
+          },
+        }),
+        inject: [ConfigService],
+      },
+    ]),
   ],
   providers: [
     HeartbeatService,
