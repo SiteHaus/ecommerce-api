@@ -3,6 +3,7 @@ import { render } from "@react-email/render";
 import { OrderShipped } from "@sitehaus-ecom/email-templates";
 import type { Job } from "bullmq";
 import type { HandlerContext } from "./handler.context";
+import { getShippingStreet } from "./get-shipping-street";
 import { logNotification } from "./log-notification";
 
 export async function handleOrderShipped(job: Job, ctx: HandlerContext): Promise<void> {
@@ -15,6 +16,8 @@ export async function handleOrderShipped(job: Job, ctx: HandlerContext): Promise
     logger.error(`Order ${orderId} not found for store ${storeId}`);
     return;
   }
+
+  const street = await getShippingStreet(ctx, order);
 
   const [items, store] = await Promise.all([
     db
@@ -51,8 +54,8 @@ export async function handleOrderShipped(job: Job, ctx: HandlerContext): Promise
       carrier: null,
       estimatedDelivery: null,
       shippingName: order.shippingName ?? "",
-      shippingLine1: order.shippingLine1 ?? "",
-      shippingLine2: order.shippingLine2,
+      shippingLine1: street.line1 ?? "",
+      shippingLine2: street.line2,
       shippingCity: order.shippingCity ?? "",
       shippingState: order.shippingState,
       shippingZip: order.shippingZip ?? "",
