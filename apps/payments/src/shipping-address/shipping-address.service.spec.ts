@@ -68,4 +68,13 @@ describe("ShippingAddressService", () => {
     });
     expect(retrieve).not.toHaveBeenCalled();
   });
+
+  it("returns nulls (never throws) when the DATABASE is down — a receipt must not be lost", async () => {
+    dbFindFirst.mockRejectedValue(new Error("ECONNREFUSED"));
+
+    await expect(service.getShippingStreet("order-1")).resolves.toEqual({
+      line1: null,
+      line2: null,
+    });
+  });
 });

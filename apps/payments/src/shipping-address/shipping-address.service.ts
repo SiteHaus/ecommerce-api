@@ -28,10 +28,16 @@ export class ShippingAddressService {
    * redaction.
    */
   async getShippingStreet(orderId: string): Promise<ShippingStreet> {
-    const order = await this.db.query.ordersTable.findFirst({
-      where: eq(ordersTable.id, orderId),
-      columns: { stripePaymentIntentId: true },
-    });
+    let order: { stripePaymentIntentId: string | null } | undefined;
+    try {
+      order = await this.db.query.ordersTable.findFirst({
+        where: eq(ordersTable.id, orderId),
+        columns: { stripePaymentIntentId: true },
+      });
+    } catch (err) {
+      this.logger.warn(`DB lookup failed for order ${orderId}: ${this.errorMessage(err)}`);
+      return { line1: null, line2: null };
+    }
     if (!order?.stripePaymentIntentId) return { line1: null, line2: null };
 
     try {
@@ -40,9 +46,15 @@ export class ShippingAddressService {
         line1: pi.shipping?.address?.line1 ?? null,
         line2: pi.shipping?.address?.line2 ?? null,
       };
-    } catch (err: any) {
-      this.logger.warn(`Stripe shipping lookup failed for order ${orderId}: ${err.message}`);
+    } catch (err) {
+      this.logger.warn(
+        `Stripe shipping lookup failed for order ${orderId}: ${this.errorMessage(err)}`,
+      );
       return { line1: null, line2: null };
     }
+  }
+
+  private errorMessage(err: unknown): string {
+    return err instanceof Error ? err.message : String(err);
   }
 }
