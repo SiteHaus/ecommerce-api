@@ -12,6 +12,7 @@ import { PublishScheduledProcessor } from "./processors/publish-scheduled.proces
 import { ReturnRefundProcessor } from "./processors/return-refund.processor";
 import { WebhookProcessor } from "./processors/webhook.processor";
 import { AnalyticsRetentionProcessor } from "./processors/analytics-retention.processor";
+import { AddressRedactionProcessor } from "./processors/address-redaction.processor";
 import { HeartbeatService } from "./heartbeat/heartbeat.service";
 
 @Module({
@@ -68,6 +69,7 @@ import { HeartbeatService } from "./heartbeat/heartbeat.service";
     PublishScheduledProcessor,
     ReturnRefundProcessor,
     WebhookProcessor,
+    AddressRedactionProcessor,
   ],
 })
 export class AppModule {}

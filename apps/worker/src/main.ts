@@ -42,6 +42,15 @@ async function bootstrap() {
       removeOnFail: 10,
     },
   );
+  await ordersQueue.add(
+    "address.redact",
+    {},
+    {
+      repeat: { pattern: "0 4 * * *" }, // daily 4am UTC, after cart.expire
+      removeOnComplete: 5,
+      removeOnFail: 10,
+    },
+  );
 
   const catalogQueue = app.get(getQueueToken("ecom-catalog"));
   await catalogQueue.add(
