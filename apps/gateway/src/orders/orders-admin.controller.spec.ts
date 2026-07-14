@@ -183,6 +183,41 @@ describe("OrdersAdminController", () => {
         orderId: ORDER_ID,
       });
     });
+
+    it("fills the street from Stripe on a new order", async () => {
+      mockCommerceClient.send.mockReturnValue(
+        of({ ...mockOrderDetail, shippingLine1: null, shippingLine2: null }),
+      );
+      mockPaymentsClient.send.mockReturnValue(of({ line1: "12 Baker St", line2: "Flat 4" }));
+
+      const res = await request(app.getHttpServer()).get(`/v1/admin/orders/${ORDER_ID}`);
+
+      expect(res.body.shippingLine1).toBe("12 Baker St");
+      expect(res.body.shippingLine2).toBe("Flat 4");
+    });
+
+    it("keeps the legacy column value when Stripe has no shipping", async () => {
+      mockCommerceClient.send.mockReturnValue(
+        of({ ...mockOrderDetail, shippingLine1: "9 Old Rd", shippingLine2: null }),
+      );
+      mockPaymentsClient.send.mockReturnValue(of({ line1: null, line2: null }));
+
+      const res = await request(app.getHttpServer()).get(`/v1/admin/orders/${ORDER_ID}`);
+
+      expect(res.body.shippingLine1).toBe("9 Old Rd");
+    });
+
+    it("renders the order anyway when payments is down", async () => {
+      mockCommerceClient.send.mockReturnValue(
+        of({ ...mockOrderDetail, shippingLine1: null, shippingLine2: null }),
+      );
+      mockPaymentsClient.send.mockReturnValue(throwError(() => new Error("ECONNREFUSED")));
+
+      const res = await request(app.getHttpServer()).get(`/v1/admin/orders/${ORDER_ID}`);
+
+      expect(res.status).toBe(200); // the page must not die over a missing street
+      expect(res.body.shippingLine1).toBeNull();
+    });
   });
 
   // ─── PATCH /v1/admin/orders/:orderId/ship ────────────────────────────────────
