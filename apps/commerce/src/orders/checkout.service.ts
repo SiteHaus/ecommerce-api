@@ -31,8 +31,6 @@ export class CheckoutService {
     userId?: string;
     email?: string;
     shippingName?: string;
-    shippingLine1?: string;
-    shippingLine2?: string;
     shippingCity?: string;
     shippingState?: string;
     shippingZip?: string;
@@ -143,8 +141,9 @@ export class CheckoutService {
         email: data.email ?? "",
         status: "pending",
         shippingName: data.shippingName ?? null,
-        shippingLine1: data.shippingLine1 ?? null,
-        shippingLine2: data.shippingLine2 ?? null,
+        // shippingLine1/shippingLine2 are deliberately NOT written. The street lives on the
+        // Stripe PaymentIntent (see the address-minimization spec). The columns remain,
+        // nullable, holding legacy orders' streets until the redaction cron clears them.
         shippingCity: data.shippingCity ?? null,
         shippingState: data.shippingState ?? null,
         shippingZip: data.shippingZip ?? null,

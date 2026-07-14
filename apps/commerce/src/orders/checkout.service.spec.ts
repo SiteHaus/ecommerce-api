@@ -300,5 +300,33 @@ describe("CheckoutService", () => {
       const result = await service.createOrder(validPayload);
       expect(result.currency).toBe("usd");
     });
+
+    it("never writes a street, even if one is somehow passed", async () => {
+      db.query.cartsTable.findFirst.mockResolvedValue(mockCart);
+      db.select.mockReturnValue(selectChain(mockItems));
+      db.query.storesTable.findFirst.mockResolvedValue(mockStore);
+      const ordersInsert = insertChain([mockOrder]);
+      db.insert.mockReturnValueOnce(ordersInsert).mockReturnValueOnce(insertNoReturnChain());
+      reservations.reserve.mockResolvedValue("reserved");
+      const insertValues = ordersInsert.values;
+
+      await service.createOrder({
+        storeId: STORE_ID,
+        sessionToken: SESSION_TOKEN,
+        email: "a@b.com",
+        shippingName: "Ada Lovelace",
+        shippingCity: "Provo",
+        shippingState: "UT",
+        shippingZip: "84604",
+        shippingCountry: "US",
+        // @ts-expect-error — the field is gone from the type; prove it's ignored at runtime too
+        shippingLine1: "12 Baker St",
+      });
+
+      const inserted = insertValues.mock.calls.at(-1)![0];
+      expect(inserted.shippingLine1).toBeUndefined();
+      expect(inserted.shippingLine2).toBeUndefined();
+      expect(inserted.shippingCity).toBe("Provo");
+    });
   });
 });
