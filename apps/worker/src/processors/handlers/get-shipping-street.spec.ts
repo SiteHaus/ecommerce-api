@@ -40,4 +40,12 @@ describe("getShippingStreet", () => {
       getShippingStreet(ctx, { id: "o1", shippingLine1: "9 Old Rd", shippingLine2: null }),
     ).resolves.toEqual({ line1: "9 Old Rd", line2: null });
   });
+
+  it("falls back to the columns even when the rejection is not an Error", async () => {
+    paymentsSend.mockReturnValue(throwError(() => null));
+
+    await expect(
+      getShippingStreet(ctx, { id: "o1", shippingLine1: "9 Old Rd", shippingLine2: null }),
+    ).resolves.toEqual({ line1: "9 Old Rd", line2: null });
+  });
 });

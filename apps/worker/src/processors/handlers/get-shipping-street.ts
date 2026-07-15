@@ -22,8 +22,12 @@ export async function getShippingStreet(
       ctx.payments.send<ShippingStreet>("stripe.shipping.get", { orderId: order.id }),
     );
     if (fromStripe?.line1) return fromStripe;
-  } catch (err: any) {
-    ctx.logger.warn(`Shipping street lookup failed for order ${order.id}: ${err.message}`);
+  } catch (err) {
+    ctx.logger.warn(`Shipping street lookup failed for order ${order.id}: ${errorMessage(err)}`);
   }
   return { line1: order.shippingLine1, line2: order.shippingLine2 };
+}
+
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
 }

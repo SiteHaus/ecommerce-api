@@ -1,4 +1,4 @@
-import { Controller, Inject, Req, UseGuards } from "@nestjs/common";
+import { Controller, Inject, Logger, Req, UseGuards } from "@nestjs/common";
 import { ClientProxy } from "@nestjs/microservices";
 import { contract } from "@sitehaus-ecom/contracts";
 import { AdminStoreGuard } from "../store/admin-store.guard";
@@ -10,6 +10,8 @@ import { firstValueFrom } from "rxjs";
 @Controller()
 @UseGuards(AdminStoreGuard)
 export class OrdersAdminController {
+  private readonly logger = new Logger(OrdersAdminController.name);
+
   constructor(
     @Inject("COMMERCE_SERVICE") private readonly commerce: ClientProxy,
     @Inject("PAYMENTS_SERVICE") private readonly payments: ClientProxy,
@@ -56,7 +58,10 @@ export class OrdersAdminController {
             { orderId: params.orderId },
           ),
         );
-      } catch {
+      } catch (err) {
+        this.logger.warn(
+          `Shipping street lookup failed for order ${params.orderId}: ${err instanceof Error ? err.message : String(err)}`,
+        );
         // fall through — body keeps whatever the columns held
       }
 
