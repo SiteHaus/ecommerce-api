@@ -112,6 +112,14 @@ describe("AddressRedactionProcessor (real Postgres)", () => {
     await pool?.end();
   });
 
+  // Every test below asserts exact counts (e.g. `result.redacted).toBe(1)`). Those counts
+  // are only meaningful because this suite starts each test with zero orders in the table —
+  // wipe it after every test so assertions never depend on what earlier tests inserted, or
+  // on the order tests happen to run in.
+  afterEach(async () => {
+    await db.delete(ordersTable).where(eq(ordersTable.storeId, storeId));
+  });
+
   it("skips orders whose street is already redacted, so the count stays meaningful", async () => {
     const alreadyRedacted = await insertOrder({
       createdAt: daysAgo(200),
