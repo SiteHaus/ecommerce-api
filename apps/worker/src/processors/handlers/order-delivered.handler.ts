@@ -75,7 +75,7 @@ export async function handleOrderDelivered(job: Job, ctx: HandlerContext): Promi
   try {
     await email.send({
       to: order.email,
-      from: `${store?.name ?? "Your Store"} <orders@sitehaus.io>`,
+      from: email.orderFrom(store?.name ?? "Your Store"),
       subject: `Your order has been delivered! — #${ref}`,
       html,
     });

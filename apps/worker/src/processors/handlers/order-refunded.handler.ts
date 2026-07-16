@@ -52,7 +52,7 @@ export async function handleOrderRefunded(job: Job, ctx: HandlerContext): Promis
   try {
     await email.send({
       to: order.email,
-      from: `${store?.name ?? "Your Store"} <orders@sitehaus.io>`,
+      from: email.orderFrom(store?.name ?? "Your Store"),
       subject: `Your refund has been processed — #${ref}`,
       html,
     });
@@ -78,7 +78,7 @@ export async function handleOrderRefunded(job: Job, ctx: HandlerContext): Promis
     try {
       await email.send({
         to: store.notificationEmail,
-        from: `${store.name} Orders <orders@sitehaus.io>`,
+        from: email.orderFrom(`${store.name} Orders`),
         subject: `Refund issued — #${ref}`,
         html,
       });

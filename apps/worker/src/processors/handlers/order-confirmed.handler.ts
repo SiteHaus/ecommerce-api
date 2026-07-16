@@ -68,7 +68,7 @@ export async function handleOrderConfirmed(job: Job, ctx: HandlerContext): Promi
   try {
     await email.send({
       to: order.email,
-      from: `${store?.name ?? "Your Store"} <orders@sitehaus.io>`,
+      from: email.orderFrom(store?.name ?? "Your Store"),
       subject: `Order confirmed — #${ref}`,
       html,
     });
@@ -94,7 +94,7 @@ export async function handleOrderConfirmed(job: Job, ctx: HandlerContext): Promi
     try {
       await email.send({
         to: store.notificationEmail,
-        from: `${store.name} Orders <orders@sitehaus.io>`,
+        from: email.orderFrom(`${store.name} Orders`),
         subject: `New order received — #${ref}`,
         html,
       });
