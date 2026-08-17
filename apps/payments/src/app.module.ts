@@ -7,6 +7,7 @@ import { ConnectModule } from "./connect/connect.module";
 import { DiscountSyncModule } from "./discounts/discount-sync.module";
 import { IntentModule } from "./intent/intent.module";
 import { RefundModule } from "./refund/refund.module";
+import { ShippingAddressModule } from "./shipping-address/shipping-address.module";
 import { WebhookModule } from "./webhook/webhook.module";
 
 @Module({
@@ -24,6 +25,7 @@ import { WebhookModule } from "./webhook/webhook.module";
     DiscountSyncModule,
     IntentModule,
     RefundModule,
+    ShippingAddressModule,
     WebhookModule,
   ],
 })

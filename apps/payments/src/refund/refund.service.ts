@@ -24,6 +24,7 @@ export class RefundService {
     private readonly config: ConfigService,
     @Inject(DB_TOKEN) private readonly db: Db,
     private readonly audit: AuditService,
+    @InjectQueue("ecom-notifications") private readonly notificationsQueue: Queue,
     @InjectQueue("ecom-webhooks") private readonly webhooksQueue: Queue,
   ) {
     this.stripe = new Stripe(config.getOrThrow("STRIPE_SECRET_KEY"));
@@ -50,10 +51,17 @@ export class RefundService {
     }
 
     try {
-      await this.stripe.refunds.create(
-        { payment_intent: order.stripePaymentIntentId },
-        { stripeAccount: data.store.stripeAccountId },
-      );
+      // Checkout uses a destination charge (payment_intent_data.transfer_data),
+      // so the PaymentIntent lives on the PLATFORM account, not the connected
+      // account. The refund must therefore be issued on the platform account
+      // (no stripeAccount header) — passing the connected account here makes
+      // Stripe look for the PI where it doesn't exist ("No such payment_intent").
+      // reverse_transfer pulls the transferred funds back from the store's
+      // balance so the platform doesn't eat the refund.
+      await this.stripe.refunds.create({
+        payment_intent: order.stripePaymentIntentId,
+        reverse_transfer: true,
+      });
     } catch (err: any) {
       this.logger.error(`Stripe refund failed for order ${data.orderId}: ${err.message}`);
       throw new RpcException({ status: 502, message: "Stripe refund failed" });
@@ -85,6 +93,15 @@ export class RefundService {
       targetId: data.orderId,
       meta: { stripePaymentIntentId: order.stripePaymentIntentId },
     });
+    void this.notificationsQueue.add(
+      "order.refunded",
+      { orderId: data.orderId, storeId: data.storeId },
+      {
+        attempts: 3,
+        backoff: { type: "exponential", delay: 5000 },
+        jobId: `order.refunded:${data.orderId}`,
+      },
+    );
     void this.webhooksQueue.add("webhook.dispatch", {
       storeId: data.storeId,
       event: "order.refunded",

@@ -6,6 +6,17 @@ const slugSchema = z
   .max(64)
   .regex(/^[a-z0-9-]+$/, "slug may only contain lowercase letters, numbers, and hyphens");
 
+// Merchant-facing toggles for the notification emails they receive. Keys mirror
+// the `notification_preferences` jsonb column; an unset/true key means "send".
+export const notificationPreferencesSchema = z
+  .object({
+    newOrder: z.boolean().optional(),
+    returnRequested: z.boolean().optional(),
+    lowStock: z.boolean().optional(),
+    paymentFailed: z.boolean().optional(),
+  })
+  .nullable();
+
 export const createStoreSchema = z.object({
   name: z.string().min(1),
   slug: slugSchema,
@@ -21,6 +32,7 @@ export const updateStoreSchema = z.object({
   currency: z.string().length(3).optional(),
   timezone: z.string().optional(),
   notificationEmail: z.string().email().nullable().optional(),
+  notificationPreferences: notificationPreferencesSchema.optional(),
   reservationTtlMinutes: z.number().int().min(5).max(60).optional(),
   fulfillmentType: z.enum(["shipping", "pickup"]).optional(),
 });
@@ -32,6 +44,7 @@ export const storeItem = z.object({
   domain: z.string().nullable(),
   currency: z.string(),
   notificationEmail: z.string().email().nullable(),
+  notificationPreferences: notificationPreferencesSchema,
   stripeAccountId: z.string().nullable(),
   stripeChargesEnabled: z.boolean(),
   stripePayoutsEnabled: z.boolean(),

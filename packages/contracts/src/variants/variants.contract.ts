@@ -6,6 +6,8 @@ import {
   deleteVariantSchema,
   variantPathParams,
   variantIdParams,
+  syncVariationsSchema,
+  syncVariationsResultSchema,
 } from "@sitehaus-ecom/validation";
 import { initContract } from "@ts-rest/core";
 
@@ -41,6 +43,18 @@ export const variantContract = c.router({
     body: c.noBody(),
     responses: {
       200: deleteVariantSchema,
+      409: apiError,
+    },
+    metadata: { openApiTags: ["Variants"] } as const,
+  },
+  syncVariations: {
+    method: "PUT",
+    path: "/v1/admin/products/:productId/variations",
+    body: syncVariationsSchema,
+    pathParams: variantPathParams,
+    responses: {
+      200: syncVariationsResultSchema,
+      404: apiError,
       409: apiError,
     },
     metadata: { openApiTags: ["Variants"] } as const,

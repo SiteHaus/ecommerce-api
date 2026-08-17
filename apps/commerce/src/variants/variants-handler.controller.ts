@@ -1,11 +1,15 @@
 import { Controller } from "@nestjs/common";
 import { VariantsHandlerService } from "./variants-handler.service";
+import { VariationsSyncService } from "./variations-sync.service";
 import { MessagePattern, Payload } from "@nestjs/microservices";
-import { CreateVariantDto, UpdateVariantDto } from "@sitehaus-ecom/validation";
+import { CreateVariantDto, UpdateVariantDto, SyncVariationsDto } from "@sitehaus-ecom/validation";
 
 @Controller()
 export class VariantsHandlerController {
-  constructor(private readonly variantService: VariantsHandlerService) {}
+  constructor(
+    private readonly variantService: VariantsHandlerService,
+    private readonly variationsSync: VariationsSyncService,
+  ) {}
 
   @MessagePattern("catalog.variants.create")
   create(
@@ -26,5 +30,10 @@ export class VariantsHandlerController {
   @MessagePattern("catalog.variants.delete")
   delete(@Payload() data: { id: string; storeId: string }) {
     return this.variantService.delete(data);
+  }
+
+  @MessagePattern("catalog.variations.sync")
+  syncVariations(@Payload() data: { productId: string; storeId: string } & SyncVariationsDto) {
+    return this.variationsSync.sync(data);
   }
 }

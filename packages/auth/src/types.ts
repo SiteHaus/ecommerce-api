@@ -5,6 +5,12 @@ export interface ResolvedStore {
   domain: string | null;
   currency: string;
   notificationEmail: string | null;
+  notificationPreferences: {
+    newOrder?: boolean;
+    returnRequested?: boolean;
+    lowStock?: boolean;
+    paymentFailed?: boolean;
+  } | null;
   stripeAccountId: string | null;
   stripeChargesEnabled: boolean;
   stripePayoutsEnabled: boolean;

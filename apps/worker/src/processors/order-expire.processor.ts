@@ -14,14 +14,17 @@ export class OrderExpireProcessor extends WorkerHost {
 
   async process(job: Job): Promise<void> {
     if (job.name !== "order.expire") return;
-    const cancelled = await this.cancelStale();
-    if (cancelled > 0) this.logger.log(`Cancelled ${cancelled} abandoned orders`);
+    const expired = await this.expireStale();
+    if (expired > 0) this.logger.log(`Marked ${expired} stale checkouts as abandoned`);
   }
 
-  private async cancelStale(): Promise<number> {
+  private async expireStale(): Promise<number> {
+    // Abandoned, not cancelled: these checkouts were never paid. `cancelled`
+    // implies a human killed a real order, which alarms merchants — `abandoned`
+    // says plainly what happened and keeps them out of the orders list.
     const result = await this.db.execute(sql`
       UPDATE orders
-      SET status = 'cancelled', updated_at = now()
+      SET status = 'abandoned', updated_at = now()
       WHERE id IN (
         SELECT id FROM orders
         WHERE status = 'pending'

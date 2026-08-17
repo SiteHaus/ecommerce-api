@@ -1,4 +1,4 @@
-import { Controller, Inject, Req, UseGuards } from "@nestjs/common";
+import { Controller, Inject, Logger, Req, UseGuards } from "@nestjs/common";
 import { ClientProxy } from "@nestjs/microservices";
 import { contract } from "@sitehaus-ecom/contracts";
 import { AdminStoreGuard } from "../store/admin-store.guard";
@@ -10,6 +10,8 @@ import { firstValueFrom } from "rxjs";
 @Controller()
 @UseGuards(AdminStoreGuard)
 export class OrdersAdminController {
+  private readonly logger = new Logger(OrdersAdminController.name);
+
   constructor(
     @Inject("COMMERCE_SERVICE") private readonly commerce: ClientProxy,
     @Inject("PAYMENTS_SERVICE") private readonly payments: ClientProxy,
@@ -43,7 +45,34 @@ export class OrdersAdminController {
           orderId: params.orderId,
         }),
       );
-      return { status: 200 as const, body };
+
+      // The street isn't in our database for new orders — it's on the Stripe PaymentIntent.
+      // A legacy order still has it in its columns, so only overwrite when Stripe actually
+      // has something. If payments is unreachable we render the order without a street
+      // rather than failing the page.
+      let street = { line1: null as string | null, line2: null as string | null };
+      try {
+        street = await firstValueFrom(
+          this.payments.send<{ line1: string | null; line2: string | null }>(
+            "stripe.shipping.get",
+            { orderId: params.orderId },
+          ),
+        );
+      } catch (err) {
+        this.logger.warn(
+          `Shipping street lookup failed for order ${params.orderId}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+        // fall through — body keeps whatever the columns held
+      }
+
+      return {
+        status: 200 as const,
+        body: {
+          ...body,
+          shippingLine1: street.line1 ?? body.shippingLine1,
+          shippingLine2: street.line2 ?? body.shippingLine2,
+        },
+      };
     });
   }
 

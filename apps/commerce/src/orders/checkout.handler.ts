@@ -15,8 +15,6 @@ export class CheckoutHandler {
       userId?: string;
       email?: string;
       shippingName?: string;
-      shippingLine1?: string;
-      shippingLine2?: string;
       shippingCity?: string;
       shippingState?: string;
       shippingZip?: string;

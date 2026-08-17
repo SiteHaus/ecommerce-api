@@ -194,5 +194,60 @@ describe("IntentService", () => {
       const callArgs = mockSessionsCreate.mock.calls[0][0];
       expect(callArgs.shipping_options).toBeUndefined();
     });
+
+    it("puts the street on the PaymentIntent, never in our DB", async () => {
+      db.query.ordersTable.findFirst.mockResolvedValue(mockOrder);
+      db.query.storesTable.findFirst.mockResolvedValue(mockStore);
+      db.select.mockReturnValue(selectChain(mockOrderItems));
+      db.update.mockReturnValue(updateChain());
+
+      await service.createIntent(ORDER_ID, SUCCESS_URL, CANCEL_URL, undefined, null, {
+        name: "Ada Lovelace",
+        line1: "12 Baker St",
+        line2: "Flat 4",
+        city: "Provo",
+        state: "UT",
+        zip: "84604",
+        country: "US",
+      });
+
+      const params = mockSessionsCreate.mock.calls[0][0];
+      expect(params.payment_intent_data.shipping).toEqual({
+        name: "Ada Lovelace",
+        address: {
+          line1: "12 Baker St",
+          line2: "Flat 4",
+          city: "Provo",
+          state: "UT",
+          postal_code: "84604",
+          country: "US",
+        },
+      });
+    });
+
+    it("omits shipping when there is no line1 — Stripe rejects a partial address", async () => {
+      db.query.ordersTable.findFirst.mockResolvedValue(mockOrder);
+      db.query.storesTable.findFirst.mockResolvedValue(mockStore);
+      db.select.mockReturnValue(selectChain(mockOrderItems));
+      db.update.mockReturnValue(updateChain());
+
+      await service.createIntent(ORDER_ID, SUCCESS_URL, CANCEL_URL, undefined, null, {
+        name: "Ada Lovelace",
+        city: "Provo",
+      });
+
+      expect(mockSessionsCreate.mock.calls[0][0].payment_intent_data.shipping).toBeUndefined();
+    });
+
+    it("omits shipping entirely when the caller passes none (legacy callers)", async () => {
+      db.query.ordersTable.findFirst.mockResolvedValue(mockOrder);
+      db.query.storesTable.findFirst.mockResolvedValue(mockStore);
+      db.select.mockReturnValue(selectChain(mockOrderItems));
+      db.update.mockReturnValue(updateChain());
+
+      await service.createIntent(ORDER_ID, SUCCESS_URL, CANCEL_URL);
+
+      expect(mockSessionsCreate.mock.calls[0][0].payment_intent_data.shipping).toBeUndefined();
+    });
   });
 });

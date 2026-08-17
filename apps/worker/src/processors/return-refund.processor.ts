@@ -1,16 +1,9 @@
-import { Processor, WorkerHost } from "@nestjs/bullmq";
+import { InjectQueue, Processor, WorkerHost } from "@nestjs/bullmq";
 import { Inject, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { Job } from "bullmq";
+import { Job, Queue } from "bullmq";
 import { DB_TOKEN } from "@sitehaus-ecom/shared";
-import {
-  Db,
-  eq,
-  ordersTable,
-  returnItemsTable,
-  returnsTable,
-  storesTable,
-} from "@sitehaus-ecom/database";
+import { Db, eq, ordersTable, returnItemsTable, returnsTable } from "@sitehaus-ecom/database";
 import Stripe from "stripe";
 
 @Processor("ecom-returns")
@@ -21,6 +14,7 @@ export class ReturnRefundProcessor extends WorkerHost {
   constructor(
     @Inject(DB_TOKEN) private readonly db: Db,
     private readonly config: ConfigService,
+    @InjectQueue("ecom-notifications") private readonly notificationsQueue: Queue,
   ) {
     super();
     this.stripe = new Stripe(config.getOrThrow("STRIPE_SECRET_KEY"));
@@ -52,11 +46,6 @@ export class ReturnRefundProcessor extends WorkerHost {
       return;
     }
 
-    const store = await this.db.query.storesTable.findFirst({
-      where: eq(storesTable.id, storeId),
-      columns: { stripeAccountId: true },
-    });
-
     const items = await this.db
       .select()
       .from(returnItemsTable)
@@ -64,13 +53,16 @@ export class ReturnRefundProcessor extends WorkerHost {
 
     const totalRefundCents = items.reduce((sum, i) => sum + i.refundCents, 0);
 
-    const refund = await this.stripe.refunds.create(
-      {
-        payment_intent: order.stripePaymentIntentId,
-        amount: totalRefundCents,
-      },
-      store?.stripeAccountId ? { stripeAccount: store.stripeAccountId } : undefined,
-    );
+    // Checkout uses a destination charge, so the PaymentIntent lives on the
+    // PLATFORM account — the refund must be issued there (no stripeAccount
+    // header), with reverse_transfer to pull the funds back from the store's
+    // balance. Passing the connected account made Stripe fail with
+    // "No such payment_intent" (same bug fixed for order refunds).
+    const refund = await this.stripe.refunds.create({
+      payment_intent: order.stripePaymentIntentId,
+      amount: totalRefundCents,
+      reverse_transfer: true,
+    });
 
     await this.db
       .update(returnsTable)
@@ -84,6 +76,16 @@ export class ReturnRefundProcessor extends WorkerHost {
 
     this.logger.log(
       `Refund ${refund.id} issued for return ${returnId} — ${totalRefundCents} cents`,
+    );
+
+    void this.notificationsQueue.add(
+      "order.return_refunded",
+      { orderId: ret.orderId, storeId },
+      {
+        attempts: 3,
+        backoff: { type: "exponential", delay: 5000 },
+        jobId: `order.return_refunded:${returnId}`,
+      },
     );
   }
 }

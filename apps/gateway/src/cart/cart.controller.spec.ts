@@ -20,6 +20,7 @@ const mockStore: ResolvedStore = {
   reservationTtlMinutes: 15,
   fulfillmentType: "shipping" as const,
   notificationEmail: null,
+  notificationPreferences: null,
 };
 
 const VARIANT_ID = "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11";

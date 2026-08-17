@@ -267,7 +267,11 @@ export class OrdersHandlerService {
     void this.notificationsQueue.add(
       "order.shipped",
       { orderId: data.orderId, storeId: data.storeId },
-      { attempts: 3, backoff: { type: "exponential", delay: 5000 } },
+      {
+        attempts: 3,
+        backoff: { type: "exponential", delay: 5000 },
+        jobId: `order.shipped:${data.orderId}`,
+      },
     );
     void this.webhooksQueue.add("webhook.dispatch", {
       storeId: data.storeId,
@@ -297,23 +301,44 @@ export class OrdersHandlerService {
     const now = new Date();
     const updated = await this.db
       .update(ordersTable)
-      .set({ status: "delivered", updatedAt: now })
+      .set({ status: "delivered", deliveredAt: now, updatedAt: now })
       .where(
         and(
           eq(ordersTable.id, data.orderId),
           eq(ordersTable.storeId, data.storeId),
-          eq(ordersTable.status, "confirmed"),
+          // Both pickup (confirmed → delivered) and shipped orders can be
+          // marked delivered. deliveredAt is stamped so the returns window
+          // has a start date to measure from.
+          inArray(ordersTable.status, ["confirmed", "shipped"]),
         ),
       )
       .returning({ id: ordersTable.id });
 
     if (updated.length === 0) {
-      throw new RpcException({ status: 400, message: "Only confirmed orders can be collected" });
+      throw new RpcException({
+        status: 400,
+        message: "Only confirmed or shipped orders can be marked delivered",
+      });
     }
+
+    void this.notificationsQueue.add(
+      "order.delivered",
+      { orderId: data.orderId, storeId: data.storeId },
+      {
+        attempts: 3,
+        backoff: { type: "exponential", delay: 5000 },
+        jobId: `order.delivered:${data.orderId}`,
+      },
+    );
+    void this.webhooksQueue.add("webhook.dispatch", {
+      storeId: data.storeId,
+      event: "order.delivered",
+      data: { orderId: data.orderId },
+    });
 
     void this.audit.log({
       storeId: data.storeId,
-      action: "order.collected",
+      action: "order.delivered",
       targetType: "order",
       targetId: data.orderId,
     });

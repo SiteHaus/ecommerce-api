@@ -1,5 +1,6 @@
 import { Processor, WorkerHost } from "@nestjs/bullmq";
 import { Inject, Injectable, Logger } from "@nestjs/common";
+import type { ClientProxy } from "@nestjs/microservices";
 import { Job } from "bullmq";
 import { type Db } from "@sitehaus-ecom/database";
 import { DB_TOKEN, EmailService } from "@sitehaus-ecom/shared";
@@ -20,12 +21,13 @@ export class NotificationsProcessor extends WorkerHost {
   constructor(
     @Inject(DB_TOKEN) private readonly db: Db,
     private readonly email: EmailService,
+    @Inject("PAYMENTS_SERVICE") private readonly payments: ClientProxy,
   ) {
     super();
   }
 
   private get ctx(): HandlerContext {
-    return { db: this.db, email: this.email, logger: this.logger };
+    return { db: this.db, email: this.email, logger: this.logger, payments: this.payments };
   }
 
   async process(job: Job): Promise<void> {

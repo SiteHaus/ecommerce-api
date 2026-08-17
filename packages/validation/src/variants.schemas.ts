@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { variantOptionValueRef } from "./options.schemas.js";
+import { productDetail } from "./products.schemas.js";
 
 export const inventorySchema = z.object({
   id: z.string(),
@@ -63,6 +64,42 @@ export const updateVariantSchema = z
     message: "At least one field must be provided",
   });
 
+export const syncVariationsSchema = z.object({
+  dimensions: z
+    .array(
+      z.object({
+        name: z.string().trim().min(1),
+        values: z.array(z.string().trim().min(1)).min(1),
+      }),
+    )
+    .max(3)
+    // Options are matched by name on sync, so two dimensions sharing a name would both
+    // resolve to the same product_option row and clobber each other's values.
+    .refine((dims) => new Set(dims.map((d) => d.name.trim().toLowerCase())).size === dims.length, {
+      message: "Each option must have a unique name.",
+    }),
+  rows: z
+    .array(
+      z.object({
+        values: z.array(z.string().trim().min(1)),
+        priceCents: z.number().int().min(0),
+        stock: z.number().int().min(0),
+        sku: z.string().trim().min(1).nullable().optional(),
+        isActive: z.boolean().optional(),
+        compareAtCents: z.number().int().min(0).nullable().optional(),
+      }),
+    )
+    .max(200),
+});
+
+// Reuse the same product-detail schema that contract.product.getProduct returns as its 200 body.
+export const syncVariationsResultSchema = z.object({
+  product: productDetail,
+  blocked: z.array(z.object({ variantId: z.string().uuid(), name: z.string() })),
+});
+
 export type CreateVariantDto = z.infer<typeof createVariantSchema>;
 export type UpdateVariantDto = z.infer<typeof updateVariantSchema>;
 export type VariantItem = z.infer<typeof variantItem>;
+export type SyncVariationsDto = z.infer<typeof syncVariationsSchema>;
+export type SyncVariationsResult = z.infer<typeof syncVariationsResultSchema>;

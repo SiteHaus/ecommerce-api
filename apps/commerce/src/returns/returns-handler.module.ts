@@ -5,7 +5,11 @@ import { ReturnsHandlerController } from "./returns-handler.controller";
 import { ReturnsHandlerService } from "./returns-handler.service";
 
 @Module({
-  imports: [DbModule, AuditModule, BullModule.registerQueue({ name: "ecom-returns" })],
+  imports: [
+    DbModule,
+    AuditModule,
+    BullModule.registerQueue({ name: "ecom-notifications" }, { name: "ecom-returns" }),
+  ],
   controllers: [ReturnsHandlerController],
   providers: [ReturnsHandlerService],
 })
