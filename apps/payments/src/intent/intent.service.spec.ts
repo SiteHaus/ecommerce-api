@@ -249,5 +249,23 @@ describe("IntentService", () => {
 
       expect(mockSessionsCreate.mock.calls[0][0].payment_intent_data.shipping).toBeUndefined();
     });
+
+    it("always asks Stripe to collect a shipping address, even when the caller passes none", async () => {
+      // Storefronts don't have their own address form — checkout is a straight
+      // redirect to the Stripe session. Without shipping_address_collection, no
+      // shipping address is ever captured anywhere, for any order.
+      db.query.ordersTable.findFirst.mockResolvedValue(mockOrder);
+      db.query.storesTable.findFirst.mockResolvedValue(mockStore);
+      db.select.mockReturnValue(selectChain(mockOrderItems));
+      db.update.mockReturnValue(updateChain());
+
+      await service.createIntent(ORDER_ID, SUCCESS_URL, CANCEL_URL);
+
+      expect(mockSessionsCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          shipping_address_collection: { allowed_countries: ["US"] },
+        }),
+      );
+    });
   });
 });
