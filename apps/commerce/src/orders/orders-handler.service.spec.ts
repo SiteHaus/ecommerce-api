@@ -421,6 +421,86 @@ describe("OrdersHandlerService", () => {
     });
   });
 
+  // ─── updateShippingAddress ────────────────────────────────────────────────
+
+  describe("updateShippingAddress", () => {
+    function updateChain(returnRows: any[] = [{ id: ORDER_ID }]) {
+      return {
+        set: jest.fn().mockReturnValue({
+          where: jest.fn().mockReturnValue({
+            returning: jest.fn().mockResolvedValue(returnRows),
+          }),
+        }),
+      };
+    }
+
+    const addressInput = {
+      storeId: STORE_ID,
+      orderId: ORDER_ID,
+      name: "Scott Jenkins",
+      line1: "742 Evergreen Terrace",
+      city: "Provo",
+      state: "UT",
+      zip: "84601",
+    };
+
+    it("writes the address directly to the order and returns admin detail", async () => {
+      const updatedOrder = {
+        ...mockOrder,
+        shippingName: addressInput.name,
+        shippingLine1: addressInput.line1,
+        shippingCity: addressInput.city,
+        shippingState: addressInput.state,
+        shippingZip: addressInput.zip,
+      };
+      db.update.mockReturnValue(updateChain());
+      db.query.ordersTable.findFirst.mockResolvedValue(updatedOrder);
+      db.select
+        .mockReturnValueOnce(selectChain([{ itemCount: 1 }]))
+        .mockReturnValueOnce(selectChain(mockItems));
+
+      const result = await service.updateShippingAddress(addressInput);
+
+      expect(db.update).toHaveBeenCalled();
+      expect(result.shippingLine1).toBe(addressInput.line1);
+      expect(result.shippingName).toBe(addressInput.name);
+    });
+
+    it("logs an audit entry for the manual correction", async () => {
+      db.update.mockReturnValue(updateChain());
+      db.query.ordersTable.findFirst.mockResolvedValue(mockOrder);
+      db.select
+        .mockReturnValueOnce(selectChain([{ itemCount: 1 }]))
+        .mockReturnValueOnce(selectChain(mockItems));
+
+      await service.updateShippingAddress(addressInput);
+
+      expect(mockAudit.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          storeId: STORE_ID,
+          action: "order.shipping_address_updated",
+          targetId: ORDER_ID,
+        }),
+      );
+    });
+
+    it("throws RpcException 404 when order not found", async () => {
+      db.update.mockReturnValue(updateChain([]));
+
+      await expect(service.updateShippingAddress(addressInput)).rejects.toThrow(RpcException);
+    });
+
+    it("throws RpcException 404 when order belongs to a different store (tenant scoping)", async () => {
+      // The tenant check is baked into the UPDATE's WHERE clause, not a separate
+      // lookup — a cross-tenant orderId simply matches zero rows.
+      db.update.mockReturnValue(updateChain([]));
+
+      await expect(
+        service.updateShippingAddress({ ...addressInput, storeId: "other-store" }),
+      ).rejects.toThrow(RpcException);
+    });
+  });
+
   // ─── adminList ────────────────────────────────────────────────────────────
 
   describe("adminList", () => {

@@ -49,4 +49,21 @@ export class OrdersHandlerController {
   collect(@Payload() data: { storeId: string; orderId: string }) {
     return this.orders.collect(data);
   }
+
+  @MessagePattern("orders.updateShippingAddress")
+  updateShippingAddress(
+    @Payload()
+    data: {
+      storeId: string;
+      orderId: string;
+      name: string;
+      line1: string;
+      line2?: string;
+      city: string;
+      state?: string;
+      zip: string;
+    },
+  ) {
+    return this.orders.updateShippingAddress(data);
+  }
 }
