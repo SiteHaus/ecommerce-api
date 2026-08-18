@@ -160,6 +160,11 @@ export class IntentService {
       session = await this.stripe.checkout.sessions.create({
         mode: "payment",
         ...stripeCustomerParam,
+        // Storefronts don't collect a shipping address of their own (checkout is a
+        // straight redirect to this session) — without this, Stripe never asks for
+        // one either, and the order is left with no shipping address anywhere, ever.
+        // US-only for now; no store has configured shipping zones outside it yet.
+        shipping_address_collection: { allowed_countries: ["US"] },
         ...(shippingOption ? { shipping_options: [shippingOption] } : {}),
         ...discountParams,
         line_items: items.map((item) => ({
