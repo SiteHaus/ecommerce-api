@@ -109,6 +109,19 @@ export const shipOrderBodySchema = z.object({
   trackingNumber: z.string().min(1).max(100),
 });
 
+// Manual recovery path for orders that never captured a shipping address
+// (see the shipping_address_collection fix) — a merchant fills this in after
+// following up with the customer directly. Name + line1 are the minimum
+// Stripe itself would require, so we hold orders to the same bar here.
+export const updateShippingAddressBodySchema = z.object({
+  name: z.string().min(1).max(200),
+  line1: z.string().min(1).max(200),
+  line2: z.string().max(200).optional(),
+  city: z.string().min(1).max(100),
+  state: z.string().max(100).optional(),
+  zip: z.string().min(1).max(20),
+});
+
 export const adminListOrdersQuerySchema = z.object({
   status: z
     .union([orderStatusEnum, z.array(orderStatusEnum)])

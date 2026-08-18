@@ -8,6 +8,7 @@ import {
   orderDetailSchema,
   orderListSchema,
   shipOrderBodySchema,
+  updateShippingAddressBodySchema,
 } from "@sitehaus-ecom/validation";
 import { initContract } from "@ts-rest/core";
 import { z } from "zod";
@@ -88,6 +89,17 @@ export const ordersContract = c.router({
     responses: {
       200: adminOrderDetailSchema,
       400: apiError,
+      404: apiError,
+    },
+    metadata: { openApiTags: ["Orders Admin"] } as const,
+  },
+  adminUpdateShippingAddress: {
+    method: "PATCH",
+    path: "/v1/admin/orders/:orderId/shipping-address",
+    pathParams: z.object({ orderId: z.string().uuid() }),
+    body: updateShippingAddressBodySchema,
+    responses: {
+      200: adminOrderDetailSchema,
       404: apiError,
     },
     metadata: { openApiTags: ["Orders Admin"] } as const,

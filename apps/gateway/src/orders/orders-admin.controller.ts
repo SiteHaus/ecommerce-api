@@ -138,4 +138,26 @@ export class OrdersAdminController {
       }
     });
   }
+
+  @CommercePerm("orders:write")
+  @TsRestHandler(contract.orders.adminUpdateShippingAddress)
+  adminUpdateShippingAddress(@Req() req: Request) {
+    return tsRestHandler(contract.orders.adminUpdateShippingAddress, async ({ params, body }) => {
+      try {
+        const result = await firstValueFrom(
+          this.commerce.send("orders.updateShippingAddress", {
+            storeId: req.store!.id,
+            orderId: params.orderId,
+            ...body,
+          }),
+        );
+        return { status: 200 as const, body: result };
+      } catch (err: any) {
+        const status = err?.error?.status ?? err?.status ?? 500;
+        const message = err?.error?.message ?? err?.message ?? "Internal server error";
+        if (status === 404) return { status: 404 as const, body: { message } };
+        throw err;
+      }
+    });
+  }
 }

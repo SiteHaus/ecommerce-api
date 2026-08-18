@@ -346,6 +346,46 @@ export class OrdersHandlerService {
     return this.adminGet({ storeId: data.storeId, orderId: data.orderId });
   }
 
+  // Manual recovery path — a merchant fills this in after following up with the
+  // customer directly, for orders where no address was ever captured at checkout.
+  async updateShippingAddress(data: {
+    storeId: string;
+    orderId: string;
+    name: string;
+    line1: string;
+    line2?: string;
+    city: string;
+    state?: string;
+    zip: string;
+  }) {
+    const updated = await this.db
+      .update(ordersTable)
+      .set({
+        shippingName: data.name,
+        shippingLine1: data.line1,
+        shippingLine2: data.line2 ?? null,
+        shippingCity: data.city,
+        shippingState: data.state ?? null,
+        shippingZip: data.zip,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(ordersTable.id, data.orderId), eq(ordersTable.storeId, data.storeId)))
+      .returning({ id: ordersTable.id });
+
+    if (updated.length === 0) {
+      throw new RpcException({ status: 404, message: "Order not found" });
+    }
+
+    void this.audit.log({
+      storeId: data.storeId,
+      action: "order.shipping_address_updated",
+      targetType: "order",
+      targetId: data.orderId,
+    });
+
+    return this.adminGet({ storeId: data.storeId, orderId: data.orderId });
+  }
+
   async listForCustomer(data: { storeId: string; userId: string; limit: number; offset: number }) {
     const where = and(eq(ordersTable.storeId, data.storeId), eq(ordersTable.userId, data.userId));
 
