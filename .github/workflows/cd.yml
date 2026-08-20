@@ -78,6 +78,9 @@ jobs:
             git reset --hard origin/main
             export IMAGE_TAG=staging
             docker compose -f docker-compose.prod.yml pull
+            # Migrate before app boot — same reason as the sitehaus repo's CD.
+            docker compose -f docker-compose.prod.yml up -d postgres
+            docker compose -f docker-compose.prod.yml run --rm migrate
             docker compose -f docker-compose.prod.yml up -d --remove-orphans --force-recreate
             docker image prune -f
 
@@ -154,5 +157,8 @@ jobs:
             echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GH_ACTOR" --password-stdin
             git pull origin main
             docker compose -f docker-compose.prod.yml pull
+            # Migrate before app boot — same reason as the sitehaus repo's CD.
+            docker compose -f docker-compose.prod.yml up -d postgres
+            docker compose -f docker-compose.prod.yml run --rm migrate
             docker compose -f docker-compose.prod.yml up -d --remove-orphans --force-recreate
             docker image prune -f
