@@ -8,11 +8,30 @@ import {
   orderItemsTable,
   ordersTable,
   shippingRatesTable,
+  shippingZonesTable,
   storesTable,
   type Db,
 } from "@sitehaus-ecom/database";
 import { DB_TOKEN } from "@sitehaus-ecom/shared";
 import Stripe from "stripe";
+
+function toShippingOption(
+  name: string,
+  amountCents: number,
+  currency: string,
+  estimatedDays: number | null,
+): Stripe.Checkout.SessionCreateParams.ShippingOption {
+  return {
+    shipping_rate_data: {
+      type: "fixed_amount",
+      fixed_amount: { amount: amountCents, currency },
+      display_name: name,
+      ...(estimatedDays
+        ? { delivery_estimate: { maximum: { unit: "business_day", value: estimatedDays } } }
+        : {}),
+    },
+  };
+}
 
 @Injectable()
 export class IntentService {
@@ -102,7 +121,22 @@ export class IntentService {
       .from(orderItemsTable)
       .where(eq(orderItemsTable.orderId, orderId));
 
-    let shippingOption: Stripe.Checkout.SessionCreateParams.ShippingOption | undefined;
+    // Storefronts don't collect a shipping country of their own — checkout is a
+    // straight redirect to this session, and the country isn't known until the
+    // customer enters it on Stripe's own hosted page (shipping_address_collection).
+    // So a rate can't be resolved server-side before the session exists. If a
+    // caller *did* already resolve one (order.shippingRateId set — the path for
+    // any future storefront that collects the address itself first), honor that
+    // exact rate. Otherwise offer every rate the store has configured and let the
+    // customer choose on Stripe's page; the webhook already reconciles the order's
+    // shippingCents from whatever Stripe actually charged (webhook.service.ts),
+    // so nothing downstream needs to change.
+    //
+    // Only correct for a single-zone, all-countries-in-one-zone store — a rate
+    // whose zone doesn't cover the country the customer types in would still show
+    // as a selectable option. No current store has more than one zone; revisit
+    // this once one does.
+    let shippingOptions: Stripe.Checkout.SessionCreateParams.ShippingOption[] = [];
     if (order.shippingRateId) {
       const [rate] = await this.db
         .select({
@@ -113,21 +147,31 @@ export class IntentService {
         .where(eq(shippingRatesTable.id, order.shippingRateId));
 
       if (rate) {
-        shippingOption = {
-          shipping_rate_data: {
-            type: "fixed_amount",
-            fixed_amount: { amount: order.shippingCents, currency: order.currency },
-            display_name: rate.name,
-            ...(rate.estimatedDays
-              ? {
-                  delivery_estimate: {
-                    maximum: { unit: "business_day", value: rate.estimatedDays },
-                  },
-                }
-              : {}),
-          },
-        };
+        shippingOptions = [
+          toShippingOption(rate.name, order.shippingCents, order.currency, rate.estimatedDays),
+        ];
       }
+    } else {
+      const rates = await this.db
+        .select({
+          name: shippingRatesTable.name,
+          rateCents: shippingRatesTable.rateCents,
+          minOrderCents: shippingRatesTable.minOrderCents,
+          estimatedDays: shippingRatesTable.estimatedDays,
+        })
+        .from(shippingRatesTable)
+        .innerJoin(shippingZonesTable, eq(shippingRatesTable.zoneId, shippingZonesTable.id))
+        .where(eq(shippingZonesTable.storeId, order.storeId));
+
+      shippingOptions = rates.map((rate) => {
+        const free = rate.minOrderCents !== null && order.subtotalCents >= rate.minOrderCents;
+        return toShippingOption(
+          rate.name,
+          free ? 0 : rate.rateCents,
+          order.currency,
+          rate.estimatedDays,
+        );
+      });
     }
 
     // Look up Stripe Customer for pre-fill if this is an authenticated user
@@ -165,7 +209,7 @@ export class IntentService {
         // one either, and the order is left with no shipping address anywhere, ever.
         // US-only for now; no store has configured shipping zones outside it yet.
         shipping_address_collection: { allowed_countries: ["US"] },
-        ...(shippingOption ? { shipping_options: [shippingOption] } : {}),
+        ...(shippingOptions.length > 0 ? { shipping_options: shippingOptions } : {}),
         ...discountParams,
         line_items: items.map((item) => ({
           price_data: {

@@ -99,7 +99,9 @@ describe("IntentService", () => {
     it("creates a Stripe Checkout Session and returns checkoutUrl", async () => {
       db.query.ordersTable.findFirst.mockResolvedValue(mockOrder);
       db.query.storesTable.findFirst.mockResolvedValue(mockStore);
-      db.select.mockReturnValue(selectChain(mockOrderItems));
+      db.select
+        .mockReturnValueOnce(selectChain(mockOrderItems))
+        .mockReturnValueOnce(selectChainWithJoin([]));
       db.update.mockReturnValue(updateChain());
 
       const result = await service.createIntent(ORDER_ID, SUCCESS_URL, CANCEL_URL);
@@ -147,7 +149,9 @@ describe("IntentService", () => {
     it("wraps Stripe API errors in RpcException", async () => {
       db.query.ordersTable.findFirst.mockResolvedValue(mockOrder);
       db.query.storesTable.findFirst.mockResolvedValue(mockStore);
-      db.select.mockReturnValue(selectChain(mockOrderItems));
+      db.select
+        .mockReturnValueOnce(selectChain(mockOrderItems))
+        .mockReturnValueOnce(selectChainWithJoin([]));
       mockSessionsCreate.mockRejectedValue(new Error("Your card was declined"));
 
       await expect(service.createIntent(ORDER_ID, SUCCESS_URL, CANCEL_URL)).rejects.toThrow(
@@ -183,10 +187,12 @@ describe("IntentService", () => {
       );
     });
 
-    it("omits shipping_options when order has no shipping rate", async () => {
+    it("omits shipping_options when the store has no shipping rates configured", async () => {
       db.query.ordersTable.findFirst.mockResolvedValue(mockOrder);
       db.query.storesTable.findFirst.mockResolvedValue(mockStore);
-      db.select.mockReturnValue(selectChain(mockOrderItems));
+      db.select
+        .mockReturnValueOnce(selectChain(mockOrderItems))
+        .mockReturnValueOnce(selectChainWithJoin([]));
       db.update.mockReturnValue(updateChain());
 
       await service.createIntent(ORDER_ID, SUCCESS_URL, CANCEL_URL);
@@ -195,10 +201,84 @@ describe("IntentService", () => {
       expect(callArgs.shipping_options).toBeUndefined();
     });
 
+    it("offers every configured rate as a shipping option when no rate is pre-resolved", async () => {
+      // The normal case: no storefront collects a country before checkout, so
+      // there's never a pre-resolved order.shippingRateId. Stripe's own hosted
+      // page collects the country and lets the customer pick from these.
+      const rates = [
+        { name: "Standard", rateCents: 595, minOrderCents: null, estimatedDays: null },
+        { name: "Express", rateCents: 1500, minOrderCents: null, estimatedDays: 2 },
+      ];
+      db.query.ordersTable.findFirst.mockResolvedValue(mockOrder);
+      db.query.storesTable.findFirst.mockResolvedValue(mockStore);
+      db.select
+        .mockReturnValueOnce(selectChain(mockOrderItems))
+        .mockReturnValueOnce(selectChainWithJoin(rates));
+      db.update.mockReturnValue(updateChain());
+
+      await service.createIntent(ORDER_ID, SUCCESS_URL, CANCEL_URL);
+
+      const callArgs = mockSessionsCreate.mock.calls[0][0];
+      expect(callArgs.shipping_options).toHaveLength(2);
+      expect(callArgs.shipping_options[0].shipping_rate_data).toMatchObject({
+        display_name: "Standard",
+        fixed_amount: { amount: 595, currency: "usd" },
+      });
+      expect(callArgs.shipping_options[1].shipping_rate_data).toMatchObject({
+        display_name: "Express",
+        fixed_amount: { amount: 1500, currency: "usd" },
+        delivery_estimate: { maximum: { unit: "business_day", value: 2 } },
+      });
+    });
+
+    it("prices a rate at 0 when the order subtotal meets its free-shipping threshold", async () => {
+      const orderOverThreshold = { ...mockOrder, subtotalCents: 6000 };
+      const rates = [
+        { name: "Standard", rateCents: 595, minOrderCents: 5000, estimatedDays: null },
+      ];
+      db.query.ordersTable.findFirst.mockResolvedValue(orderOverThreshold);
+      db.query.storesTable.findFirst.mockResolvedValue(mockStore);
+      db.select
+        .mockReturnValueOnce(selectChain(mockOrderItems))
+        .mockReturnValueOnce(selectChainWithJoin(rates));
+      db.update.mockReturnValue(updateChain());
+
+      await service.createIntent(ORDER_ID, SUCCESS_URL, CANCEL_URL);
+
+      const callArgs = mockSessionsCreate.mock.calls[0][0];
+      expect(callArgs.shipping_options[0].shipping_rate_data.fixed_amount).toEqual({
+        amount: 0,
+        currency: "usd",
+      });
+    });
+
+    it("charges the full rate when the order subtotal is under the free-shipping threshold", async () => {
+      const orderUnderThreshold = { ...mockOrder, subtotalCents: 4000 };
+      const rates = [
+        { name: "Standard", rateCents: 595, minOrderCents: 5000, estimatedDays: null },
+      ];
+      db.query.ordersTable.findFirst.mockResolvedValue(orderUnderThreshold);
+      db.query.storesTable.findFirst.mockResolvedValue(mockStore);
+      db.select
+        .mockReturnValueOnce(selectChain(mockOrderItems))
+        .mockReturnValueOnce(selectChainWithJoin(rates));
+      db.update.mockReturnValue(updateChain());
+
+      await service.createIntent(ORDER_ID, SUCCESS_URL, CANCEL_URL);
+
+      const callArgs = mockSessionsCreate.mock.calls[0][0];
+      expect(callArgs.shipping_options[0].shipping_rate_data.fixed_amount).toEqual({
+        amount: 595,
+        currency: "usd",
+      });
+    });
+
     it("puts the street on the PaymentIntent, never in our DB", async () => {
       db.query.ordersTable.findFirst.mockResolvedValue(mockOrder);
       db.query.storesTable.findFirst.mockResolvedValue(mockStore);
-      db.select.mockReturnValue(selectChain(mockOrderItems));
+      db.select
+        .mockReturnValueOnce(selectChain(mockOrderItems))
+        .mockReturnValueOnce(selectChainWithJoin([]));
       db.update.mockReturnValue(updateChain());
 
       await service.createIntent(ORDER_ID, SUCCESS_URL, CANCEL_URL, undefined, null, {
@@ -228,7 +308,9 @@ describe("IntentService", () => {
     it("omits shipping when there is no line1 — Stripe rejects a partial address", async () => {
       db.query.ordersTable.findFirst.mockResolvedValue(mockOrder);
       db.query.storesTable.findFirst.mockResolvedValue(mockStore);
-      db.select.mockReturnValue(selectChain(mockOrderItems));
+      db.select
+        .mockReturnValueOnce(selectChain(mockOrderItems))
+        .mockReturnValueOnce(selectChainWithJoin([]));
       db.update.mockReturnValue(updateChain());
 
       await service.createIntent(ORDER_ID, SUCCESS_URL, CANCEL_URL, undefined, null, {
@@ -242,7 +324,9 @@ describe("IntentService", () => {
     it("omits shipping entirely when the caller passes none (legacy callers)", async () => {
       db.query.ordersTable.findFirst.mockResolvedValue(mockOrder);
       db.query.storesTable.findFirst.mockResolvedValue(mockStore);
-      db.select.mockReturnValue(selectChain(mockOrderItems));
+      db.select
+        .mockReturnValueOnce(selectChain(mockOrderItems))
+        .mockReturnValueOnce(selectChainWithJoin([]));
       db.update.mockReturnValue(updateChain());
 
       await service.createIntent(ORDER_ID, SUCCESS_URL, CANCEL_URL);
@@ -256,7 +340,9 @@ describe("IntentService", () => {
       // shipping address is ever captured anywhere, for any order.
       db.query.ordersTable.findFirst.mockResolvedValue(mockOrder);
       db.query.storesTable.findFirst.mockResolvedValue(mockStore);
-      db.select.mockReturnValue(selectChain(mockOrderItems));
+      db.select
+        .mockReturnValueOnce(selectChain(mockOrderItems))
+        .mockReturnValueOnce(selectChainWithJoin([]));
       db.update.mockReturnValue(updateChain());
 
       await service.createIntent(ORDER_ID, SUCCESS_URL, CANCEL_URL);
