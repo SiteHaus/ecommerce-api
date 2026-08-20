@@ -48,11 +48,15 @@ describe("InventoryHandlerService", () => {
   let mockSelectFn: jest.Mock;
   let mockVariantFindFirst: jest.Mock;
   let mockAuditLog: jest.Mock;
+  let mockWebhooksAdd: jest.Mock;
+  let mockNotificationsAdd: jest.Mock;
 
   beforeEach(async () => {
     mockSelectFn = jest.fn();
     mockVariantFindFirst = jest.fn();
     mockAuditLog = jest.fn().mockResolvedValue(undefined);
+    mockWebhooksAdd = jest.fn().mockResolvedValue(undefined);
+    mockNotificationsAdd = jest.fn().mockResolvedValue(undefined);
 
     const mockDb = {
       select: mockSelectFn,
@@ -69,7 +73,8 @@ describe("InventoryHandlerService", () => {
         InventoryHandlerService,
         { provide: DB_TOKEN, useValue: mockDb },
         { provide: AuditService, useValue: { log: mockAuditLog } },
-        { provide: getQueueToken("ecom-webhooks"), useValue: { add: jest.fn() } },
+        { provide: getQueueToken("ecom-webhooks"), useValue: { add: mockWebhooksAdd } },
+        { provide: getQueueToken("ecom-notifications"), useValue: { add: mockNotificationsAdd } },
       ],
     }).compile();
 
@@ -227,6 +232,63 @@ describe("InventoryHandlerService", () => {
       const result = await service.adjust(VARIANT_ID, STORE_ID, { stock: 50 });
 
       expect(result.reservationTtlMinutes).toBe(15);
+    });
+
+    // ─── low-stock dispatch (SIT-260) ─────────────────────────────────────────
+
+    it("dispatches both the webhook and the merchant notification when available drops to the threshold", async () => {
+      const updatedRow = { ...invRow, stock: 15, reserved: 10, lowStockThreshold: 5 };
+      mockSelectFn
+        .mockReturnValueOnce(selectChain([invRow]))
+        .mockReturnValueOnce(selectChain([storeRow]));
+      (service as any).db.update = jest.fn().mockReturnValue(updateChain([updatedRow]));
+
+      await service.adjust(VARIANT_ID, STORE_ID, { stock: 15 });
+
+      // available = 15 - 10 = 5, equal to the threshold
+      expect(mockWebhooksAdd).toHaveBeenCalledWith(
+        "webhook.dispatch",
+        expect.objectContaining({ storeId: STORE_ID, event: "inventory.low" }),
+      );
+      expect(mockNotificationsAdd).toHaveBeenCalledWith(
+        "inventory.low",
+        {
+          storeId: STORE_ID,
+          variantId: VARIANT_ID,
+          stock: 15,
+          reserved: 10,
+          available: 5,
+          lowStockThreshold: 5,
+        },
+        expect.objectContaining({ attempts: 3 }),
+      );
+    });
+
+    it("dispatches neither when available stays above the threshold", async () => {
+      const updatedRow = { ...invRow, stock: 200, reserved: 10, lowStockThreshold: 5 };
+      mockSelectFn
+        .mockReturnValueOnce(selectChain([invRow]))
+        .mockReturnValueOnce(selectChain([storeRow]));
+      (service as any).db.update = jest.fn().mockReturnValue(updateChain([updatedRow]));
+
+      await service.adjust(VARIANT_ID, STORE_ID, { stock: 200 });
+
+      expect(mockWebhooksAdd).not.toHaveBeenCalled();
+      expect(mockNotificationsAdd).not.toHaveBeenCalled();
+    });
+
+    it("dispatches neither on an allowBackorder-only update, even if stock is already low", async () => {
+      // Mirrors the existing webhook condition exactly: gated on data.stock !== undefined.
+      const updatedRow = { ...invRow, stock: 2, reserved: 0, lowStockThreshold: 5 };
+      mockSelectFn
+        .mockReturnValueOnce(selectChain([invRow]))
+        .mockReturnValueOnce(selectChain([storeRow]));
+      (service as any).db.update = jest.fn().mockReturnValue(updateChain([updatedRow]));
+
+      await service.adjust(VARIANT_ID, STORE_ID, { allowBackorder: true });
+
+      expect(mockWebhooksAdd).not.toHaveBeenCalled();
+      expect(mockNotificationsAdd).not.toHaveBeenCalled();
     });
   });
 });

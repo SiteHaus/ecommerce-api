@@ -12,6 +12,7 @@ import { handleOrderRefunded } from "./handlers/order-refunded.handler";
 import { handleReturnRequested } from "./handlers/return-requested.handler";
 import { handleReturnRefunded } from "./handlers/return-refunded.handler";
 import { handleAbandonedCart } from "./handlers/abandoned-cart.handler";
+import { handleLowStock } from "./handlers/low-stock.handler";
 
 @Injectable()
 @Processor("ecom-notifications")
@@ -46,6 +47,8 @@ export class NotificationsProcessor extends WorkerHost {
         return handleReturnRefunded(job, this.ctx);
       case "cart.abandoned":
         return handleAbandonedCart(job, this.ctx);
+      case "inventory.low":
+        return handleLowStock(job, this.ctx);
       default:
         this.logger.warn(`Unhandled notification job: ${job.name}`);
     }
