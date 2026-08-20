@@ -40,6 +40,27 @@ services:
           cpus: "0.25"
           memory: 256M
 
+  # One-shot Drizzle migration runner. Not part of `up` (profile-gated) — CD runs
+  # `docker compose run --rm migrate` after postgres is healthy and before the
+  # apps start. Mirrors the working pattern in the sitehaus repo's compose files.
+  migrate:
+    profiles: ["migrate"]
+    image: node:20-alpine
+    restart: "no"
+    working_dir: /repo/packages/database
+    volumes:
+      - ./:/repo
+    env_file:
+      - ./apps/commerce/.env
+    networks:
+      - sitehaus-commerce-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    entrypoint: ["sh", "-c"]
+    command:
+      - "corepack enable && corepack prepare pnpm@10.14.0 --activate && pnpm install --filter @sitehaus-ecom/database... --frozen-lockfile && pnpm --filter @sitehaus-ecom/database db:migrate"
+
   gateway:
     image: ghcr.io/sitehaus/sitehaus-commerce-gateway:${IMAGE_TAG:-latest}
     restart: always
