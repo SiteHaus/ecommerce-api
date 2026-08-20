@@ -24,6 +24,7 @@ export class InventoryHandlerService {
     @Inject(DB_TOKEN) private readonly db: Db,
     private readonly audit: AuditService,
     @InjectQueue("ecom-webhooks") private readonly webhooksQueue: Queue,
+    @InjectQueue("ecom-notifications") private readonly notificationsQueue: Queue,
   ) {}
 
   async get(variantId: string, storeId: string) {
@@ -111,6 +112,22 @@ export class InventoryHandlerService {
         event: "inventory.low",
         data: { variantId, stock: updated.stock, reserved: updated.reserved, available },
       });
+      // Fires on every manual adjustment that leaves stock at/below the threshold,
+      // same as the webhook dispatch above — adjust() is an explicit admin action,
+      // not a hot path, so a merchant re-touching already-low stock getting
+      // reminded again is fine rather than something to suppress.
+      void this.notificationsQueue.add(
+        "inventory.low",
+        {
+          storeId,
+          variantId,
+          stock: updated.stock,
+          reserved: updated.reserved,
+          available,
+          lowStockThreshold: updated.lowStockThreshold,
+        },
+        { attempts: 3, backoff: { type: "exponential", delay: 5000 } },
+      );
     }
 
     return {

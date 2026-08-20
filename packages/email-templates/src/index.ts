@@ -1,4 +1,5 @@
 export { default as AbandonedCart } from "./emails/abandoned-cart";
+export { default as LowStock } from "./emails/low-stock";
 export { default as OrderConfirmed } from "./emails/order-confirmed";
 export { default as OrderDelivered } from "./emails/order-delivered";
 export { default as OrderShipped } from "./emails/order-shipped";
