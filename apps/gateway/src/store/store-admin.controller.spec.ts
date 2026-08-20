@@ -116,6 +116,29 @@ describe("StoreAdminController", () => {
       expect(mockPaymentsClient.send).toHaveBeenCalledWith("stripe.connect.initiate", {
         storeId: mockStore.id,
         stripeAccountId: null,
+        detailsSubmitted: false,
+        returnUrl: "https://example.com/return",
+      });
+    });
+
+    it("forwards detailsSubmitted: true for an already-onboarded store (SIT-259)", async () => {
+      currentStore = {
+        ...mockStore,
+        stripeAccountId: "acct_existing_123",
+        stripeDetailsSubmitted: true,
+      };
+      mockPaymentsClient.send.mockReturnValue(
+        of({ url: "https://connect.stripe.com/express/abc123" }),
+      );
+
+      await request(app.getHttpServer())
+        .post("/v1/admin/stores/connect-stripe")
+        .send({ returnUrl: "https://example.com/return" });
+
+      expect(mockPaymentsClient.send).toHaveBeenCalledWith("stripe.connect.initiate", {
+        storeId: mockStore.id,
+        stripeAccountId: "acct_existing_123",
+        detailsSubmitted: true,
         returnUrl: "https://example.com/return",
       });
     });
