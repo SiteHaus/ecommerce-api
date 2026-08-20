@@ -48,6 +48,7 @@ export class ConnectService {
   async initiateConnect(
     storeId: string,
     existingAccountId: string | null,
+    detailsSubmitted: boolean,
     returnUrl: string,
   ): Promise<{ url: string }> {
     try {
@@ -60,6 +61,15 @@ export class ConnectService {
           .update(storesTable)
           .set({ stripeAccountId: accountId })
           .where(eq(storesTable.id, storeId));
+      }
+
+      // An already-onboarded account has nothing left to complete — an
+      // account_onboarding link either bounces it straight back via return_url
+      // or re-shows a review screen, neither of which is "see your balance."
+      // Give it a real Express dashboard login link instead.
+      if (accountId === existingAccountId && detailsSubmitted) {
+        const loginLink = await this.stripe.accounts.createLoginLink(accountId);
+        return { url: loginLink.url };
       }
 
       const link = await this.stripe.accountLinks.create({

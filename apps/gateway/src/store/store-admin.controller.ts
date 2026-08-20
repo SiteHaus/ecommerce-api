@@ -102,6 +102,7 @@ export class StoreAdminController {
         this.paymentsClient.send<{ url: string }>("stripe.connect.initiate", {
           storeId: store.id,
           stripeAccountId: store.stripeAccountId,
+          detailsSubmitted: store.stripeDetailsSubmitted,
           returnUrl: body.returnUrl,
         }),
       );

@@ -28,12 +28,14 @@ describe("ConnectHandler", () => {
     await handler.initiateConnect({
       storeId: "store-1",
       stripeAccountId: "acct_123",
+      detailsSubmitted: false,
       returnUrl: "https://example.com/return",
     });
 
     expect(mockConnectService.initiateConnect).toHaveBeenCalledWith(
       "store-1",
       "acct_123",
+      false,
       "https://example.com/return",
     );
   });
@@ -46,12 +48,34 @@ describe("ConnectHandler", () => {
     await handler.initiateConnect({
       storeId: "store-1",
       stripeAccountId: null,
+      detailsSubmitted: false,
       returnUrl: "https://example.com/return",
     });
 
     expect(mockConnectService.initiateConnect).toHaveBeenCalledWith(
       "store-1",
       null,
+      false,
+      "https://example.com/return",
+    );
+  });
+
+  it("passes detailsSubmitted through correctly", async () => {
+    mockConnectService.initiateConnect.mockResolvedValue({
+      url: "https://connect.stripe.com/express/abc",
+    });
+
+    await handler.initiateConnect({
+      storeId: "store-1",
+      stripeAccountId: "acct_123",
+      detailsSubmitted: true,
+      returnUrl: "https://example.com/return",
+    });
+
+    expect(mockConnectService.initiateConnect).toHaveBeenCalledWith(
+      "store-1",
+      "acct_123",
+      true,
       "https://example.com/return",
     );
   });
@@ -63,6 +87,7 @@ describe("ConnectHandler", () => {
     const result = await handler.initiateConnect({
       storeId: "store-1",
       stripeAccountId: null,
+      detailsSubmitted: false,
       returnUrl: "https://example.com/return",
     });
 

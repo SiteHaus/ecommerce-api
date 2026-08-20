@@ -17,12 +17,14 @@ export class ConnectHandler {
     payload: {
       storeId: string;
       stripeAccountId: string | null;
+      detailsSubmitted: boolean;
       returnUrl: string;
     },
   ) {
     return this.connectService.initiateConnect(
       payload.storeId,
       payload.stripeAccountId,
+      payload.detailsSubmitted,
       payload.returnUrl,
     );
   }
