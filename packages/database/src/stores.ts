@@ -39,6 +39,24 @@ export const storesTable = pgTable(
     reservationTtlMinutes: integer("reservation_ttl_minutes").notNull().default(15),
     fulfillmentType: fulfillmentTypeEnum("fulfillment_type").notNull().default("shipping"),
     taxRegistrationConfirmed: boolean("tax_registration_confirmed").notNull().default(false),
+    // EasyPost — provisioned lazily on first label purchase, never a prerequisite.
+    easypostChildUserId: text("easypost_child_user_id"),
+    // Comes back directly from the EasyPost parent-account API call (no OAuth
+    // redirect, unlike Stripe Connect) — must be stored, not just referenced.
+    easypostChildApiKey: text("easypost_child_api_key"),
+    // Cached from apps/api's GET /v1/clients/:clientId/billing/stripe-customer —
+    // the same Stripe customer already used for Dashboard billing.
+    stripeBillingCustomerId: text("stripe_billing_customer_id"),
+    // Ship-from address. Plain columns, not an EasyPost reference — this is the
+    // store's own business address, not customer PII, so there's no minimization
+    // reason to indirect it through a third party.
+    originName: text("origin_name"),
+    originLine1: text("origin_line1"),
+    originLine2: text("origin_line2"),
+    originCity: text("origin_city"),
+    originState: text("origin_state"),
+    originZip: text("origin_zip"),
+    originCountry: varchar("origin_country", { length: 2 }),
     isActive: boolean("is_active").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
