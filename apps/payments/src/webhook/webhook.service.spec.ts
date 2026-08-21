@@ -251,6 +251,76 @@ describe("WebhookService", () => {
       expect(setCall.taxCents).toBe(0);
     });
 
+    it("reconciles shippingName/City/State/Zip/Country from session.shipping_details", async () => {
+      db.query.ordersTable.findFirst.mockResolvedValue(mockOrder);
+      mockUpdateFn.mockReturnValue(updateChain());
+      mockDeleteFn.mockReturnValue(deleteChain());
+
+      await service.handle({
+        type: "checkout.session.completed",
+        data: {
+          object: makeSession({
+            shipping_details: {
+              name: "Ada Lovelace",
+              address: {
+                city: "Roy",
+                state: "UT",
+                postal_code: "84067",
+                country: "US",
+              },
+            },
+          } as any),
+        },
+      } as any);
+
+      const setCall = mockUpdateFn.mock.results[0].value.set.mock.calls[0][0];
+      expect(setCall.shippingName).toBe("Ada Lovelace");
+      expect(setCall.shippingCity).toBe("Roy");
+      expect(setCall.shippingState).toBe("UT");
+      expect(setCall.shippingZip).toBe("84067");
+      expect(setCall.shippingCountry).toBe("US");
+    });
+
+    it("never writes shippingLine1/Line2 — the street stays off our DB even with shipping_details present", async () => {
+      db.query.ordersTable.findFirst.mockResolvedValue(mockOrder);
+      mockUpdateFn.mockReturnValue(updateChain());
+      mockDeleteFn.mockReturnValue(deleteChain());
+
+      await service.handle({
+        type: "checkout.session.completed",
+        data: {
+          object: makeSession({
+            shipping_details: {
+              name: "Ada Lovelace",
+              address: { line1: "12 Baker St", city: "Roy", state: "UT", postal_code: "84067" },
+            } as any,
+          }),
+        },
+      } as any);
+
+      const setCall = mockUpdateFn.mock.results[0].value.set.mock.calls[0][0];
+      expect(setCall.shippingLine1).toBeUndefined();
+      expect(setCall.shippingLine2).toBeUndefined();
+    });
+
+    it("leaves shipping name/city/state/zip/country out of the update when shipping_details is absent", async () => {
+      db.query.ordersTable.findFirst.mockResolvedValue(mockOrder);
+      mockUpdateFn.mockReturnValue(updateChain());
+      mockDeleteFn.mockReturnValue(deleteChain());
+
+      await service.handle({
+        type: "checkout.session.completed",
+        data: { object: makeSession({ shipping_details: null as any }) },
+      } as any);
+
+      const setCall = mockUpdateFn.mock.results[0].value.set.mock.calls[0][0];
+      expect(setCall.shippingName).toBeUndefined();
+      expect(setCall.shippingCity).toBeUndefined();
+      expect(setCall.shippingState).toBeUndefined();
+      expect(setCall.shippingZip).toBeUndefined();
+      expect(setCall.shippingCountry).toBeUndefined();
+    });
+
     it("enqueues order.confirmed notification job", async () => {
       db.query.ordersTable.findFirst.mockResolvedValue(mockOrder);
       mockUpdateFn.mockReturnValue(updateChain());
