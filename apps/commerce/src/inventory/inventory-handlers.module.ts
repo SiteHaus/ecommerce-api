@@ -7,7 +7,10 @@ import { ReservationHandler } from "./reservation.handler";
 import { ReservationService } from "./reservation.service";
 
 @Module({
-  imports: [AuditModule, BullModule.registerQueue({ name: "ecom-webhooks" })],
+  imports: [
+    AuditModule,
+    BullModule.registerQueue({ name: "ecom-webhooks" }, { name: "ecom-notifications" }),
+  ],
   controllers: [ReservationHandler, InventoryHandlerController],
   providers: [ReservationService, InventoryHandlerService],
   exports: [ReservationService],
