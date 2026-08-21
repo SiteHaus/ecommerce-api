@@ -17,8 +17,8 @@ export const ShippingRateItem = z.object({
   id: z.string(),
   name: z.string(),
   rateCents: z.number(),
-  minOrderCents: z.number().optional(),
-  estimatedDays: z.number().optional(),
+  minOrderCents: z.number().nullable().optional(),
+  estimatedDays: z.number().nullable().optional(),
 });
 export const ShippingZoneItem = z.object({
   id: z.uuid(),
