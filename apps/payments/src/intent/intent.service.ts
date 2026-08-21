@@ -75,6 +75,8 @@ export class IntentService {
         stripeAccountId: true,
         stripeChargesEnabled: true,
         currency: true,
+        fulfillmentType: true,
+        taxRegistrationConfirmed: true,
       },
     });
 
@@ -113,6 +115,22 @@ export class IntentService {
       throw new RpcException({
         status: 400,
         message: "Store payment processing is not configured",
+      });
+    }
+
+    if (store.fulfillmentType === "shipping") {
+      const zone = await this.db.query.shippingZonesTable.findFirst({
+        where: eq(shippingZonesTable.storeId, order.storeId),
+      });
+      if (!zone) {
+        throw new RpcException({ status: 400, message: "Store shipping is not configured" });
+      }
+    }
+
+    if (!store.taxRegistrationConfirmed) {
+      throw new RpcException({
+        status: 400,
+        message: "Store tax registration has not been confirmed",
       });
     }
 

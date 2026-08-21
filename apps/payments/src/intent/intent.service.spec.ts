@@ -24,6 +24,8 @@ const mockStore = {
   stripeAccountId: STRIPE_ACCOUNT_ID,
   stripeChargesEnabled: true,
   currency: "usd",
+  fulfillmentType: "shipping" as const,
+  taxRegistrationConfirmed: true,
 };
 
 const mockSession = {
@@ -80,6 +82,7 @@ describe("IntentService", () => {
       query: {
         ordersTable: { findFirst: jest.fn() },
         storesTable: { findFirst: jest.fn() },
+        shippingZonesTable: { findFirst: jest.fn().mockResolvedValue({ id: "zone-1" }) },
       },
       select: jest.fn(),
       update: jest.fn(),
@@ -144,6 +147,55 @@ describe("IntentService", () => {
       await expect(service.createIntent(ORDER_ID, SUCCESS_URL, CANCEL_URL)).rejects.toThrow(
         RpcException,
       );
+    });
+
+    it("throws RpcException when a shipping-fulfillment store has zero shipping zones", async () => {
+      db.query.ordersTable.findFirst.mockResolvedValue(mockOrder);
+      db.query.storesTable.findFirst.mockResolvedValue(mockStore);
+      db.query.shippingZonesTable.findFirst.mockResolvedValue(undefined);
+
+      await expect(service.createIntent(ORDER_ID, SUCCESS_URL, CANCEL_URL)).rejects.toThrow(
+        RpcException,
+      );
+    });
+
+    it("does not check shipping zones for a pickup-fulfillment store", async () => {
+      db.query.ordersTable.findFirst.mockResolvedValue(mockOrder);
+      db.query.storesTable.findFirst.mockResolvedValue({ ...mockStore, fulfillmentType: "pickup" });
+      db.query.shippingZonesTable.findFirst.mockResolvedValue(undefined);
+      db.select
+        .mockReturnValueOnce(selectChain(mockOrderItems))
+        .mockReturnValueOnce(selectChainWithJoin([]));
+      db.update.mockReturnValue(updateChain());
+
+      await service.createIntent(ORDER_ID, SUCCESS_URL, CANCEL_URL);
+
+      expect(db.query.shippingZonesTable.findFirst).not.toHaveBeenCalled();
+    });
+
+    it("throws RpcException when tax registration has not been confirmed", async () => {
+      db.query.ordersTable.findFirst.mockResolvedValue(mockOrder);
+      db.query.storesTable.findFirst.mockResolvedValue({
+        ...mockStore,
+        taxRegistrationConfirmed: false,
+      });
+
+      await expect(service.createIntent(ORDER_ID, SUCCESS_URL, CANCEL_URL)).rejects.toThrow(
+        RpcException,
+      );
+    });
+
+    it("succeeds for a shipping store with a configured zone and confirmed tax status", async () => {
+      db.query.ordersTable.findFirst.mockResolvedValue(mockOrder);
+      db.query.storesTable.findFirst.mockResolvedValue(mockStore);
+      db.select
+        .mockReturnValueOnce(selectChain(mockOrderItems))
+        .mockReturnValueOnce(selectChainWithJoin([]));
+      db.update.mockReturnValue(updateChain());
+
+      const result = await service.createIntent(ORDER_ID, SUCCESS_URL, CANCEL_URL);
+
+      expect(result.checkoutUrl).toBe(CHECKOUT_URL);
     });
 
     it("wraps Stripe API errors in RpcException", async () => {

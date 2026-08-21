@@ -132,6 +132,9 @@ export class StoreService {
           reservationTtlMinutes: dto.reservationTtlMinutes,
         }),
         ...(dto.fulfillmentType !== undefined && { fulfillmentType: dto.fulfillmentType }),
+        ...(dto.taxRegistrationConfirmed !== undefined && {
+          taxRegistrationConfirmed: dto.taxRegistrationConfirmed,
+        }),
       })
       .where(eq(storesTable.id, storeId))
       .returning();
@@ -161,5 +164,6 @@ function toContext(row: typeof storesTable.$inferSelect): ResolvedStore {
     stripeDetailsSubmitted: row.stripeDetailsSubmitted,
     reservationTtlMinutes: row.reservationTtlMinutes,
     fulfillmentType: row.fulfillmentType,
+    taxRegistrationConfirmed: row.taxRegistrationConfirmed,
   };
 }

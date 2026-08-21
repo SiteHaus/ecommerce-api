@@ -35,6 +35,7 @@ export const updateStoreSchema = z.object({
   notificationPreferences: notificationPreferencesSchema.optional(),
   reservationTtlMinutes: z.number().int().min(5).max(60).optional(),
   fulfillmentType: z.enum(["shipping", "pickup"]).optional(),
+  taxRegistrationConfirmed: z.boolean().optional(),
 });
 
 export const storeItem = z.object({
@@ -51,6 +52,7 @@ export const storeItem = z.object({
   stripeDetailsSubmitted: z.boolean(),
   reservationTtlMinutes: z.number(),
   fulfillmentType: z.enum(["shipping", "pickup"]),
+  taxRegistrationConfirmed: z.boolean(),
 });
 
 export const connectStripeSchema = z.object({
