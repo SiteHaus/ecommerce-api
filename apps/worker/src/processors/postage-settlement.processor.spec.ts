@@ -1,3 +1,4 @@
+import { of } from "rxjs";
 import { PostageSettlementProcessor } from "./postage-settlement.processor";
 
 function makeDb(pendingByStore: Record<string, number>) {
@@ -28,9 +29,7 @@ describe("PostageSettlementProcessor", () => {
   it("settles a store whose unsettled balance has crossed $50", async () => {
     const db = makeDb({ "store-1": 5200 });
     const payments = {
-      send: jest.fn().mockReturnValue({
-        toPromise: () => Promise.resolve({ success: true, paymentIntentId: "pi_1" }),
-      }),
+      send: jest.fn().mockReturnValue(of({ success: true, paymentIntentId: "pi_1" })),
     };
     const processor = new PostageSettlementProcessor(db as any, payments as any);
 
@@ -58,9 +57,7 @@ describe("PostageSettlementProcessor", () => {
   it("leaves ledger rows untouched when the charge fails", async () => {
     const db = makeDb({ "store-1": 5200 });
     const payments = {
-      send: jest.fn().mockReturnValue({
-        toPromise: () => Promise.resolve({ success: false, reason: "card declined" }),
-      }),
+      send: jest.fn().mockReturnValue(of({ success: false, reason: "card declined" })),
     };
     const processor = new PostageSettlementProcessor(db as any, payments as any);
 

@@ -2,6 +2,7 @@ import { Processor, WorkerHost } from "@nestjs/bullmq";
 import { Inject, Logger } from "@nestjs/common";
 import { ClientProxy } from "@nestjs/microservices";
 import { Job } from "bullmq";
+import { firstValueFrom } from "rxjs";
 import { and, eq, sql, postageLedgerTable, storesTable, type Db } from "@sitehaus-ecom/database";
 import { DB_TOKEN } from "@sitehaus-ecom/shared";
 
@@ -54,16 +55,16 @@ export class PostageSettlementProcessor extends WorkerHost {
         continue;
       }
 
-      const result = await this.payments
-        .send<{
+      const result = await firstValueFrom(
+        this.payments.send<{
           success: boolean;
           paymentIntentId?: string;
           reason?: string;
         }>("payments.postage.charge", {
           stripeCustomerId: store.stripeBillingCustomerId,
           amountCents: total,
-        })
-        .toPromise();
+        }),
+      );
 
       if (result?.success) {
         await this.db
