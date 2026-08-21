@@ -6,6 +6,7 @@ import { validatePaymentsEnv } from "./config/env";
 import { ConnectModule } from "./connect/connect.module";
 import { DiscountSyncModule } from "./discounts/discount-sync.module";
 import { IntentModule } from "./intent/intent.module";
+import { PostageBillingModule } from "./postage/postage-billing.module";
 import { RefundModule } from "./refund/refund.module";
 import { ShippingAddressModule } from "./shipping-address/shipping-address.module";
 import { WebhookModule } from "./webhook/webhook.module";
@@ -24,6 +25,7 @@ import { WebhookModule } from "./webhook/webhook.module";
     ConnectModule,
     DiscountSyncModule,
     IntentModule,
+    PostageBillingModule,
     RefundModule,
     ShippingAddressModule,
     WebhookModule,

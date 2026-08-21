@@ -12,6 +12,11 @@ const envSchema = z.object({
   // Stripe — this service is the sole holder of the secret key
   STRIPE_SECRET_KEY: z.string().min(1),
   STRIPE_WEBHOOK_SECRET: z.string().min(1),
+
+  // sitehaus (main repo) apps/api base URL and shared secret — used once per
+  // store to resolve/create the reused SiteHaus billing Stripe customer.
+  API_URL: z.url(),
+  COMMERCE_SERVICE_KEY: z.string().min(1),
 });
 
 export type Env = z.infer<typeof envSchema>;
