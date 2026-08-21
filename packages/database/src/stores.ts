@@ -38,6 +38,7 @@ export const storesTable = pgTable(
     abandonedCartEmailsEnabled: boolean("abandoned_cart_emails_enabled").notNull().default(false),
     reservationTtlMinutes: integer("reservation_ttl_minutes").notNull().default(15),
     fulfillmentType: fulfillmentTypeEnum("fulfillment_type").notNull().default("shipping"),
+    taxRegistrationConfirmed: boolean("tax_registration_confirmed").notNull().default(false),
     isActive: boolean("is_active").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
