@@ -3,7 +3,7 @@ import { Inject, Logger } from "@nestjs/common";
 import { ClientProxy } from "@nestjs/microservices";
 import { Job } from "bullmq";
 import { firstValueFrom } from "rxjs";
-import { and, eq, sql, postageLedgerTable, storesTable, type Db } from "@sitehaus-ecom/database";
+import { eq, inArray, postageLedgerTable, storesTable, type Db } from "@sitehaus-ecom/database";
 import { DB_TOKEN } from "@sitehaus-ecom/shared";
 
 const SETTLEMENT_THRESHOLD_CENTS = 5000;
@@ -30,54 +30,74 @@ export class PostageSettlementProcessor extends WorkerHost {
 
     const monthEnd = isLastDayOfMonth(new Date());
 
-    const balances = await this.db
+    // Fetch individual pending rows (not an aggregate) and group in JS. This is
+    // deliberate, not a missed optimization: settlement later updates by the exact
+    // row IDs captured here, not by a blind re-match on status = "pending" — a
+    // charge that lands for this store between this SELECT and that store's
+    // eventual UPDATE (e.g. a label purchased mid-run) must never be swept into
+    // "settled" without having been part of the amount actually charged to Stripe.
+    const rows = await this.db
       .select({
+        id: postageLedgerTable.id,
         storeId: postageLedgerTable.storeId,
-        // `amountCents` is Postgres `integer`, so `sum()` returns `bigint`, which
-        // node-postgres hands back as a JS string with no custom type parsers
-        // configured. The `::int` cast is what makes this a real number at
-        // runtime (see PostageLedgerService.getBalance for the same pattern).
-        total: sql<number>`sum(${postageLedgerTable.amountCents})::int`,
+        amountCents: postageLedgerTable.amountCents,
       })
       .from(postageLedgerTable)
-      .where(eq(postageLedgerTable.status, "pending"))
-      .groupBy(postageLedgerTable.storeId);
+      .where(eq(postageLedgerTable.status, "pending"));
 
-    for (const { storeId, total } of balances) {
+    const byStore = new Map<string, { total: number; ids: string[] }>();
+    for (const row of rows) {
+      const entry = byStore.get(row.storeId) ?? { total: 0, ids: [] };
+      entry.total += row.amountCents;
+      entry.ids.push(row.id);
+      byStore.set(row.storeId, entry);
+    }
+
+    for (const [storeId, { total, ids }] of byStore) {
       if (total < SETTLEMENT_THRESHOLD_CENTS && !monthEnd) continue;
 
-      const store = await this.db.query.storesTable.findFirst({
-        where: eq(storesTable.id, storeId),
-        columns: { id: true, stripeBillingCustomerId: true },
-      });
-      if (!store?.stripeBillingCustomerId) {
-        this.logger.warn(`Store ${storeId} has pending postage but no billing customer — skipping`);
-        continue;
-      }
-
-      const result = await firstValueFrom(
-        this.payments.send<{
-          success: boolean;
-          paymentIntentId?: string;
-          reason?: string;
-        }>("payments.postage.charge", {
-          stripeCustomerId: store.stripeBillingCustomerId,
-          amountCents: total,
-        }),
-      );
-
-      if (result?.success) {
-        await this.db
-          .update(postageLedgerTable)
-          .set({ status: "settled", settledAt: new Date() })
-          .where(
-            and(eq(postageLedgerTable.storeId, storeId), eq(postageLedgerTable.status, "pending")),
+      try {
+        const store = await this.db.query.storesTable.findFirst({
+          where: eq(storesTable.id, storeId),
+          columns: { id: true, stripeBillingCustomerId: true },
+        });
+        if (!store?.stripeBillingCustomerId) {
+          this.logger.warn(
+            `Store ${storeId} has pending postage but no billing customer — skipping`,
           );
-        this.logger.log(`Settled $${(total / 100).toFixed(2)} postage for store ${storeId}`);
-      } else {
-        // Never credit/settle optimistically — rows stay pending, the hard cap
-        // (Task 5) is what actually blocks further label purchases for this store.
-        this.logger.warn(`Postage settlement failed for store ${storeId}: ${result?.reason}`);
+          continue;
+        }
+
+        const result = await firstValueFrom(
+          this.payments.send<{ success: boolean; paymentIntentId?: string; reason?: string }>(
+            "payments.postage.charge",
+            { stripeCustomerId: store.stripeBillingCustomerId, amountCents: total },
+          ),
+        );
+
+        if (result.success) {
+          // Settle exactly the rows this store's `total` was computed from — never
+          // a fresh status re-match, which would also sweep up anything inserted
+          // since the SELECT above.
+          await this.db
+            .update(postageLedgerTable)
+            .set({ status: "settled", settledAt: new Date() })
+            .where(inArray(postageLedgerTable.id, ids));
+          this.logger.log(`Settled $${(total / 100).toFixed(2)} postage for store ${storeId}`);
+        } else {
+          // Never credit/settle optimistically — rows stay pending, the hard cap
+          // (Task 5) is what actually blocks further label purchases for this store.
+          this.logger.warn(`Postage settlement failed for store ${storeId}: ${result.reason}`);
+        }
+      } catch (err: unknown) {
+        // A persistent per-store failure (bad Stripe customer id, a payments-service
+        // bug specific to this store) must never block every later store in this
+        // run — or every subsequent daily run, indefinitely, since iteration order
+        // isn't guaranteed stable. Isolate each store's attempt; a thrown error
+        // here still leaves that store's rows untouched (pending), same as an
+        // explicit { success: false } result.
+        const reason = err instanceof Error ? err.message : "unknown error";
+        this.logger.warn(`Postage settlement threw for store ${storeId}: ${reason}`);
       }
     }
   }
