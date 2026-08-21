@@ -14,6 +14,8 @@ export * from "./notification-logs.js";
 export * from "./order-discounts.js";
 export * from "./order-items.js";
 export * from "./orders.js";
+export * from "./parcel-presets.js";
+export * from "./postage-ledger.js";
 export * from "./product-images.js";
 export * from "./product-option-values.js";
 export * from "./product-options.js";

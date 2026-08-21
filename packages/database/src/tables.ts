@@ -14,6 +14,12 @@ export { notificationLogsTable } from "./notification-logs.js";
 export { orderDiscountsTable } from "./order-discounts.js";
 export { orderItemsTable } from "./order-items.js";
 export { ordersTable, orderStatusEnum } from "./orders.js";
+export { parcelPresetsTable } from "./parcel-presets.js";
+export {
+  postageLedgerTable,
+  postageLedgerTypeEnum,
+  postageLedgerStatusEnum,
+} from "./postage-ledger.js";
 export { productImagesTable } from "./product-images.js";
 export { productOptionValuesTable } from "./product-option-values.js";
 export { productOptionsTable } from "./product-options.js";
