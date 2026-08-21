@@ -14,6 +14,7 @@
     "test:cov": "jest --coverage --passWithNoTests"
   },
   "dependencies": {
+    "@easypost/api": "^8.9.0",
     "@nestjs/bullmq": "^10.2.3",
     "@nestjs/common": "^11.0.17",
     "@nestjs/config": "^4.0.3",

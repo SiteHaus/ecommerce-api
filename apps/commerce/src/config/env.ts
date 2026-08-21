@@ -22,6 +22,9 @@ const envSchema = z.object({
   // Transactional email via Resend
   RESEND_API_KEY: z.string().min(1),
   EMAIL_FROM: z.email(),
+
+  // EasyPost — platform-level key for child-account provisioning and label purchase
+  EASYPOST_API_KEY: z.string().min(1),
 });
 
 export type Env = z.infer<typeof envSchema>;
