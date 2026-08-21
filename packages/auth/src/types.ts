@@ -17,6 +17,7 @@ export interface ResolvedStore {
   stripeDetailsSubmitted: boolean;
   reservationTtlMinutes: number;
   fulfillmentType: "shipping" | "pickup";
+  taxRegistrationConfirmed: boolean;
 }
 
 export interface StoreContext {
