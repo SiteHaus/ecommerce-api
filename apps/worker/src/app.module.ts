@@ -13,6 +13,7 @@ import { ReturnRefundProcessor } from "./processors/return-refund.processor";
 import { WebhookProcessor } from "./processors/webhook.processor";
 import { AnalyticsRetentionProcessor } from "./processors/analytics-retention.processor";
 import { AddressRedactionProcessor } from "./processors/address-redaction.processor";
+import { PostageSettlementProcessor } from "./processors/postage-settlement.processor";
 import { HeartbeatService } from "./heartbeat/heartbeat.service";
 
 @Module({
@@ -39,6 +40,7 @@ import { HeartbeatService } from "./heartbeat/heartbeat.service";
       { name: "ecom-catalog" },
       { name: "ecom-returns" },
       { name: "ecom-webhooks" },
+      { name: "ecom-postage" },
     ),
 
     // The order emails print the customer's street, which now lives on the Stripe
@@ -70,6 +72,7 @@ import { HeartbeatService } from "./heartbeat/heartbeat.service";
     ReturnRefundProcessor,
     WebhookProcessor,
     AddressRedactionProcessor,
+    PostageSettlementProcessor,
   ],
 })
 export class AppModule {}

@@ -74,6 +74,17 @@ async function bootstrap() {
     },
   );
 
+  const postageQueue = app.get(getQueueToken("ecom-postage"));
+  await postageQueue.add(
+    "postage.settle",
+    {},
+    {
+      repeat: { pattern: "0 5 * * *" }, // daily 5am UTC, after the other daily jobs
+      removeOnComplete: 10,
+      removeOnFail: 20,
+    },
+  );
+
   Logger.log("Repeatable jobs registered", "Bootstrap");
 }
 
