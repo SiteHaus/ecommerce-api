@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import { ConflictException, Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { RpcException } from "@nestjs/microservices";
 import { Inject } from "@nestjs/common";
 import { InjectQueue } from "@nestjs/bullmq";
@@ -21,6 +21,8 @@ import type {
 
 @Injectable()
 export class ReturnsHandlerService {
+  private readonly logger = new Logger(ReturnsHandlerService.name);
+
   constructor(
     @Inject(DB_TOKEN) private readonly db: Db,
     private readonly audit: AuditService,
@@ -217,15 +219,21 @@ export class ReturnsHandlerService {
       targetId: ret.id,
     });
 
-    void this.notificationsQueue.add(
-      "order.return_requested",
-      { orderId: data.orderId, storeId, returnReason: data.reason },
-      {
-        attempts: 3,
-        backoff: { type: "exponential", delay: 5000 },
-        jobId: `order.return_requested:${ret.id}`,
-      },
-    );
+    void this.notificationsQueue
+      .add(
+        "order.return_requested",
+        { orderId: data.orderId, storeId, returnReason: data.reason },
+        {
+          attempts: 3,
+          backoff: { type: "exponential", delay: 5000 },
+          jobId: `order.return_requested-${ret.id}`,
+        },
+      )
+      .catch((err: unknown) =>
+        this.logger.warn(
+          `Failed to enqueue order.return_requested notification for ${ret.id}: ${err instanceof Error ? err.message : String(err)}`,
+        ),
+      );
 
     return this.getReturn(storeId, ret.id);
   }
@@ -324,15 +332,21 @@ export class ReturnsHandlerService {
     // Once the items are physically received, issue the Stripe refund. The
     // ReturnRefundProcessor sets status → refunded and fires the customer email.
     // jobId dedupes so a double "mark received" can't refund twice.
-    void this.returnsQueue.add(
-      "return.process-refund",
-      { returnId: id, storeId },
-      {
-        attempts: 3,
-        backoff: { type: "exponential", delay: 5000 },
-        jobId: `return.process-refund:${id}`,
-      },
-    );
+    void this.returnsQueue
+      .add(
+        "return.process-refund",
+        { returnId: id, storeId },
+        {
+          attempts: 3,
+          backoff: { type: "exponential", delay: 5000 },
+          jobId: `return.process-refund-${id}`,
+        },
+      )
+      .catch((err: unknown) =>
+        this.logger.warn(
+          `Failed to enqueue return.process-refund for ${id}: ${err instanceof Error ? err.message : String(err)}`,
+        ),
+      );
 
     return this.getReturn(storeId, id);
   }

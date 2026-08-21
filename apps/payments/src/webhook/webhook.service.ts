@@ -140,22 +140,34 @@ export class WebhookService {
       targetId: order.id,
     });
 
-    void this.notificationsQueue.add(
-      "order.confirmed",
-      { orderId, storeId: order.storeId },
-      // jobId dedupes duplicate Stripe webhook deliveries so the customer
-      // can't receive two confirmation emails for one order.
-      {
-        attempts: 3,
-        backoff: { type: "exponential", delay: 5000 },
-        jobId: `order.confirmed:${orderId}`,
-      },
-    );
-    void this.webhooksQueue.add("webhook.dispatch", {
-      storeId: order.storeId,
-      event: "order.confirmed",
-      data: { orderId },
-    });
+    void this.notificationsQueue
+      .add(
+        "order.confirmed",
+        { orderId, storeId: order.storeId },
+        // jobId dedupes duplicate Stripe webhook deliveries so the customer
+        // can't receive two confirmation emails for one order.
+        {
+          attempts: 3,
+          backoff: { type: "exponential", delay: 5000 },
+          jobId: `order.confirmed-${orderId}`,
+        },
+      )
+      .catch((err: unknown) =>
+        this.logger.warn(
+          `Failed to enqueue order.confirmed notification for ${orderId}: ${err instanceof Error ? err.message : String(err)}`,
+        ),
+      );
+    void this.webhooksQueue
+      .add("webhook.dispatch", {
+        storeId: order.storeId,
+        event: "order.confirmed",
+        data: { orderId },
+      })
+      .catch((err: unknown) =>
+        this.logger.warn(
+          `Failed to enqueue order.confirmed webhook dispatch for ${orderId}: ${err instanceof Error ? err.message : String(err)}`,
+        ),
+      );
     this.logger.log(`Order ${orderId} confirmed`);
   }
 

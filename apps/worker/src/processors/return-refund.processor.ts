@@ -78,14 +78,20 @@ export class ReturnRefundProcessor extends WorkerHost {
       `Refund ${refund.id} issued for return ${returnId} — ${totalRefundCents} cents`,
     );
 
-    void this.notificationsQueue.add(
-      "order.return_refunded",
-      { orderId: ret.orderId, storeId },
-      {
-        attempts: 3,
-        backoff: { type: "exponential", delay: 5000 },
-        jobId: `order.return_refunded:${returnId}`,
-      },
-    );
+    void this.notificationsQueue
+      .add(
+        "order.return_refunded",
+        { orderId: ret.orderId, storeId },
+        {
+          attempts: 3,
+          backoff: { type: "exponential", delay: 5000 },
+          jobId: `order.return_refunded-${returnId}`,
+        },
+      )
+      .catch((err: unknown) =>
+        this.logger.warn(
+          `Failed to enqueue order.return_refunded notification for ${returnId}: ${err instanceof Error ? err.message : String(err)}`,
+        ),
+      );
   }
 }

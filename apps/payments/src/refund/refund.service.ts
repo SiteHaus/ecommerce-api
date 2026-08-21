@@ -93,20 +93,32 @@ export class RefundService {
       targetId: data.orderId,
       meta: { stripePaymentIntentId: order.stripePaymentIntentId },
     });
-    void this.notificationsQueue.add(
-      "order.refunded",
-      { orderId: data.orderId, storeId: data.storeId },
-      {
-        attempts: 3,
-        backoff: { type: "exponential", delay: 5000 },
-        jobId: `order.refunded:${data.orderId}`,
-      },
-    );
-    void this.webhooksQueue.add("webhook.dispatch", {
-      storeId: data.storeId,
-      event: "order.refunded",
-      data: { orderId: data.orderId },
-    });
+    void this.notificationsQueue
+      .add(
+        "order.refunded",
+        { orderId: data.orderId, storeId: data.storeId },
+        {
+          attempts: 3,
+          backoff: { type: "exponential", delay: 5000 },
+          jobId: `order.refunded-${data.orderId}`,
+        },
+      )
+      .catch((err: unknown) =>
+        this.logger.warn(
+          `Failed to enqueue order.refunded notification for ${data.orderId}: ${err instanceof Error ? err.message : String(err)}`,
+        ),
+      );
+    void this.webhooksQueue
+      .add("webhook.dispatch", {
+        storeId: data.storeId,
+        event: "order.refunded",
+        data: { orderId: data.orderId },
+      })
+      .catch((err: unknown) =>
+        this.logger.warn(
+          `Failed to enqueue order.refunded webhook dispatch for ${data.orderId}: ${err instanceof Error ? err.message : String(err)}`,
+        ),
+      );
 
     const [{ itemCount }] = await this.db
       .select({ itemCount: sql<number>`cast(count(*) as int)` })

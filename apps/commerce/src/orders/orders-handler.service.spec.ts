@@ -111,7 +111,10 @@ describe("OrdersHandlerService", () => {
         { provide: DB_TOKEN, useValue: db },
         { provide: AuditService, useValue: mockAudit },
         { provide: getQueueToken("ecom-notifications"), useValue: mockQueue },
-        { provide: getQueueToken("ecom-webhooks"), useValue: { add: jest.fn() } },
+        {
+          provide: getQueueToken("ecom-webhooks"),
+          useValue: { add: jest.fn().mockResolvedValue(undefined) },
+        },
       ],
     }).compile();
 
