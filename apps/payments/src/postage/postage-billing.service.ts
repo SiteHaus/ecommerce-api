@@ -123,9 +123,10 @@ export class PostageBillingService {
         confirm: true,
       });
       return { success: true, paymentIntentId: intent.id };
-    } catch (err: any) {
-      this.logger.warn(`Postage settlement charge failed for ${stripeCustomerId}: ${err.message}`);
-      return { success: false, reason: err.message ?? "unknown error" };
+    } catch (err: unknown) {
+      const reason = err instanceof Error ? err.message : "unknown error";
+      this.logger.warn(`Postage settlement charge failed for ${stripeCustomerId}: ${reason}`);
+      return { success: false, reason };
     }
   }
 }

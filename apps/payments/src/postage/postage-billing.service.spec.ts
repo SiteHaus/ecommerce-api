@@ -64,11 +64,9 @@ describe("PostageBillingService.getBillingSetup", () => {
             .mockResolvedValue({ id: "s1", clientId: "c1", stripeBillingCustomerId: null }),
         },
       },
-      update: jest
-        .fn()
-        .mockReturnValue({
-          set: jest.fn().mockReturnValue({ where: jest.fn().mockResolvedValue(undefined) }),
-        }),
+      update: jest.fn().mockReturnValue({
+        set: jest.fn().mockReturnValue({ where: jest.fn().mockResolvedValue(undefined) }),
+      }),
     };
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
@@ -120,5 +118,63 @@ describe("PostageBillingService.getBillingSetup", () => {
     expect(mockStripe.checkout.sessions.create).toHaveBeenCalledWith(
       expect.objectContaining({ mode: "setup", customer: "cus_1" }),
     );
+  });
+});
+
+describe("PostageBillingService.charge", () => {
+  beforeEach(() => jest.clearAllMocks());
+  afterEach(() => {
+    global.fetch = originalFetch;
+  });
+
+  it("returns success with the payment intent id when the charge succeeds", async () => {
+    mockStripe.customers.retrieve.mockResolvedValue({
+      id: "cus_1",
+      invoice_settings: { default_payment_method: "pm_1" },
+    });
+    mockStripe.paymentIntents.create.mockResolvedValue({ id: "pi_123" });
+
+    const service = makeService({});
+    const result = await service.charge("cus_1", 500);
+
+    expect(result).toEqual({ success: true, paymentIntentId: "pi_123" });
+    expect(mockStripe.paymentIntents.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        amount: 500,
+        currency: "usd",
+        customer: "cus_1",
+        payment_method: "pm_1",
+        off_session: true,
+        confirm: true,
+      }),
+    );
+  });
+
+  it("returns failure without charging when there is no default payment method", async () => {
+    mockStripe.customers.retrieve.mockResolvedValue({
+      id: "cus_1",
+      invoice_settings: { default_payment_method: null },
+    });
+
+    const service = makeService({});
+    const result = await service.charge("cus_1", 500);
+
+    expect(result).toEqual({ success: false, reason: "no default payment method" });
+    expect(mockStripe.paymentIntents.create).not.toHaveBeenCalled();
+  });
+
+  it("resolves with a failure result instead of throwing when Stripe rejects", async () => {
+    mockStripe.customers.retrieve.mockResolvedValue({
+      id: "cus_1",
+      invoice_settings: { default_payment_method: "pm_1" },
+    });
+    mockStripe.paymentIntents.create.mockRejectedValue(new Error("card_declined"));
+
+    const service = makeService({});
+
+    await expect(service.charge("cus_1", 500)).resolves.toEqual({
+      success: false,
+      reason: "card_declined",
+    });
   });
 });
