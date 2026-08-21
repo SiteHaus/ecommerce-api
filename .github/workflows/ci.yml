@@ -39,6 +39,19 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
+      # Mirrors docker-compose.dev.yml's redis so the real-DI module-boot
+      # suites (SIT-295) run against localhost:6380 — BullMQ's registerQueue
+      # needs a live connection to actually resolve, so a missing queue
+      # registration (SIT-297's class of bug) can only be caught this way.
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6380:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - name: Checkout
         uses: actions/checkout@v4
