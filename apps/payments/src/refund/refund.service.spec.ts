@@ -76,7 +76,7 @@ describe("RefundService", () => {
   beforeEach(async () => {
     mockRefundsCreate = jest.fn().mockResolvedValue({ id: "re_test123" });
     mockAudit = { log: jest.fn() };
-    mockNotificationsQueue = { add: jest.fn() };
+    mockNotificationsQueue = { add: jest.fn().mockResolvedValue(undefined) };
 
     db = {
       query: { ordersTable: { findFirst: jest.fn() } },
@@ -91,7 +91,10 @@ describe("RefundService", () => {
         { provide: AuditService, useValue: mockAudit },
         { provide: ConfigService, useValue: { getOrThrow: () => "sk_test_dummy" } },
         { provide: getQueueToken("ecom-notifications"), useValue: mockNotificationsQueue },
-        { provide: getQueueToken("ecom-webhooks"), useValue: { add: jest.fn() } },
+        {
+          provide: getQueueToken("ecom-webhooks"),
+          useValue: { add: jest.fn().mockResolvedValue(undefined) },
+        },
       ],
     }).compile();
 
@@ -136,8 +139,38 @@ describe("RefundService", () => {
       expect(mockNotificationsQueue.add).toHaveBeenCalledWith(
         "order.refunded",
         { orderId: ORDER_ID, storeId: STORE_ID },
-        expect.objectContaining({ jobId: `order.refunded:${ORDER_ID}` }),
+        expect.objectContaining({ jobId: `order.refunded-${ORDER_ID}` }),
       );
+    });
+
+    it("jobId contains no colon — BullMQ rejects a single ':' as invalid (only exempts its own internal 3-segment repeatable-job format)", async () => {
+      db.query.ordersTable.findFirst.mockResolvedValue(mockOrder);
+      db.update.mockReturnValue(updateChain());
+      db.select
+        .mockReturnValueOnce(selectChain([{ itemCount: 1 }]))
+        .mockReturnValueOnce(selectChain(mockItems));
+
+      await service.refund({ storeId: STORE_ID, orderId: ORDER_ID, store: mockStore });
+
+      const jobId = mockNotificationsQueue.add.mock.calls[0][2].jobId as string;
+      expect(jobId).not.toContain(":");
+    });
+
+    it("does not crash when the notification queue write fails", async () => {
+      db.query.ordersTable.findFirst.mockResolvedValue(mockOrder);
+      db.update.mockReturnValue(updateChain());
+      db.select
+        .mockReturnValueOnce(selectChain([{ itemCount: 1 }]))
+        .mockReturnValueOnce(selectChain(mockItems));
+      mockNotificationsQueue.add.mockRejectedValueOnce(new Error("Custom Id cannot contain :"));
+
+      // A failed fire-and-forget enqueue must never take down a refund that
+      // already succeeded on Stripe — this is exactly what happened in prod
+      // (2026-08-21) when a colon-containing jobId crashed the whole service
+      // mid-request, after the real Stripe refund had already gone through.
+      await expect(
+        service.refund({ storeId: STORE_ID, orderId: ORDER_ID, store: mockStore }),
+      ).resolves.toBeDefined();
     });
 
     it("returns full admin order shape with items", async () => {

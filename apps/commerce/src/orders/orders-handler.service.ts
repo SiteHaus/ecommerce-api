@@ -1,4 +1,4 @@
-import { ForbiddenException, Inject, Injectable, NotFoundException } from "@nestjs/common";
+import { ForbiddenException, Inject, Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { InjectQueue } from "@nestjs/bullmq";
 import { RpcException } from "@nestjs/microservices";
 import {
@@ -18,6 +18,8 @@ import type { Queue } from "bullmq";
 
 @Injectable()
 export class OrdersHandlerService {
+  private readonly logger = new Logger(OrdersHandlerService.name);
+
   constructor(
     @Inject(DB_TOKEN) private readonly db: Db,
     private readonly audit: AuditService,
@@ -264,20 +266,32 @@ export class OrdersHandlerService {
       throw new RpcException({ status: 400, message: "Only confirmed orders can be shipped" });
     }
 
-    void this.notificationsQueue.add(
-      "order.shipped",
-      { orderId: data.orderId, storeId: data.storeId },
-      {
-        attempts: 3,
-        backoff: { type: "exponential", delay: 5000 },
-        jobId: `order.shipped:${data.orderId}`,
-      },
-    );
-    void this.webhooksQueue.add("webhook.dispatch", {
-      storeId: data.storeId,
-      event: "order.shipped",
-      data: { orderId: data.orderId, trackingNumber: data.trackingNumber },
-    });
+    void this.notificationsQueue
+      .add(
+        "order.shipped",
+        { orderId: data.orderId, storeId: data.storeId },
+        {
+          attempts: 3,
+          backoff: { type: "exponential", delay: 5000 },
+          jobId: `order.shipped-${data.orderId}`,
+        },
+      )
+      .catch((err: unknown) =>
+        this.logger.warn(
+          `Failed to enqueue order.shipped notification for ${data.orderId}: ${err instanceof Error ? err.message : String(err)}`,
+        ),
+      );
+    void this.webhooksQueue
+      .add("webhook.dispatch", {
+        storeId: data.storeId,
+        event: "order.shipped",
+        data: { orderId: data.orderId, trackingNumber: data.trackingNumber },
+      })
+      .catch((err: unknown) =>
+        this.logger.warn(
+          `Failed to enqueue order.shipped webhook dispatch for ${data.orderId}: ${err instanceof Error ? err.message : String(err)}`,
+        ),
+      );
 
     void this.audit.log({
       storeId: data.storeId,
@@ -321,20 +335,32 @@ export class OrdersHandlerService {
       });
     }
 
-    void this.notificationsQueue.add(
-      "order.delivered",
-      { orderId: data.orderId, storeId: data.storeId },
-      {
-        attempts: 3,
-        backoff: { type: "exponential", delay: 5000 },
-        jobId: `order.delivered:${data.orderId}`,
-      },
-    );
-    void this.webhooksQueue.add("webhook.dispatch", {
-      storeId: data.storeId,
-      event: "order.delivered",
-      data: { orderId: data.orderId },
-    });
+    void this.notificationsQueue
+      .add(
+        "order.delivered",
+        { orderId: data.orderId, storeId: data.storeId },
+        {
+          attempts: 3,
+          backoff: { type: "exponential", delay: 5000 },
+          jobId: `order.delivered-${data.orderId}`,
+        },
+      )
+      .catch((err: unknown) =>
+        this.logger.warn(
+          `Failed to enqueue order.delivered notification for ${data.orderId}: ${err instanceof Error ? err.message : String(err)}`,
+        ),
+      );
+    void this.webhooksQueue
+      .add("webhook.dispatch", {
+        storeId: data.storeId,
+        event: "order.delivered",
+        data: { orderId: data.orderId },
+      })
+      .catch((err: unknown) =>
+        this.logger.warn(
+          `Failed to enqueue order.delivered webhook dispatch for ${data.orderId}: ${err instanceof Error ? err.message : String(err)}`,
+        ),
+      );
 
     void this.audit.log({
       storeId: data.storeId,
