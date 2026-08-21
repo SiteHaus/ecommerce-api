@@ -87,6 +87,12 @@ export class WebhookService {
     const taxCents = session.total_details?.amount_tax ?? 0;
     const shippingCents = session.shipping_cost?.amount_total ?? order.shippingCents;
     const customerEmail = session.customer_details?.email;
+    // Storefronts that don't collect their own address (see intent.service.ts) never send
+    // city/state/zip/country to us at checkout — Stripe's hosted page is the only place they're
+    // ever collected. Reconcile them here, same as shippingCents above, or they stay empty
+    // forever. The street (line1/line2) is deliberately excluded — it never touches our DB,
+    // per the address-minimization design; only the columns needed for zone/tax/display live here.
+    const shippingDetails = session.shipping_details;
     await this.db
       .update(ordersTable)
       .set({
@@ -99,6 +105,17 @@ export class WebhookService {
         ...(customerEmail && !order.email ? { email: customerEmail } : {}),
         ...(session.payment_intent
           ? { stripePaymentIntentId: session.payment_intent as string }
+          : {}),
+        ...(shippingDetails?.name ? { shippingName: shippingDetails.name } : {}),
+        ...(shippingDetails?.address?.city ? { shippingCity: shippingDetails.address.city } : {}),
+        ...(shippingDetails?.address?.state
+          ? { shippingState: shippingDetails.address.state }
+          : {}),
+        ...(shippingDetails?.address?.postal_code
+          ? { shippingZip: shippingDetails.address.postal_code }
+          : {}),
+        ...(shippingDetails?.address?.country
+          ? { shippingCountry: shippingDetails.address.country }
           : {}),
       })
       .where(eq(ordersTable.id, orderId));
