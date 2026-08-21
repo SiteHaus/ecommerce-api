@@ -44,7 +44,14 @@ export class PostageLedgerService {
    */
   async getBalance(storeId: string): Promise<{ availableCents: number; pendingCents: number }> {
     const [row] = await this.db
-      .select({ total: sql<number>`coalesce(sum(${postageLedgerTable.amountCents}), 0)` })
+      .select({
+        // `amountCents` is Postgres `integer`, so `sum()` returns `bigint`. This repo's
+        // `pg` Pool has no custom type parsers, so node-postgres hands back `bigint` as
+        // a JS string by default — the `::int` cast is what actually makes this a
+        // number at runtime, not just at the type level. (See sibling services doing
+        // the same: cart-handler.service.ts, orders-handler.service.ts, etc.)
+        total: sql<number>`coalesce(sum(${postageLedgerTable.amountCents}), 0)::int`,
+      })
       .from(postageLedgerTable)
       .where(
         and(eq(postageLedgerTable.storeId, storeId), eq(postageLedgerTable.status, "pending")),

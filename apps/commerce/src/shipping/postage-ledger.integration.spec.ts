@@ -78,4 +78,19 @@ describe("PostageLedgerService (real Postgres)", () => {
     const available = await service.availableToSpendCents(storeId);
     expect(available).toBeLessThanOrEqual(0);
   });
+
+  // Regression: Postgres sum(integer) returns bigint, and this repo's pg Pool has no
+  // custom type parsers, so node-postgres hands bigint back as a string by default.
+  // availableToSpendCents happens to "work" even with a string (the `-` operator
+  // coerces it), which is exactly how this went unnoticed — only a direct getBalance()
+  // call against a real driver, with an explicit typeof check, catches it. At this
+  // point in the file the two prior charges (842 + 7000) are still pending.
+  it("returns pendingCents and availableCents as real numbers, not driver bigint-strings", async () => {
+    const balance = await service.getBalance(storeId);
+
+    expect(typeof balance.pendingCents).toBe("number");
+    expect(typeof balance.availableCents).toBe("number");
+    expect(balance.pendingCents).toBe(842 + 7000);
+    expect(balance.availableCents).toBe(7500 - (842 + 7000));
+  });
 });
