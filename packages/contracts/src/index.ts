@@ -12,6 +12,7 @@ import { variantContract } from "./variants/variants.contract.js";
 import { imagesContract } from "./product-images/product-images.contract.js";
 import { collectionContract } from "./collection/collection.contract.js";
 import { shippingContract } from "./shipping/shipping.contract.js";
+import { labelsContract } from "./shipping/labels.contract.js";
 import { customersContract } from "./customers/customers.contract.js";
 import { returnsContract } from "./returns/returns.contract.js";
 import { webhooksContract } from "./webhooks/webhooks.contract.js";
@@ -33,6 +34,7 @@ export const contract = c.router({
   image: imagesContract,
   collection: collectionContract,
   shipping: shippingContract,
+  labels: labelsContract,
   webhooks: webhooksContract,
 });
 
@@ -52,5 +54,6 @@ export {
   imagesContract,
   collectionContract,
   shippingContract,
+  labelsContract,
   webhooksContract,
 };

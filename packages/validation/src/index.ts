@@ -14,4 +14,5 @@ export * from "./store.schemas.js";
 export * from "./variants.schemas.js";
 export * from "./collection.schemas.js";
 export * from "./shipping.shemas.js";
+export * from "./labels.schemas.js";
 export * from "./webhooks.schemas.js";
