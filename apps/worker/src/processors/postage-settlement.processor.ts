@@ -45,6 +45,15 @@ export class PostageSettlementProcessor extends WorkerHost {
       .from(postageLedgerTable)
       .where(eq(postageLedgerTable.status, "pending"));
 
+    // INVARIANT — refunds and the sign of `amountCents`:
+    // this loop (and PostageLedgerService.getBalance, which sums the same way)
+    // adds every pending row regardless of its `type` (`charge` | `refund`). No
+    // refund-writing code exists yet. When it lands, refund rows MUST be
+    // inserted with a NEGATIVE `amountCents` so a plain sum stays correct here
+    // and in getBalance. Nothing enforces that today — no CHECK constraint, no
+    // validation — so whoever writes the first refund path owns adding it (or
+    // branching on `type` at both sum sites instead). Getting this backwards
+    // means a refund *increases* what the merchant is billed.
     const byStore = new Map<string, { total: number; ids: string[] }>();
     for (const row of rows) {
       const entry = byStore.get(row.storeId) ?? { total: 0, ids: [] };
@@ -71,17 +80,29 @@ export class PostageSettlementProcessor extends WorkerHost {
         const result = await firstValueFrom(
           this.payments.send<{ success: boolean; paymentIntentId?: string; reason?: string }>(
             "payments.postage.charge",
-            { stripeCustomerId: store.stripeBillingCustomerId, amountCents: total },
+            {
+              stripeCustomerId: store.stripeBillingCustomerId,
+              amountCents: total,
+              // Makes the Stripe charge idempotent: if this response is lost and
+              // the rows stay pending, tomorrow's run sends the same id set and
+              // Stripe replays the original PaymentIntent instead of charging again.
+              ledgerRowIds: ids,
+            },
           ),
         );
 
         if (result.success) {
           // Settle exactly the rows this store's `total` was computed from — never
           // a fresh status re-match, which would also sweep up anything inserted
-          // since the SELECT above.
+          // since the SELECT above. The PaymentIntent id is persisted with them so
+          // a settled batch is always traceable to the charge that paid for it.
           await this.db
             .update(postageLedgerTable)
-            .set({ status: "settled", settledAt: new Date() })
+            .set({
+              status: "settled",
+              settledAt: new Date(),
+              settlementPaymentIntentId: result.paymentIntentId ?? null,
+            })
             .where(inArray(postageLedgerTable.id, ids));
           this.logger.log(`Settled $${(total / 100).toFixed(2)} postage for store ${storeId}`);
         } else {

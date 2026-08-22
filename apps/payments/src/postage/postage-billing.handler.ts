@@ -12,7 +12,22 @@ export class PostageBillingHandler {
   }
 
   @MessagePattern("payments.postage.charge")
-  charge(@Payload() data: { stripeCustomerId: string; amountCents: number; currency?: string }) {
-    return this.postageBilling.charge(data.stripeCustomerId, data.amountCents, data.currency);
+  charge(
+    @Payload()
+    data: {
+      stripeCustomerId: string;
+      amountCents: number;
+      currency?: string;
+      // The exact ledger rows this charge settles — hashed into the Stripe
+      // idempotency key so a retried batch can't double-charge.
+      ledgerRowIds?: string[];
+    },
+  ) {
+    return this.postageBilling.charge(
+      data.stripeCustomerId,
+      data.amountCents,
+      data.currency,
+      data.ledgerRowIds,
+    );
   }
 }

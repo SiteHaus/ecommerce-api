@@ -41,6 +41,16 @@ export class PostageLedgerService {
    * The raw pending total and the derived $75-hard-cap figure. This backs
    * both the Settings → Shipping → Labels balance card (Task 14) and
    * `availableToSpendCents` below, so the two never drift against each other.
+   *
+   * INVARIANT — refunds and the sign of `amountCents`: this sums every pending
+   * row regardless of `type` (`charge` | `refund`). No refund-writing code
+   * exists yet. When it lands, refund rows MUST be inserted with a NEGATIVE
+   * `amountCents` so this plain sum stays correct (the settlement processor's
+   * grouping loop sums identically and carries the same note). Nothing enforces
+   * that today — no CHECK constraint, no validation — so whoever writes the
+   * first refund path owns adding it, or branching on `type` at both sum sites
+   * instead. Getting it backwards makes a refund *reduce* the merchant's
+   * available balance rather than restore it.
    */
   async getBalance(storeId: string): Promise<{ availableCents: number; pendingCents: number }> {
     const [row] = await this.db

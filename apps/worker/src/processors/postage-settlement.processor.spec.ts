@@ -14,6 +14,7 @@ function makeDb(pendingByStore: Record<string, number>) {
 
 function makeDbFromRows(rows: { id: string; storeId: string; amountCents: number }[]) {
   const updateCalls: unknown[] = [];
+  const setCalls: Record<string, unknown>[] = [];
   return {
     select: jest.fn().mockReturnValue({
       from: jest.fn().mockReturnValue({ where: jest.fn().mockResolvedValue(rows) }),
@@ -24,14 +25,18 @@ function makeDbFromRows(rows: { id: string; storeId: string; amountCents: number
       },
     },
     update: jest.fn().mockImplementation(() => ({
-      set: jest.fn().mockReturnValue({
-        where: jest.fn().mockImplementation((clause) => {
-          updateCalls.push(clause);
-          return Promise.resolve(undefined);
-        }),
+      set: jest.fn().mockImplementation((values: Record<string, unknown>) => {
+        setCalls.push(values);
+        return {
+          where: jest.fn().mockImplementation((clause) => {
+            updateCalls.push(clause);
+            return Promise.resolve(undefined);
+          }),
+        };
       }),
     })),
     __updateCalls: updateCalls,
+    __setCalls: setCalls,
   };
 }
 
@@ -50,6 +55,41 @@ describe("PostageSettlementProcessor", () => {
       expect.objectContaining({ stripeCustomerId: "cus_1", amountCents: 5200 }),
     );
     expect(db.update).toHaveBeenCalled();
+  });
+
+  it("sends the exact ledger row ids so a retried batch can't double-charge", async () => {
+    const db = makeDbFromRows([
+      { id: "row-b", storeId: "store-1", amountCents: 3000 },
+      { id: "row-a", storeId: "store-1", amountCents: 2200 },
+    ]);
+    const payments = {
+      send: jest.fn().mockReturnValue(of({ success: true, paymentIntentId: "pi_1" })),
+    };
+    const processor = new PostageSettlementProcessor(db as any, payments as any);
+
+    await processor.process({ name: "postage.settle", data: {} } as any);
+
+    // The ids are what payments hashes into the Stripe idempotency key; without
+    // them a lost response means tomorrow's run charges the same rows again.
+    expect(payments.send).toHaveBeenCalledWith(
+      "payments.postage.charge",
+      expect.objectContaining({ amountCents: 5200, ledgerRowIds: ["row-b", "row-a"] }),
+    );
+  });
+
+  it("persists the settling PaymentIntent id onto the rows it settles", async () => {
+    const db = makeDb({ "store-1": 5200 });
+    const payments = {
+      send: jest.fn().mockReturnValue(of({ success: true, paymentIntentId: "pi_42" })),
+    };
+    const processor = new PostageSettlementProcessor(db as any, payments as any);
+
+    await processor.process({ name: "postage.settle", data: {} } as any);
+
+    expect(db.__setCalls).toHaveLength(1);
+    expect(db.__setCalls[0]).toEqual(
+      expect.objectContaining({ status: "settled", settlementPaymentIntentId: "pi_42" }),
+    );
   });
 
   it("does not settle a store under $50 on a non-month-end day", async () => {

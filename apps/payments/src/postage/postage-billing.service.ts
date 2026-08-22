@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { Inject, Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { eq, storesTable, type Db } from "@sitehaus-ecom/database";
@@ -13,6 +14,20 @@ export interface BillingSetup {
 export type ChargeResult =
   | { success: true; paymentIntentId: string }
   | { success: false; reason: string };
+
+/**
+ * Deterministic Stripe idempotency key for one settlement batch: the same set of
+ * ledger rows always produces the same key, so a retry after a lost response
+ * reuses the original PaymentIntent rather than creating a second one. Scoped by
+ * customer too, so two stores can never collide. Truncated to stay well inside
+ * Stripe's 255-character limit.
+ */
+export function postageIdempotencyKey(stripeCustomerId: string, ledgerRowIds: string[]): string {
+  const digest = createHash("sha256")
+    .update(`${stripeCustomerId}:${[...ledgerRowIds].sort().join(",")}`)
+    .digest("hex");
+  return `postage_settle_${digest.slice(0, 40)}`;
+}
 
 @Injectable()
 export class PostageBillingService {
@@ -101,11 +116,19 @@ export class PostageBillingService {
    * Off-session charge for settlement. Never called speculatively — only from
    * the settlement job (Task 6) once a store's unsettled balance crosses $50
    * or it's month-end.
+   *
+   * `ledgerRowIds` makes the charge idempotent. If Stripe succeeds but the TCP
+   * response back to the worker is lost (timeout, crash, redeploy), the ledger
+   * rows stay `pending` and the next daily run retries the *same* batch — and
+   * a batch of rows always hashes to the same key, so Stripe returns the
+   * original PaymentIntent instead of charging the merchant twice. The ids are
+   * sorted before hashing so grouping order can never change the key.
    */
   async charge(
     stripeCustomerId: string,
     amountCents: number,
     currency = "usd",
+    ledgerRowIds: string[] = [],
   ): Promise<ChargeResult> {
     try {
       const customer = await this.stripe.customers.retrieve(stripeCustomerId);
@@ -114,14 +137,19 @@ export class PostageBillingService {
         (customer.invoice_settings?.default_payment_method as string | null);
       if (!defaultPm) return { success: false, reason: "no default payment method" };
 
-      const intent = await this.stripe.paymentIntents.create({
-        amount: amountCents,
-        currency,
-        customer: stripeCustomerId,
-        payment_method: defaultPm,
-        off_session: true,
-        confirm: true,
-      });
+      const intent = await this.stripe.paymentIntents.create(
+        {
+          amount: amountCents,
+          currency,
+          customer: stripeCustomerId,
+          payment_method: defaultPm,
+          off_session: true,
+          confirm: true,
+        },
+        ledgerRowIds.length
+          ? { idempotencyKey: postageIdempotencyKey(stripeCustomerId, ledgerRowIds) }
+          : undefined,
+      );
       return { success: true, paymentIntentId: intent.id };
     } catch (err: unknown) {
       const reason = err instanceof Error ? err.message : "unknown error";

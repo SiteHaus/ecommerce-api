@@ -1,0 +1,1 @@
+ALTER TABLE "postage_ledger" ADD COLUMN "settlement_payment_intent_id" text;

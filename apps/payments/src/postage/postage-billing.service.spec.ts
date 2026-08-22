@@ -147,6 +147,43 @@ describe("PostageBillingService.charge", () => {
         off_session: true,
         confirm: true,
       }),
+      // No ledger row ids supplied, so no idempotency key to derive.
+      undefined,
+    );
+  });
+
+  it("derives a deterministic idempotency key from the settled ledger rows", async () => {
+    mockStripe.customers.retrieve.mockResolvedValue({
+      id: "cus_1",
+      invoice_settings: { default_payment_method: "pm_1" },
+    });
+    mockStripe.paymentIntents.create.mockResolvedValue({ id: "pi_123" });
+
+    const service = makeService({});
+    await service.charge("cus_1", 500, "usd", ["row-b", "row-a"]);
+    // Same batch, different grouping order — must hash to the same key, or a
+    // retry after a lost response would charge the merchant a second time.
+    await service.charge("cus_1", 500, "usd", ["row-a", "row-b"]);
+
+    const firstKey = mockStripe.paymentIntents.create.mock.calls[0][1].idempotencyKey;
+    const secondKey = mockStripe.paymentIntents.create.mock.calls[1][1].idempotencyKey;
+    expect(firstKey).toEqual(expect.stringMatching(/^postage_settle_[0-9a-f]{40}$/));
+    expect(secondKey).toBe(firstKey);
+  });
+
+  it("gives a different batch a different key", async () => {
+    mockStripe.customers.retrieve.mockResolvedValue({
+      id: "cus_1",
+      invoice_settings: { default_payment_method: "pm_1" },
+    });
+    mockStripe.paymentIntents.create.mockResolvedValue({ id: "pi_123" });
+
+    const service = makeService({});
+    await service.charge("cus_1", 500, "usd", ["row-a"]);
+    await service.charge("cus_1", 500, "usd", ["row-a", "row-c"]);
+
+    expect(mockStripe.paymentIntents.create.mock.calls[0][1].idempotencyKey).not.toBe(
+      mockStripe.paymentIntents.create.mock.calls[1][1].idempotencyKey,
     );
   });
 

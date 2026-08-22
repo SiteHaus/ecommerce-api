@@ -25,6 +25,14 @@ export const postageLedgerTable = pgTable(
     status: postageLedgerStatusEnum("status").notNull().default("pending"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     settledAt: timestamp("settled_at", { withTimezone: true }),
+    /**
+     * The Stripe PaymentIntent that settled this row. Written by the settlement
+     * job alongside `status: "settled"`, so a settled batch can always be traced
+     * back to the exact charge that paid for it — and so a suspected duplicate
+     * charge can be reconciled after the fact rather than only guessed at.
+     * Null for pending/failed rows.
+     */
+    settlementPaymentIntentId: text("settlement_payment_intent_id"),
   },
   (t) => [
     index("postage_ledger_store_idx").on(t.storeId),
