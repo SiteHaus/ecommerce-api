@@ -111,9 +111,9 @@ export class LabelsAdminController {
   // EasyPost shipment. Same guard as buyLabel.
   @CommercePerm("orders:write")
   @UseGuards(AdminStoreGuard)
-  @TsRestHandler(contract.labels.getRates)
+  @TsRestHandler(contract.labels.getLabelRates)
   getRates(@Req() req: Request) {
-    return tsRestHandler(contract.labels.getRates, async ({ params }) => {
+    return tsRestHandler(contract.labels.getLabelRates, async ({ params }) => {
       // §1/§5: first purchase ever for a store provisions the EasyPost child
       // account inline — never a prerequisite settings-page trip.
       await firstValueFrom(

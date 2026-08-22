@@ -52,7 +52,13 @@ export const labelsContract = c.router({
     responses: { 200: DeleteResponse, 404: apiError },
     metadata: { openApiTags: ["Labels"] } as const,
   },
-  getRates: {
+  // Named getLabelRates, not getRates — shippingContract already has a
+  // getRates route (GET /v1/shipping/rates, checkout-side zone rates), and
+  // ts-rest's setOperationId: true traversal keys operation IDs off the
+  // route's leaf property name alone, ignoring which contract group it's
+  // nested under. A duplicate leaf name throws at OpenAPI generation time,
+  // crashing the gateway on boot.
+  getLabelRates: {
     method: "POST",
     path: "/v1/admin/orders/:orderId/label/rates",
     body: getRatesSchema,
