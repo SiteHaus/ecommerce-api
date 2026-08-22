@@ -117,12 +117,18 @@ export class PostageBillingService {
    * the settlement job (Task 6) once a store's unsettled balance crosses $50
    * or it's month-end.
    *
-   * `ledgerRowIds` makes the charge idempotent. If Stripe succeeds but the TCP
-   * response back to the worker is lost (timeout, crash, redeploy), the ledger
-   * rows stay `pending` and the next daily run retries the *same* batch — and
-   * a batch of rows always hashes to the same key, so Stripe returns the
-   * original PaymentIntent instead of charging the merchant twice. The ids are
-   * sorted before hashing so grouping order can never change the key.
+   * `ledgerRowIds` makes the charge idempotent for same-run and short-window
+   * retries: a batch of rows always hashes to the same key, so a BullMQ retry
+   * or a re-invocation shortly after a lost TCP response returns the original
+   * PaymentIntent instead of charging twice. This is NOT a durable cross-run
+   * guarantee — Stripe idempotency keys expire after 24h and the settlement
+   * cron runs exactly 24h apart (`apps/worker/src/main.ts`), and the key
+   * changes if the store buys another label before the retry, so a lost
+   * response that survives to the next day's run can still double-charge.
+   * Tracked as a follow-up: reconciliation on `settlementPaymentIntentId`, or
+   * marking rows `settling` before the charge, would close this properly.
+   * The ids are sorted before hashing so grouping order can never change the
+   * key within the window where the guarantee does hold.
    */
   async charge(
     stripeCustomerId: string,

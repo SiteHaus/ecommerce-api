@@ -83,9 +83,10 @@ export class PostageSettlementProcessor extends WorkerHost {
             {
               stripeCustomerId: store.stripeBillingCustomerId,
               amountCents: total,
-              // Makes the Stripe charge idempotent: if this response is lost and
-              // the rows stay pending, tomorrow's run sends the same id set and
-              // Stripe replays the original PaymentIntent instead of charging again.
+              // Makes the Stripe charge idempotent for same-run/short-window retries
+              // only — not a durable cross-run guarantee. See the docblock on
+              // PostageBillingService.charge() for why a response lost until the
+              // *next scheduled* run (24h later) can still double-charge.
               ledgerRowIds: ids,
             },
           ),
