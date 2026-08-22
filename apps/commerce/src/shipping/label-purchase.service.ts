@@ -160,6 +160,24 @@ export class LabelPurchaseService {
   }
 
   /**
+   * Provisions the store's EasyPost child account the first time it's ever
+   * needed — never a prerequisite settings-page trip. Idempotent: a store
+   * that already has one is left untouched.
+   */
+  async ensureEasypostAccount(storeId: string): Promise<{ ready: boolean }> {
+    const store = await this.db.query.storesTable.findFirst({ where: eq(storesTable.id, storeId) });
+    if (!store) return { ready: false };
+    if (store.easypostChildUserId) return { ready: true };
+
+    const child = await this.easypost.provisionChildAccount(store.name);
+    await this.db
+      .update(storesTable)
+      .set({ easypostChildUserId: child.childUserId, easypostChildApiKey: child.apiKey })
+      .where(eq(storesTable.id, storeId));
+    return { ready: true };
+  }
+
+  /**
    * The street lives on the Stripe PaymentIntent, not in our database (address-
    * minimization). Same "ask payments, fall back to the DB columns" pattern the
    * worker's order-lifecycle emails already use (see

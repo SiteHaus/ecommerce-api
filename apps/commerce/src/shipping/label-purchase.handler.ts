@@ -35,4 +35,9 @@ export class LabelPurchaseHandler {
   buyLabel(@Payload() data: { orderId: string; shipmentId: string; rateId: string }) {
     return this.labelPurchase.buyLabel(data);
   }
+
+  @MessagePattern("shipping.ensureEasypostAccount")
+  ensureEasypostAccount(@Payload() data: { storeId: string }) {
+    return this.labelPurchase.ensureEasypostAccount(data.storeId);
+  }
 }

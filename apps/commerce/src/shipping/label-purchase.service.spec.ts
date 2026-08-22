@@ -13,7 +13,11 @@ function baseDeps(overrides: Partial<any> = {}) {
         set: jest.fn().mockReturnValue({ where: jest.fn().mockResolvedValue(undefined) }),
       }),
     },
-    easypost: { createShipment: jest.fn(), buyLabel: jest.fn() },
+    easypost: {
+      createShipment: jest.fn(),
+      buyLabel: jest.fn(),
+      provisionChildAccount: jest.fn(),
+    },
     ledger: { availableToSpendCents: jest.fn().mockResolvedValue(7500), recordCharge: jest.fn() },
     payments: { send: jest.fn().mockReturnValue(of({ line1: "1 Main St", line2: null })) },
     ...overrides,
@@ -223,5 +227,69 @@ describe("LabelPurchaseService.buyLabel", () => {
 
     expect(result).toEqual({ error: "billing_blocked" });
     expect(deps.easypost.buyLabel).not.toHaveBeenCalled();
+  });
+});
+
+describe("LabelPurchaseService.ensureEasypostAccount", () => {
+  it("does nothing and reports ready when the store already has a child account", async () => {
+    const deps = baseDeps();
+    deps.db.query.storesTable.findFirst.mockResolvedValue({
+      id: "store-1",
+      name: "Acme",
+      easypostChildUserId: "user_existing",
+    });
+
+    const service = new LabelPurchaseService(
+      deps.db as any,
+      deps.easypost as any,
+      deps.ledger as any,
+      deps.payments as any,
+    );
+    const result = await service.ensureEasypostAccount("store-1");
+
+    expect(result).toEqual({ ready: true });
+    expect(deps.easypost.provisionChildAccount).not.toHaveBeenCalled();
+    expect(deps.db.update).not.toHaveBeenCalled();
+  });
+
+  it("provisions a fresh child account when the store doesn't have one yet", async () => {
+    const deps = baseDeps();
+    deps.db.query.storesTable.findFirst.mockResolvedValue({
+      id: "store-1",
+      name: "Acme",
+      easypostChildUserId: null,
+    });
+    deps.easypost.provisionChildAccount.mockResolvedValue({
+      childUserId: "user_new",
+      apiKey: "ek_test_123",
+    });
+
+    const service = new LabelPurchaseService(
+      deps.db as any,
+      deps.easypost as any,
+      deps.ledger as any,
+      deps.payments as any,
+    );
+    const result = await service.ensureEasypostAccount("store-1");
+
+    expect(deps.easypost.provisionChildAccount).toHaveBeenCalledWith("Acme");
+    expect(deps.db.update).toHaveBeenCalled();
+    expect(result).toEqual({ ready: true });
+  });
+
+  it("reports not ready when the store doesn't exist", async () => {
+    const deps = baseDeps();
+    deps.db.query.storesTable.findFirst.mockResolvedValue(undefined);
+
+    const service = new LabelPurchaseService(
+      deps.db as any,
+      deps.easypost as any,
+      deps.ledger as any,
+      deps.payments as any,
+    );
+    const result = await service.ensureEasypostAccount("store-1");
+
+    expect(result).toEqual({ ready: false });
+    expect(deps.easypost.provisionChildAccount).not.toHaveBeenCalled();
   });
 });
