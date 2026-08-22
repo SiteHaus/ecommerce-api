@@ -79,6 +79,12 @@ describe("LabelsAdminController.getRates", () => {
       "payments.postage.getBillingSetup",
       expect.objectContaining({ storeId: "store-1" }),
     );
+    // The authenticated store must travel with the orderId — it is what scopes
+    // the order lookup so a merchant can't quote another store's order.
+    expect(commerce.send).toHaveBeenCalledWith("shipping.getLabelRates", {
+      orderId: "o1",
+      storeId: "store-1",
+    });
     expect(result.body.rates).toHaveLength(2);
   });
 
@@ -158,7 +164,12 @@ describe("LabelsAdminController.buyLabel", () => {
 
     expect(commerce.send).toHaveBeenCalledWith(
       "shipping.buyLabel",
-      expect.objectContaining({ orderId: "o1", shipmentId: "shp_1", rateId: "rate_1" }),
+      expect.objectContaining({
+        orderId: "o1",
+        storeId: "store-1",
+        shipmentId: "shp_1",
+        rateId: "rate_1",
+      }),
     );
     expect(payments.send).not.toHaveBeenCalled();
     expect(result.body.trackingCode).toBe("9400");

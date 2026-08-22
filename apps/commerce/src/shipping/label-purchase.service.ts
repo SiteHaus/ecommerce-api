@@ -12,6 +12,7 @@ import {
 import { DB_TOKEN } from "@sitehaus-ecom/shared";
 import { EasypostService, type Rate } from "./easypost.service";
 import { PostageLedgerService } from "./postage-ledger.service";
+import { OriginAddressService } from "./origin-address.service";
 
 const GRAMS_PER_OZ = 28.3495;
 
@@ -21,11 +22,13 @@ export type GetRatesResult =
   | { shipmentId: string; rates: Rate[] }
   | { error: "missing_weight"; variants: { variantId: string; variantName: string }[] }
   | { error: "billing_blocked" }
+  | { error: "origin_required" }
   | { error: "not_found" };
 
 export type BuyLabelResult =
   | { orderId: string; carrier: string; service: string; trackingCode: string; labelUrl: string }
   | { error: "billing_blocked" }
+  | { error: "rate_expired" }
   | { error: "not_found" };
 
 @Injectable()
@@ -36,6 +39,7 @@ export class LabelPurchaseService {
     @Inject(DB_TOKEN) private readonly db: Db,
     private readonly easypost: EasypostService,
     private readonly ledger: PostageLedgerService,
+    private readonly originAddress: OriginAddressService,
     @Inject("PAYMENTS_SERVICE") private readonly payments: ClientProxy,
   ) {}
 
@@ -44,10 +48,16 @@ export class LabelPurchaseService {
    * every rate it offers — every carrier/service option, not just the
    * cheapest or first one. The merchant picks from these; nothing is bought
    * yet. Never charges anything.
+   *
+   * `storeId` is the *calling* store, from the gateway's authenticated store
+   * context — never from the request body. An order belonging to another store
+   * is reported as `not_found` (never "forbidden"), matching how every order
+   * lookup in orders-handler.service.ts scopes by store: a merchant must not be
+   * able to probe for, ship, or read the label URL of another store's order.
    */
-  async getRates(orderId: string): Promise<GetRatesResult> {
+  async getRates(orderId: string, storeId: string): Promise<GetRatesResult> {
     const order = await this.db.query.ordersTable.findFirst({ where: eq(ordersTable.id, orderId) });
-    if (!order) return { error: "not_found" };
+    if (!order || order.storeId !== storeId) return { error: "not_found" };
 
     // Weight: auto-summed from every line item's variant weight × quantity. Only
     // variants actually missing one are ever surfaced — the rest of the order's
@@ -82,6 +92,12 @@ export class LabelPurchaseService {
       where: eq(storesTable.id, order.storeId),
     });
     if (!store) return { error: "not_found" };
+
+    // A store with no ship-from address on file would otherwise hand EasyPost a
+    // set of empty strings, which it rejects with an opaque error that surfaces
+    // as a 500. Report it as a structured, actionable state instead — the admin
+    // UI points the merchant at Settings → Shipping → Labels.
+    if (!this.originAddress.hasOrigin(store)) return { error: "origin_required" };
 
     const totalGrams = lines.reduce((sum, l) => sum + (l.weightGrams ?? 0) * l.quantity, 0);
     const weightOz = totalGrams / GRAMS_PER_OZ;
@@ -119,21 +135,39 @@ export class LabelPurchaseService {
    * Step two: buys the exact rate the merchant picked from getRates' list.
    * Re-checks the postage budget (cheap, closes the race between the two
    * steps) but not weights — the shipment was already built against them.
+   *
+   * Scoped to the calling store for the same reason getRates is: buying against
+   * another store's order would burn their postage budget, mark their order
+   * shipped with a bogus tracking number, and leak their customer's address via
+   * the returned label URL.
    */
   async buyLabel(input: {
     orderId: string;
+    storeId: string;
     shipmentId: string;
     rateId: string;
   }): Promise<BuyLabelResult> {
     const order = await this.db.query.ordersTable.findFirst({
       where: eq(ordersTable.id, input.orderId),
     });
-    if (!order) return { error: "not_found" };
+    if (!order || order.storeId !== input.storeId) return { error: "not_found" };
 
     const available = await this.ledger.availableToSpendCents(order.storeId);
     if (available <= 0) return { error: "billing_blocked" };
 
-    const bought = await this.easypost.buyLabel(input.shipmentId, input.rateId);
+    // EasyPost rates go stale (typically minutes), and buying a stale one throws.
+    // That is a recoverable state, not a server error: the admin UI re-quotes and
+    // lets the merchant pick again. `not_found` keeps its narrower meaning (the
+    // order row itself is missing / not ours), so the two stay distinguishable.
+    let bought: Awaited<ReturnType<EasypostService["buyLabel"]>>;
+    try {
+      bought = await this.easypost.buyLabel(input.shipmentId, input.rateId);
+    } catch (err) {
+      this.logger.warn(
+        `Label purchase failed for order ${order.id} (shipment ${input.shipmentId}, rate ${input.rateId}): ${this.errorMessage(err)}`,
+      );
+      return { error: "rate_expired" };
+    }
 
     await this.ledger.recordCharge(order.storeId, order.id, input.shipmentId, bought.costCents);
 

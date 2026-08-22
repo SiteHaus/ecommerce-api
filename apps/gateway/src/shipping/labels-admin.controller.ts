@@ -67,13 +67,13 @@ export class LabelsAdminController {
   @TsRestHandler(contract.labels.deletePreset)
   deletePreset(@Req() req: Request) {
     return tsRestHandler(contract.labels.deletePreset, async ({ params }) => {
-      await firstValueFrom(
-        this.commerce.send("shipping.deletePreset", {
+      const result = await firstValueFrom(
+        this.commerce.send<{ message: string }>("shipping.deletePreset", {
           storeId: req.store!.id,
           presetId: params.presetId,
         }),
       );
-      return { status: 200 as const, body: { message: "Preset deleted" } };
+      return { status: 200 as const, body: result };
     });
   }
 
@@ -105,7 +105,11 @@ export class LabelsAdminController {
   // billing setup once, then returns every rate. Buying (below) never
   // re-runs onboarding, since it only happens after a merchant has already
   // seen rates, meaning both checks already passed.
-  @CommercePerm("orders:read")
+  // `orders:write`, not `orders:read`: despite the name, this route performs
+  // real writes and paid external side effects — it provisions an EasyPost child
+  // account, can create a Stripe Checkout setup session, and creates a real
+  // EasyPost shipment. Same guard as buyLabel.
+  @CommercePerm("orders:write")
   @UseGuards(AdminStoreGuard)
   @TsRestHandler(contract.labels.getRates)
   getRates(@Req() req: Request) {
@@ -133,7 +137,10 @@ export class LabelsAdminController {
       }
 
       const result: any = await firstValueFrom(
-        this.commerce.send("shipping.getLabelRates", { orderId: params.orderId }),
+        this.commerce.send("shipping.getLabelRates", {
+          orderId: params.orderId,
+          storeId: req.store!.id,
+        }),
       );
       if (result && "error" in result) {
         return { status: 400 as const, body: result };
@@ -150,6 +157,7 @@ export class LabelsAdminController {
       const result: any = await firstValueFrom(
         this.commerce.send("shipping.buyLabel", {
           orderId: params.orderId,
+          storeId: req.store!.id,
           shipmentId: body.shipmentId,
           rateId: body.rateId,
         }),

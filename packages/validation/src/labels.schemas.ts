@@ -45,7 +45,14 @@ export const RateItem = z.object({
 });
 export const GetRatesResponse = z.object({ shipmentId: z.string(), rates: z.array(RateItem) });
 export const GetRatesError = z.object({
-  error: z.enum(["missing_weight", "billing_blocked", "not_found", "billing_setup_required"]),
+  error: z.enum([
+    "missing_weight",
+    "billing_blocked",
+    // The store has no ship-from address configured yet — actionable, not a failure.
+    "origin_required",
+    "not_found",
+    "billing_setup_required",
+  ]),
   variants: z.array(z.object({ variantId: z.string(), variantName: z.string() })).optional(),
   setupUrl: z.string().optional(),
 });
@@ -61,7 +68,9 @@ export const BuyLabelResponse = z.object({
   labelUrl: z.string(),
 });
 export const BuyLabelError = z.object({
-  error: z.enum(["billing_blocked", "not_found"]),
+  // `rate_expired` is recoverable (re-quote and pick again); `not_found` means
+  // the order doesn't exist or isn't this store's, which is a terminal error.
+  error: z.enum(["billing_blocked", "rate_expired", "not_found"]),
 });
 
 export const PostageBalance = z.object({

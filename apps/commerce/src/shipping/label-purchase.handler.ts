@@ -26,13 +26,18 @@ import { LabelPurchaseService } from "./label-purchase.service";
 export class LabelPurchaseHandler {
   constructor(private readonly labelPurchase: LabelPurchaseService) {}
 
+  // `storeId` on both payloads is the gateway's authenticated store, not
+  // anything the merchant can supply — it is what scopes the order lookup so a
+  // foreign orderId can't be quoted or shipped.
   @MessagePattern("shipping.getLabelRates")
-  getRates(@Payload() data: { orderId: string }) {
-    return this.labelPurchase.getRates(data.orderId);
+  getRates(@Payload() data: { orderId: string; storeId: string }) {
+    return this.labelPurchase.getRates(data.orderId, data.storeId);
   }
 
   @MessagePattern("shipping.buyLabel")
-  buyLabel(@Payload() data: { orderId: string; shipmentId: string; rateId: string }) {
+  buyLabel(
+    @Payload() data: { orderId: string; storeId: string; shipmentId: string; rateId: string },
+  ) {
     return this.labelPurchase.buyLabel(data);
   }
 
