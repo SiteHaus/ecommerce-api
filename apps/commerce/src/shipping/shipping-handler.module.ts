@@ -13,6 +13,8 @@ import { LabelPurchaseHandler } from "./label-purchase.handler";
 import { LabelPurchaseService } from "./label-purchase.service";
 import { PostageLedgerHandler } from "./postage-ledger.handler";
 import { PostageLedgerService } from "./postage-ledger.service";
+import { EasypostTrackingHandler } from "./easypost-tracking.handler";
+import { EasypostTrackingService } from "./easypost-tracking.service";
 
 @Module({
   imports: [AuditModule, EasypostModule],
@@ -23,6 +25,7 @@ import { PostageLedgerService } from "./postage-ledger.service";
     ParcelPresetHandler,
     LabelPurchaseHandler,
     PostageLedgerHandler,
+    EasypostTrackingHandler,
   ],
   providers: [
     ShippingRatesHandlerService,
@@ -31,6 +34,7 @@ import { PostageLedgerService } from "./postage-ledger.service";
     ParcelPresetService,
     LabelPurchaseService,
     PostageLedgerService,
+    EasypostTrackingService,
   ],
 })
 export class ShippingHandlersModule {}
