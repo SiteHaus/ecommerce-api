@@ -78,6 +78,9 @@ const variantAdmin = z.object({
   sku: z.string().nullable(),
   priceCents: z.number().int(),
   compareAtCents: z.number().int().nullable(),
+  // Shipping weight — admin-only (the storefront's variantPublic has no use for
+  // it). The variations grid reads it back here after a sync.
+  weightGrams: z.number().int().nullable(),
   isActive: z.boolean(),
   sortOrder: z.number().int(),
   availability: z.enum(["in_stock", "low_stock", "out_of_stock"]),

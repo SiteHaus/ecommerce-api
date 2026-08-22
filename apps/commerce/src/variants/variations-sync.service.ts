@@ -205,6 +205,9 @@ export class VariationsSyncService {
             // doesn't carry the field, so writing `?? null` would wipe every sale price
             // on the first save.
             ...(row.compareAtCents !== undefined && { compareAtCents: row.compareAtCents }),
+            // Same guard as compare-at: a caller that omits weight must not have
+            // an existing shipping weight wiped out from under it.
+            ...(row.weightGrams !== undefined && { weightGrams: row.weightGrams }),
             isActive: row.isActive ?? true,
             updatedAt: new Date(),
           })
@@ -239,6 +242,7 @@ export class VariationsSyncService {
             priceCents: row.priceCents,
             sku: row.sku ?? null,
             compareAtCents: row.compareAtCents ?? null,
+            weightGrams: row.weightGrams ?? null,
             isActive: row.isActive ?? true,
             sortOrder: 0,
           })

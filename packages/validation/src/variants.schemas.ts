@@ -87,6 +87,10 @@ export const syncVariationsSchema = z.object({
         sku: z.string().trim().min(1).nullable().optional(),
         isActive: z.boolean().optional(),
         compareAtCents: z.number().int().min(0).nullable().optional(),
+        // Per-variant shipping weight. Zod strips unknown keys, so without this
+        // the variations grid's weight column would be silently dropped before
+        // it ever reached the sync service — and label rating needs it.
+        weightGrams: z.number().int().min(0).nullable().optional(),
       }),
     )
     .max(200),

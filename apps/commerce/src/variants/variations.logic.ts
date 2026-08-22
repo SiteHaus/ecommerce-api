@@ -16,6 +16,7 @@ export type DesiredRow = {
   sku?: string | null;
   isActive?: boolean;
   compareAtCents?: number | null;
+  weightGrams?: number | null;
 };
 
 export function diffVariants(args: {
