@@ -39,4 +39,18 @@ describe("ParcelPresetService", () => {
 
     expect(result.id).toBe("p1");
   });
+
+  it("returns a message on delete rather than resolving undefined", async () => {
+    const where = jest.fn().mockResolvedValue(undefined);
+    const db = { delete: jest.fn().mockReturnValue({ where }) };
+    const service = new ParcelPresetService(db as any);
+
+    const result = await service.delete("store-1", "p1");
+
+    expect(where).toHaveBeenCalled();
+    // A handler resolving undefined never emits, so the gateway's firstValueFrom
+    // throws EmptyError and a successful delete surfaces as a failure toast.
+    // Matches deleteZone/deleteRate's `{ message }` convention.
+    expect(result).toEqual({ message: "Preset deleted." });
+  });
 });

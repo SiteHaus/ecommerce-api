@@ -42,8 +42,16 @@ export class OriginAddressService {
     );
   }
 
-  async set(storeId: string, address: OriginAddress): Promise<void> {
+  /**
+   * Returns the saved address rather than void: a microservice handler that
+   * resolves `undefined` never emits a value, so the gateway's `firstValueFrom`
+   * throws EmptyError and a successful write is reported to the merchant as a
+   * failure. The `setOriginAddress` contract route already declares `200:
+   * OriginAddress`, so echoing the saved row back is what it always expected.
+   */
+  async set(storeId: string, address: OriginAddress): Promise<OriginAddress> {
     await this.db.update(storesTable).set(address).where(eq(storesTable.id, storeId));
+    return this.get(storeId);
   }
 
   hasOrigin(address: OriginAddress): boolean {

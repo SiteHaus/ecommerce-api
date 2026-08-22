@@ -24,9 +24,15 @@ export class ParcelPresetService {
     return preset;
   }
 
-  async delete(storeId: string, presetId: string): Promise<void> {
+  /**
+   * Returns a message rather than void, matching deleteZone/deleteRate. A
+   * handler resolving `undefined` never emits, so the gateway's `firstValueFrom`
+   * throws EmptyError and a successful delete surfaces as a failure toast.
+   */
+  async delete(storeId: string, presetId: string): Promise<{ message: string }> {
     await this.db
       .delete(parcelPresetsTable)
       .where(and(eq(parcelPresetsTable.id, presetId), eq(parcelPresetsTable.storeId, storeId)));
+    return { message: "Preset deleted." };
   }
 }
