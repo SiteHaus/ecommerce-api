@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { BullModule } from "@nestjs/bullmq";
+import { ClientsModule, Transport } from "@nestjs/microservices";
 import { DbModule, R2Module, EmailModule, AuditModule } from "@sitehaus-ecom/shared";
 import { validateCommerceEnv } from "./config/env";
 import { CatalogHandlersModule } from "./catalog/catalog-handlers.module";
@@ -35,6 +36,25 @@ import { AnalyticsHandlersModule } from "./analytics/analytics-handlers.module";
         connection: { url: config.getOrThrow("REDIS_URL") },
       }),
     }),
+
+    // Label purchase needs the customer's street, which lives on the Stripe
+    // PaymentIntent rather than in our database (address-minimization) — so
+    // this app has to be able to ask payments for it. Same registration
+    // pattern as apps/worker and apps/gateway.
+    ClientsModule.registerAsync([
+      {
+        name: "PAYMENTS_SERVICE",
+        imports: [ConfigModule],
+        useFactory: (config: ConfigService) => ({
+          transport: Transport.TCP,
+          options: {
+            host: config.get("PAYMENTS_HOST", "localhost"),
+            port: 7022,
+          },
+        }),
+        inject: [ConfigService],
+      },
+    ]),
 
     // TCP message pattern handlers — filled in per-ticket
     CatalogHandlersModule,

@@ -4,10 +4,33 @@ import { ShippingRatesHandlerController } from "./shippingrate-handler.controlle
 import { AuditModule } from "@sitehaus-ecom/shared";
 import { ShippingRatesHandlerService } from "./shippingrate-handler.service";
 import { ShippingZoneHandlerService } from "./shippingzone-handler.service";
+import { EasypostModule } from "./easypost.module";
+import { OriginAddressHandler } from "./origin-address.handler";
+import { OriginAddressService } from "./origin-address.service";
+import { ParcelPresetHandler } from "./parcel-preset.handler";
+import { ParcelPresetService } from "./parcel-preset.service";
+import { LabelPurchaseHandler } from "./label-purchase.handler";
+import { LabelPurchaseService } from "./label-purchase.service";
+import { PostageLedgerHandler } from "./postage-ledger.handler";
+import { PostageLedgerService } from "./postage-ledger.service";
 
 @Module({
-  imports: [AuditModule],
-  controllers: [ShippingZoneHandlerController, ShippingRatesHandlerController],
-  providers: [ShippingRatesHandlerService, ShippingZoneHandlerService],
+  imports: [AuditModule, EasypostModule],
+  controllers: [
+    ShippingZoneHandlerController,
+    ShippingRatesHandlerController,
+    OriginAddressHandler,
+    ParcelPresetHandler,
+    LabelPurchaseHandler,
+    PostageLedgerHandler,
+  ],
+  providers: [
+    ShippingRatesHandlerService,
+    ShippingZoneHandlerService,
+    OriginAddressService,
+    ParcelPresetService,
+    LabelPurchaseService,
+    PostageLedgerService,
+  ],
 })
 export class ShippingHandlersModule {}
