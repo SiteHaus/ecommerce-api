@@ -67,7 +67,9 @@ export async function handleOrderDelivered(job: Job, ctx: HandlerContext): Promi
       shippingZip: order.shippingZip ?? "",
       shippingCountry: order.shippingCountry ?? "",
       trackingNumber: order.trackingNumber,
-      reviewUrl: `https://sitehaus.dev/review/${ref}`,
+      // No client site has a /review page yet — omitting hides the button
+      // instead of linking to a 404. See SIT-313.
+      reviewUrl: null,
       supportEmail: "support@sitehaus.dev",
     }),
   );

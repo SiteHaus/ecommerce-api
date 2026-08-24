@@ -24,7 +24,9 @@ interface ReturnRequestedProps {
   returnRequestDate: string;
   items: OrderItem[];
   returnReason: string;
-  returnPortalUrl: string;
+  // No client site currently has a /returns tracking page to send this to —
+  // omit until one exists rather than link to a page nobody built.
+  returnPortalUrl?: string | null;
   supportEmail?: string;
 }
 
@@ -83,15 +85,16 @@ export const ReturnRequestedEmail = ({
             What's next?
           </Text>
           <Text className="text-[#333] text-sm mt-1 mb-3">
-            Once your return is approved, you'll receive a prepaid shipping label by email. You can
-            also track the status of your return at any time in your account.
+            Once your return is approved, you'll receive a prepaid shipping label by email.
           </Text>
-          <Button
-            href={returnPortalUrl}
-            className="bg-[#333] text-white text-sm font-medium px-5 py-3 rounded"
-          >
-            View Return Status
-          </Button>
+          {returnPortalUrl && (
+            <Button
+              href={returnPortalUrl}
+              className="bg-[#333] text-white text-sm font-medium px-5 py-3 rounded"
+            >
+              View Return Status
+            </Button>
+          )}
 
           <Text className="text-[#898989] text-xs leading-[22px] mt-6 mb-6">
             Questions about your return?{" "}

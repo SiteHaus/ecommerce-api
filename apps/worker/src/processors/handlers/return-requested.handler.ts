@@ -51,7 +51,9 @@ export async function handleReturnRequested(job: Job, ctx: HandlerContext): Prom
       }).format(new Date()),
       items,
       returnReason,
-      returnPortalUrl: `https://sitehaus.dev/returns/${ref}`,
+      // No client site has a /returns tracking page yet — omitting hides
+      // the button instead of linking to a 404. See SIT-313.
+      returnPortalUrl: null,
       supportEmail: "support@sitehaus.dev",
     }),
   );
