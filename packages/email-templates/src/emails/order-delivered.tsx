@@ -39,7 +39,9 @@ interface OrderDeliveredProps {
   shippingCountry: string;
   // extras
   trackingNumber?: string | null;
-  reviewUrl: string;
+  // No client site currently has a /review page to send this to — omit
+  // until one exists rather than link to a page nobody built.
+  reviewUrl?: string | null;
   supportEmail: string;
 }
 
@@ -174,20 +176,25 @@ export const OrderDeliveredEmail = ({
             </>
           )}
 
-          <Hr className="border-[#eee] my-4" />
+          {reviewUrl && (
+            <>
+              <Hr className="border-[#eee] my-4" />
 
-          <Text className="text-[#898989] text-[11px] font-bold uppercase tracking-wide mt-4 mb-2">
-            How did we do?
-          </Text>
-          <Text className="text-[#333] text-sm mt-1 mb-3">
-            We'd love to hear what you think. Leave a review and help others find what they love.
-          </Text>
-          <Button
-            href={reviewUrl}
-            className="bg-[#333] text-white text-sm font-medium px-5 py-3 rounded"
-          >
-            Leave a Review
-          </Button>
+              <Text className="text-[#898989] text-[11px] font-bold uppercase tracking-wide mt-4 mb-2">
+                How did we do?
+              </Text>
+              <Text className="text-[#333] text-sm mt-1 mb-3">
+                We'd love to hear what you think. Leave a review and help others find what they
+                love.
+              </Text>
+              <Button
+                href={reviewUrl}
+                className="bg-[#333] text-white text-sm font-medium px-5 py-3 rounded"
+              >
+                Leave a Review
+              </Button>
+            </>
+          )}
 
           <Text className="text-[#898989] text-xs leading-[22px] mt-6 mb-6">
             Something wrong with your order?{" "}
