@@ -13,6 +13,7 @@ import { handleReturnRequested } from "./handlers/return-requested.handler";
 import { handleReturnRefunded } from "./handlers/return-refunded.handler";
 import { handleAbandonedCart } from "./handlers/abandoned-cart.handler";
 import { handleLowStock } from "./handlers/low-stock.handler";
+import { handleOrderPlaced } from "./handlers/order-placed.handler";
 
 @Injectable()
 @Processor("ecom-notifications")
@@ -35,6 +36,8 @@ export class NotificationsProcessor extends WorkerHost {
     switch (job.name) {
       case "order.confirmed":
         return handleOrderConfirmed(job, this.ctx);
+      case "order.placed":
+        return handleOrderPlaced(job, this.ctx);
       case "order.shipped":
         return handleOrderShipped(job, this.ctx);
       case "order.delivered":
