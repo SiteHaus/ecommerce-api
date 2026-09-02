@@ -69,7 +69,9 @@ export class StoreService {
   /**
    * CORS support: true when `origin`'s host matches an active store domain.
    * Backed by the Redis-cached `findByDomain`, so the allow-list tracks live
-   * store domains without a stale startup snapshot.
+   * store domains without a stale startup snapshot. `stores.domain` is always
+   * stored bare (no "www."), so strip it here rather than requiring every
+   * store to register both variants.
    */
   async isActiveStoreOrigin(origin: string): Promise<boolean> {
     let host: string;
@@ -78,7 +80,8 @@ export class StoreService {
     } catch {
       return false;
     }
-    const store = await this.findByDomain(host);
+    const bareHost = host.startsWith("www.") ? host.slice(4) : host;
+    const store = await this.findByDomain(bareHost);
     return store !== null;
   }
 

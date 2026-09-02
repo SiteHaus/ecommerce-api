@@ -80,3 +80,63 @@ describe("StoreService.update", () => {
     expect(result.taxRegistrationConfirmed).toBe(true);
   });
 });
+
+function selectChain(returning: any[]) {
+  return {
+    from: jest.fn().mockReturnValue({
+      where: jest.fn().mockReturnValue({
+        limit: jest.fn().mockResolvedValue(returning),
+      }),
+    }),
+  };
+}
+
+describe("StoreService.isActiveStoreOrigin", () => {
+  let service: StoreService;
+  let mockSelect: jest.Mock;
+  let mockDb: any;
+  let mockRedis: any;
+
+  beforeEach(() => {
+    mockSelect = jest.fn();
+    mockDb = { select: mockSelect };
+    mockRedis = {
+      get: jest.fn().mockResolvedValue(null),
+      setex: jest.fn().mockResolvedValue("OK"),
+    };
+    service = new StoreService(mockDb, mockRedis);
+  });
+
+  it("matches an origin whose host equals a store's bare domain", async () => {
+    mockSelect.mockReturnValue(selectChain([{ ...baseRow, domain: "onehealthclinics.com" }]));
+
+    const result = await service.isActiveStoreOrigin("https://onehealthclinics.com");
+
+    expect(result).toBe(true);
+    expect(mockRedis.get).toHaveBeenCalledWith("store:domain:onehealthclinics.com");
+  });
+
+  it("strips a www. prefix before matching, since stores.domain is stored bare", async () => {
+    mockSelect.mockReturnValue(selectChain([{ ...baseRow, domain: "onehealthclinics.com" }]));
+
+    const result = await service.isActiveStoreOrigin("https://www.onehealthclinics.com");
+
+    expect(result).toBe(true);
+    expect(mockRedis.get).toHaveBeenCalledWith("store:domain:onehealthclinics.com");
+  });
+
+  it("returns false when no store matches the (normalized) host", async () => {
+    mockSelect.mockReturnValue(selectChain([]));
+
+    const result = await service.isActiveStoreOrigin("https://www.some-random-site.com");
+
+    expect(result).toBe(false);
+  });
+
+  it("returns false for an unparseable origin without touching the db", async () => {
+    const result = await service.isActiveStoreOrigin("not-a-url");
+
+    expect(result).toBe(false);
+    expect(mockSelect).not.toHaveBeenCalled();
+  });
+});
