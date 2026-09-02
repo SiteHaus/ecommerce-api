@@ -2,7 +2,7 @@ import { Section, Text, Img, Row, Column } from "react-email";
 
 export const Header = ({
   storeName = "OneHealth Store",
-  email = "orders@sitehaus.io",
+  email = "orders@notify.sitehaus.dev",
   logoUrl,
 }: {
   storeName?: string;
