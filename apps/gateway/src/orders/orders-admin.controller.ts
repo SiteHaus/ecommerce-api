@@ -7,6 +7,27 @@ import { TsRestHandler, tsRestHandler } from "@ts-rest/nest";
 import type { Request } from "express";
 import { firstValueFrom } from "rxjs";
 
+/** Reply shape of the payments `stripe.shipping.get` message. */
+type StripeShippingAddress = {
+  line1: string | null;
+  line2: string | null;
+  name: string | null;
+  city: string | null;
+  state: string | null;
+  zip: string | null;
+  country: string | null;
+};
+
+const EMPTY_STRIPE_ADDRESS: StripeShippingAddress = {
+  line1: null,
+  line2: null,
+  name: null,
+  city: null,
+  state: null,
+  zip: null,
+  country: null,
+};
+
 @Controller()
 @UseGuards(AdminStoreGuard)
 export class OrdersAdminController {
@@ -50,27 +71,38 @@ export class OrdersAdminController {
       // A legacy order still has it in its columns, so only overwrite when Stripe actually
       // has something. If payments is unreachable we render the order without a street
       // rather than failing the page.
-      let street = { line1: null as string | null, line2: null as string | null };
+      let stripeAddress: StripeShippingAddress = EMPTY_STRIPE_ADDRESS;
       try {
-        street = await firstValueFrom(
-          this.payments.send<{ line1: string | null; line2: string | null }>(
-            "stripe.shipping.get",
-            { orderId: params.orderId },
-          ),
-        );
+        stripeAddress =
+          (await firstValueFrom(
+            this.payments.send<StripeShippingAddress>("stripe.shipping.get", {
+              orderId: params.orderId,
+            }),
+          )) ?? EMPTY_STRIPE_ADDRESS;
       } catch (err) {
         this.logger.warn(
-          `Shipping street lookup failed for order ${params.orderId}: ${err instanceof Error ? err.message : String(err)}`,
+          `Shipping address lookup failed for order ${params.orderId}: ${err instanceof Error ? err.message : String(err)}`,
         );
         // fall through — body keeps whatever the columns held
       }
 
+      // Precedence differs by field, deliberately:
+      //   street        — Stripe is the system of record, so it wins over the (legacy,
+      //                   soon-to-be-redacted) columns.
+      //   everything    — our columns are the system of record and a merchant can correct
+      //   else            them by hand, so they win; Stripe is only the fallback for orders
+      //                   whose confirmation webhook never reconciled them.
       return {
         status: 200 as const,
         body: {
           ...body,
-          shippingLine1: street.line1 ?? body.shippingLine1,
-          shippingLine2: street.line2 ?? body.shippingLine2,
+          shippingLine1: stripeAddress.line1 ?? body.shippingLine1,
+          shippingLine2: stripeAddress.line2 ?? body.shippingLine2,
+          shippingName: body.shippingName ?? stripeAddress.name ?? null,
+          shippingCity: body.shippingCity ?? stripeAddress.city ?? null,
+          shippingState: body.shippingState ?? stripeAddress.state ?? null,
+          shippingZip: body.shippingZip ?? stripeAddress.zip ?? null,
+          shippingCountry: body.shippingCountry ?? stripeAddress.country ?? null,
         },
       };
     });

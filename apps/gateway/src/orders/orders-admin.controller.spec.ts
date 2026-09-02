@@ -219,6 +219,62 @@ describe("OrdersAdminController", () => {
       expect(res.status).toBe(200); // the page must not die over a missing street
       expect(res.body.shippingLine1).toBeNull();
     });
+
+    it("falls back to Stripe for name/city/state/zip an unreconciled order never stored", async () => {
+      mockCommerceClient.send.mockReturnValue(
+        of({
+          ...mockOrderDetail,
+          shippingName: null,
+          shippingLine1: null,
+          shippingCity: null,
+          shippingState: null,
+          shippingZip: null,
+          shippingCountry: null,
+        }),
+      );
+      mockPaymentsClient.send.mockReturnValue(
+        of({
+          line1: "12 Baker St",
+          line2: null,
+          name: "Ada Lovelace",
+          city: "Roy",
+          state: "UT",
+          zip: "84067",
+          country: "US",
+        }),
+      );
+
+      const res = await request(app.getHttpServer()).get(`/v1/admin/orders/${ORDER_ID}`);
+
+      expect(res.body.shippingLine1).toBe("12 Baker St");
+      expect(res.body.shippingName).toBe("Ada Lovelace");
+      expect(res.body.shippingCity).toBe("Roy");
+      expect(res.body.shippingState).toBe("UT");
+      expect(res.body.shippingZip).toBe("84067");
+      expect(res.body.shippingCountry).toBe("US");
+    });
+
+    it("prefers our columns over Stripe so a merchant's manual correction wins", async () => {
+      mockCommerceClient.send.mockReturnValue(
+        of({ ...mockOrderDetail, shippingCity: "Ogden", shippingZip: "84401" }),
+      );
+      mockPaymentsClient.send.mockReturnValue(
+        of({
+          line1: "12 Baker St",
+          line2: null,
+          name: "Ada Lovelace",
+          city: "Roy",
+          state: "UT",
+          zip: "84067",
+          country: "US",
+        }),
+      );
+
+      const res = await request(app.getHttpServer()).get(`/v1/admin/orders/${ORDER_ID}`);
+
+      expect(res.body.shippingCity).toBe("Ogden");
+      expect(res.body.shippingZip).toBe("84401");
+    });
   });
 
   // ─── PATCH /v1/admin/orders/:orderId/ship ────────────────────────────────────

@@ -7,7 +7,7 @@ export class ShippingAddressHandler {
   constructor(private readonly shippingAddress: ShippingAddressService) {}
 
   @MessagePattern("stripe.shipping.get")
-  getShippingStreet(@Payload() payload: { orderId: string }) {
-    return this.shippingAddress.getShippingStreet(payload.orderId);
+  getShippingAddress(@Payload() payload: { orderId: string }) {
+    return this.shippingAddress.getShippingAddress(payload.orderId);
   }
 }

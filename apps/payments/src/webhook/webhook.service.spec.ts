@@ -281,6 +281,39 @@ describe("WebhookService", () => {
       expect(setCall.shippingCountry).toBe("US");
     });
 
+    it("reconciles from collected_information.shipping_details (the basil+ payload shape)", async () => {
+      db.query.ordersTable.findFirst.mockResolvedValue(mockOrder);
+      mockUpdateFn.mockReturnValue(updateChain());
+      mockDeleteFn.mockReturnValue(deleteChain());
+
+      await service.handle({
+        type: "checkout.session.completed",
+        data: {
+          object: makeSession({
+            shipping_details: undefined,
+            collected_information: {
+              shipping_details: {
+                name: "Ada Lovelace",
+                address: {
+                  city: "Roy",
+                  state: "UT",
+                  postal_code: "84067",
+                  country: "US",
+                },
+              },
+            },
+          } as any),
+        },
+      } as any);
+
+      const setCall = mockUpdateFn.mock.results[0].value.set.mock.calls[0][0];
+      expect(setCall.shippingName).toBe("Ada Lovelace");
+      expect(setCall.shippingCity).toBe("Roy");
+      expect(setCall.shippingState).toBe("UT");
+      expect(setCall.shippingZip).toBe("84067");
+      expect(setCall.shippingCountry).toBe("US");
+    });
+
     it("never writes shippingLine1/Line2 — the street stays off our DB even with shipping_details present", async () => {
       db.query.ordersTable.findFirst.mockResolvedValue(mockOrder);
       mockUpdateFn.mockReturnValue(updateChain());

@@ -63,6 +63,12 @@ export class WebhookService {
     }
   }
 
+  private shippingDetailsOf(
+    session: Stripe.Checkout.Session,
+  ): { name?: string | null; address?: Stripe.Address | null } | null {
+    return session.collected_information?.shipping_details ?? session.shipping_details ?? null;
+  }
+
   private async handleSessionCompleted(session: Stripe.Checkout.Session): Promise<void> {
     const orderId = session.metadata?.orderId;
     if (!orderId) {
@@ -92,7 +98,7 @@ export class WebhookService {
     // ever collected. Reconcile them here, same as shippingCents above, or they stay empty
     // forever. The street (line1/line2) is deliberately excluded — it never touches our DB,
     // per the address-minimization design; only the columns needed for zone/tax/display live here.
-    const shippingDetails = session.shipping_details;
+    const shippingDetails = this.shippingDetailsOf(session);
     await this.db
       .update(ordersTable)
       .set({

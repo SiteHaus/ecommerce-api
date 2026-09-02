@@ -28,15 +28,30 @@ describe("ShippingAddressService", () => {
     (service as any).stripe = { paymentIntents: { retrieve } };
   });
 
-  it("returns the street from the PaymentIntent", async () => {
+  it("returns the whole address from the PaymentIntent, not just the street", async () => {
     dbFindFirst.mockResolvedValue({ stripePaymentIntentId: "pi_1" });
     retrieve.mockResolvedValue({
-      shipping: { address: { line1: "12 Baker St", line2: "Flat 4" } },
+      shipping: {
+        name: "Ada Lovelace",
+        address: {
+          line1: "12 Baker St",
+          line2: "Flat 4",
+          city: "Roy",
+          state: "UT",
+          postal_code: "84067",
+          country: "US",
+        },
+      },
     });
 
-    await expect(service.getShippingStreet("order-1")).resolves.toEqual({
+    await expect(service.getShippingAddress("order-1")).resolves.toEqual({
       line1: "12 Baker St",
       line2: "Flat 4",
+      name: "Ada Lovelace",
+      city: "Roy",
+      state: "UT",
+      zip: "84067",
+      country: "US",
     });
   });
 
@@ -44,9 +59,14 @@ describe("ShippingAddressService", () => {
     dbFindFirst.mockResolvedValue({ stripePaymentIntentId: "pi_old" });
     retrieve.mockResolvedValue({ shipping: null });
 
-    await expect(service.getShippingStreet("order-1")).resolves.toEqual({
+    await expect(service.getShippingAddress("order-1")).resolves.toEqual({
       line1: null,
       line2: null,
+      name: null,
+      city: null,
+      state: null,
+      zip: null,
+      country: null,
     });
   });
 
@@ -54,17 +74,27 @@ describe("ShippingAddressService", () => {
     dbFindFirst.mockResolvedValue({ stripePaymentIntentId: "pi_1" });
     retrieve.mockRejectedValue(new Error("stripe is down"));
 
-    await expect(service.getShippingStreet("order-1")).resolves.toEqual({
+    await expect(service.getShippingAddress("order-1")).resolves.toEqual({
       line1: null,
       line2: null,
+      name: null,
+      city: null,
+      state: null,
+      zip: null,
+      country: null,
     });
   });
 
   it("returns nulls when the order has no PaymentIntent at all", async () => {
     dbFindFirst.mockResolvedValue({ stripePaymentIntentId: null });
-    await expect(service.getShippingStreet("order-1")).resolves.toEqual({
+    await expect(service.getShippingAddress("order-1")).resolves.toEqual({
       line1: null,
       line2: null,
+      name: null,
+      city: null,
+      state: null,
+      zip: null,
+      country: null,
     });
     expect(retrieve).not.toHaveBeenCalled();
   });
@@ -72,9 +102,14 @@ describe("ShippingAddressService", () => {
   it("returns nulls (never throws) when the DATABASE is down — a receipt must not be lost", async () => {
     dbFindFirst.mockRejectedValue(new Error("ECONNREFUSED"));
 
-    await expect(service.getShippingStreet("order-1")).resolves.toEqual({
+    await expect(service.getShippingAddress("order-1")).resolves.toEqual({
       line1: null,
       line2: null,
+      name: null,
+      city: null,
+      state: null,
+      zip: null,
+      country: null,
     });
   });
 });

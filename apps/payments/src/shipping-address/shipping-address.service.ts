@@ -6,6 +6,35 @@ import Stripe from "stripe";
 
 export type ShippingStreet = { line1: string | null; line2: string | null };
 
+/**
+ * Everything Stripe holds for an order's shipping address, not just the street.
+ *
+ * The street is the only part that is *exclusively* here — name/city/state/zip/country are
+ * supposed to live in our columns too. But when a storefront doesn't collect the address
+ * itself (Stripe's hosted page is the only place it is ever entered), those columns are only
+ * ever filled by the confirmation webhook, so any order that missed that reconciliation has
+ * them empty forever. Stripe copies the address collected on Checkout onto the PaymentIntent,
+ * so the full thing is already in the response we fetch for the street — returning it costs
+ * nothing extra and lets callers fall back to it.
+ */
+export type StripeShippingAddress = ShippingStreet & {
+  name: string | null;
+  city: string | null;
+  state: string | null;
+  zip: string | null;
+  country: string | null;
+};
+
+const EMPTY: StripeShippingAddress = {
+  line1: null,
+  line2: null,
+  name: null,
+  city: null,
+  state: null,
+  zip: null,
+  country: null,
+};
+
 @Injectable()
 export class ShippingAddressService {
   private readonly logger = new Logger(ShippingAddressService.name);
@@ -27,7 +56,7 @@ export class ShippingAddressService {
    * null here and the caller falls back to the columns, which still hold their street until
    * redaction.
    */
-  async getShippingStreet(orderId: string): Promise<ShippingStreet> {
+  async getShippingAddress(orderId: string): Promise<StripeShippingAddress> {
     let order: { stripePaymentIntentId: string | null } | undefined;
     try {
       order = await this.db.query.ordersTable.findFirst({
@@ -36,21 +65,27 @@ export class ShippingAddressService {
       });
     } catch (err) {
       this.logger.warn(`DB lookup failed for order ${orderId}: ${this.errorMessage(err)}`);
-      return { line1: null, line2: null };
+      return EMPTY;
     }
-    if (!order?.stripePaymentIntentId) return { line1: null, line2: null };
+    if (!order?.stripePaymentIntentId) return EMPTY;
 
     try {
       const pi = await this.stripe.paymentIntents.retrieve(order.stripePaymentIntentId);
+      const address = pi.shipping?.address;
       return {
-        line1: pi.shipping?.address?.line1 ?? null,
-        line2: pi.shipping?.address?.line2 ?? null,
+        line1: address?.line1 ?? null,
+        line2: address?.line2 ?? null,
+        name: pi.shipping?.name ?? null,
+        city: address?.city ?? null,
+        state: address?.state ?? null,
+        zip: address?.postal_code ?? null,
+        country: address?.country ?? null,
       };
     } catch (err) {
       this.logger.warn(
         `Stripe shipping lookup failed for order ${orderId}: ${this.errorMessage(err)}`,
       );
-      return { line1: null, line2: null };
+      return EMPTY;
     }
   }
 
