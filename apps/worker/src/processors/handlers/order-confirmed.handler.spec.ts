@@ -93,4 +93,57 @@ describe("handleOrderConfirmed", () => {
     expect(props.shippingLine1).toBe("12 Baker St");
     expect(props.shippingLine2).toBe("Flat 4");
   });
+
+  // A confirmation email is the customer's receipt for where the parcel is going. Every
+  // component has to be on it — a street with no city is as useless as no street at all.
+  it("renders the complete address: Stripe's street plus the columns' name/city/state/zip/country", async () => {
+    dbFindFirst.mockResolvedValue({
+      ...baseOrder,
+      shippingName: "Ada Lovelace",
+      shippingLine1: null,
+      shippingLine2: null,
+      shippingCity: "Provo",
+      shippingState: "UT",
+      shippingZip: "84604",
+      shippingCountry: "US",
+    });
+    paymentsSend.mockReturnValue(of({ line1: "440 Sansome St", line2: "Suite 200" }));
+
+    await handleOrderConfirmed(job, ctx);
+
+    const props = (OrderConfirmed as jest.Mock).mock.calls[0][0];
+    expect(props).toMatchObject({
+      shippingName: "Ada Lovelace",
+      shippingLine1: "440 Sansome St",
+      shippingLine2: "Suite 200",
+      shippingCity: "Provo",
+      shippingState: "UT",
+      shippingZip: "84604",
+      shippingCountry: "US",
+    });
+  });
+
+  it("renders the legacy columns' street when Stripe has none", async () => {
+    paymentsSend.mockReturnValue(of({ line1: null, line2: null }));
+
+    await handleOrderConfirmed(job, ctx);
+
+    const props = (OrderConfirmed as jest.Mock).mock.calls[0][0];
+    expect(props.shippingLine1).toBe("10 Analytical Engine Way");
+    expect(props.shippingCity).toBe("London");
+    expect(props.shippingZip).toBe("SW1A 1AA");
+  });
+
+  // The template takes strings for the required lines; an absent street must arrive as ""
+  // rather than "undefined" being rendered into the customer's receipt.
+  it("sends an empty string, never undefined, when no street exists anywhere", async () => {
+    dbFindFirst.mockResolvedValue({ ...baseOrder, shippingLine1: null, shippingLine2: null });
+    paymentsSend.mockReturnValue(of({ line1: null, line2: null }));
+
+    await handleOrderConfirmed(job, ctx);
+
+    const props = (OrderConfirmed as jest.Mock).mock.calls[0][0];
+    expect(props.shippingLine1).toBe("");
+    expect(props.shippingCity).toBe("London");
+  });
 });

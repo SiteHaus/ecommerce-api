@@ -197,6 +197,76 @@ describe("OrdersAdminController", () => {
       expect(res.body.shippingLine2).toBe("Flat 4");
     });
 
+    // The exact shape of the bug this path exists to fix: a hosted-checkout order whose
+    // street columns are empty by design. If Stripe has the street, the response must carry
+    // the real value — not a placeholder, not a truthy stand-in — and the rest of the
+    // address must survive alongside it.
+    it("returns the actual street from Stripe together with the full address", async () => {
+      mockCommerceClient.send.mockReturnValue(
+        of({
+          ...mockOrderDetail,
+          shippingName: "Ada Lovelace",
+          shippingLine1: null,
+          shippingLine2: null,
+          shippingCity: "Provo",
+          shippingState: "UT",
+          shippingZip: "84604",
+          shippingCountry: "US",
+        }),
+      );
+      mockPaymentsClient.send.mockReturnValue(of({ line1: "440 Sansome St", line2: "Suite 200" }));
+
+      const res = await request(app.getHttpServer()).get(`/v1/admin/orders/${ORDER_ID}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body).toMatchObject({
+        shippingName: "Ada Lovelace",
+        shippingLine1: "440 Sansome St",
+        shippingLine2: "Suite 200",
+        shippingCity: "Provo",
+        shippingState: "UT",
+        shippingZip: "84604",
+        shippingCountry: "US",
+      });
+      expect(mockPaymentsClient.send).toHaveBeenCalledWith("stripe.shipping.get", {
+        orderId: ORDER_ID,
+      });
+    });
+
+    it("returns the street verbatim — no trimming, casing or reformatting", async () => {
+      mockCommerceClient.send.mockReturnValue(
+        of({ ...mockOrderDetail, shippingLine1: null, shippingLine2: null }),
+      );
+      mockPaymentsClient.send.mockReturnValue(
+        of({ line1: "1600 Pennsylvania Ave NW #b", line2: "c/o Façade Ltd." }),
+      );
+
+      const res = await request(app.getHttpServer()).get(`/v1/admin/orders/${ORDER_ID}`);
+
+      expect(res.body.shippingLine1).toBe("1600 Pennsylvania Ave NW #b");
+      expect(res.body.shippingLine2).toBe("c/o Façade Ltd.");
+    });
+
+    it("does not let the Stripe street overwrite the name, city, state or zip", async () => {
+      mockCommerceClient.send.mockReturnValue(
+        of({
+          ...mockOrderDetail,
+          shippingName: "Jane Doe",
+          shippingCity: "Vancouver",
+          shippingState: "BC",
+          shippingZip: "V6B 1A1",
+        }),
+      );
+      mockPaymentsClient.send.mockReturnValue(of({ line1: "12 Baker St", line2: null }));
+
+      const res = await request(app.getHttpServer()).get(`/v1/admin/orders/${ORDER_ID}`);
+
+      expect(res.body.shippingName).toBe("Jane Doe");
+      expect(res.body.shippingCity).toBe("Vancouver");
+      expect(res.body.shippingState).toBe("BC");
+      expect(res.body.shippingZip).toBe("V6B 1A1");
+    });
+
     it("keeps the legacy column value when Stripe has no shipping", async () => {
       mockCommerceClient.send.mockReturnValue(
         of({ ...mockOrderDetail, shippingLine1: "9 Old Rd", shippingLine2: null }),
