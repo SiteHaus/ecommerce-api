@@ -26,6 +26,7 @@ const mockStore = {
   currency: "usd",
   fulfillmentType: "shipping" as const,
   taxRegistrationConfirmed: true,
+  reservationTtlMinutes: 15,
 };
 
 const mockSession = {
@@ -119,6 +120,46 @@ describe("IntentService", () => {
         }),
       );
       expect(db.update).toHaveBeenCalled();
+    });
+
+    it("clamps the session expiry to Stripe's 30 minute floor when the store's reservation window is shorter", async () => {
+      const nowSeconds = 1_700_000_000;
+      jest.spyOn(Date, "now").mockReturnValue(nowSeconds * 1000);
+
+      db.query.ordersTable.findFirst.mockResolvedValue(mockOrder);
+      db.query.storesTable.findFirst.mockResolvedValue({ ...mockStore, reservationTtlMinutes: 15 });
+      db.select
+        .mockReturnValueOnce(selectChain(mockOrderItems))
+        .mockReturnValueOnce(selectChainWithJoin([]));
+      db.update.mockReturnValue(updateChain());
+
+      await service.createIntent(ORDER_ID, SUCCESS_URL, CANCEL_URL);
+
+      expect(mockSessionsCreate).toHaveBeenCalledWith(
+        expect.objectContaining({ expires_at: nowSeconds + 30 * 60 }),
+      );
+
+      jest.spyOn(Date, "now").mockRestore();
+    });
+
+    it("extends the session expiry to match the store's reservation window when it exceeds Stripe's floor", async () => {
+      const nowSeconds = 1_700_000_000;
+      jest.spyOn(Date, "now").mockReturnValue(nowSeconds * 1000);
+
+      db.query.ordersTable.findFirst.mockResolvedValue(mockOrder);
+      db.query.storesTable.findFirst.mockResolvedValue({ ...mockStore, reservationTtlMinutes: 45 });
+      db.select
+        .mockReturnValueOnce(selectChain(mockOrderItems))
+        .mockReturnValueOnce(selectChainWithJoin([]));
+      db.update.mockReturnValue(updateChain());
+
+      await service.createIntent(ORDER_ID, SUCCESS_URL, CANCEL_URL);
+
+      expect(mockSessionsCreate).toHaveBeenCalledWith(
+        expect.objectContaining({ expires_at: nowSeconds + 45 * 60 }),
+      );
+
+      jest.spyOn(Date, "now").mockRestore();
     });
 
     it("throws RpcException when order is not found", async () => {

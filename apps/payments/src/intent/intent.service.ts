@@ -15,6 +15,10 @@ import {
 import { DB_TOKEN } from "@sitehaus-ecom/shared";
 import Stripe from "stripe";
 
+// Stripe's own floor for Checkout Session expires_at — it rejects anything
+// sooner than this, regardless of how short a store's reservation window is.
+const STRIPE_MIN_SESSION_EXPIRY_SECONDS = 30 * 60;
+
 function toShippingOption(
   name: string,
   amountCents: number,
@@ -77,6 +81,7 @@ export class IntentService {
         currency: true,
         fulfillmentType: true,
         taxRegistrationConfirmed: true,
+        reservationTtlMinutes: true,
       },
     });
 
@@ -217,10 +222,26 @@ export class IntentService {
       ? { discounts: [{ coupon: stripeCouponId }] }
       : { allow_promotion_codes: true };
 
+    // Stripe defaults a session to staying payable for 24 hours — far past our
+    // own inventory reservation (5-60 min, per store), so a customer finishing
+    // a stale tab after the reservation already released could pay for stock
+    // that was never actually held for them and never gets decremented (see
+    // ReservationService.commit — it's a no-op once the reservation is gone).
+    // Aligning Stripe's own expiry to the reservation window means Stripe
+    // refuses the payment itself once it's stale, forcing a fresh checkout
+    // (a new order + a fresh reservation) instead of silently drifting
+    // inventory out of sync. Stripe won't go below 30 minutes, so a store
+    // with a shorter TTL still has some residual gap — bounded to at most
+    // 30 minutes now, instead of the full 24-hour default.
+    const expiresAt =
+      Math.floor(Date.now() / 1000) +
+      Math.max(store.reservationTtlMinutes * 60, STRIPE_MIN_SESSION_EXPIRY_SECONDS);
+
     let session: Stripe.Checkout.Session;
     try {
       session = await this.stripe.checkout.sessions.create({
         mode: "payment",
+        expires_at: expiresAt,
         ...stripeCustomerParam,
         // Storefronts don't collect a shipping address of their own (checkout is a
         // straight redirect to this session) — without this, Stripe never asks for
