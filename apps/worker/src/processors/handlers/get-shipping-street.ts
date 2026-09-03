@@ -6,7 +6,8 @@ export type ShippingStreet = { line1: string | null; line2: string | null };
 /**
  * Where the street lives depends on when the order was placed.
  *
- * New orders: on the Stripe PaymentIntent (our DB never saw it).
+ * New orders: on the Stripe Checkout Session's shipping_details (our DB never saw it) —
+ * see shipping-address.service.ts for why it's the Session and not the PaymentIntent.
  * Legacy orders: still in `orders.shipping_line1/line2`, until the redaction cron clears them.
  *
  * Ask Stripe first, fall back to the columns. If payments is unreachable we STILL fall back

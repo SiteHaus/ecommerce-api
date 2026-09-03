@@ -13,9 +13,10 @@ export type ShippingStreet = { line1: string | null; line2: string | null };
  * supposed to live in our columns too. But when a storefront doesn't collect the address
  * itself (Stripe's hosted page is the only place it is ever entered), those columns are only
  * ever filled by the confirmation webhook, so any order that missed that reconciliation has
- * them empty forever. Stripe copies the address collected on Checkout onto the PaymentIntent,
- * so the full thing is already in the response we fetch for the street — returning it costs
- * nothing extra and lets callers fall back to it.
+ * them empty forever. The full address (including the street) lives on the Checkout Session's
+ * shipping_details, not on the PaymentIntent — Stripe never copies it there on its own, so
+ * fetching it here costs an extra list call, but returning the whole thing lets callers fall
+ * back to it.
  */
 export type StripeShippingAddress = ShippingStreet & {
   name: string | null;
@@ -48,12 +49,21 @@ export class ShippingAddressService {
   }
 
   /**
-   * The street lives on the PaymentIntent, not in our database.
+   * The street lives on the Checkout Session that collected it, not on the
+   * PaymentIntent it paid — Stripe's own docs are explicit that
+   * shipping_address_collection saves the address onto the Session's
+   * shipping_details, never automatically onto the PaymentIntent. We only
+   * store the PaymentIntent id on the order, so look the Session up by it
+   * (Stripe's List Checkout Sessions supports filtering by payment_intent).
+   *
+   * Two possible shapes depending on Stripe API version — same
+   * collected_information.shipping_details vs shipping_details fallback
+   * webhook.service.ts already handles for the "basil+" payload.
    *
    * Returns nulls rather than throwing, always. An unavailable street must never fail an
-   * order page or lose a receipt — the caller degrades instead. Legacy orders (placed before
-   * we started sending `shipping` to Stripe) have no shipping on their PI; they come back
-   * null here and the caller falls back to the columns, which still hold their street until
+   * order page or lose a receipt — the caller degrades instead. Orders whose Checkout Session
+   * never collected shipping (no session found, or the field genuinely empty) come back null
+   * here and the caller falls back to the columns, which still hold their street until
    * redaction.
    */
   async getShippingAddress(orderId: string): Promise<StripeShippingAddress> {
@@ -70,12 +80,18 @@ export class ShippingAddressService {
     if (!order?.stripePaymentIntentId) return EMPTY;
 
     try {
-      const pi = await this.stripe.paymentIntents.retrieve(order.stripePaymentIntentId);
-      const address = pi.shipping?.address;
+      const sessions = await this.stripe.checkout.sessions.list({
+        payment_intent: order.stripePaymentIntentId,
+        limit: 1,
+      });
+      const session = sessions.data[0];
+      const shipping =
+        session?.collected_information?.shipping_details ?? session?.shipping_details ?? null;
+      const address = shipping?.address;
       return {
         line1: address?.line1 ?? null,
         line2: address?.line2 ?? null,
-        name: pi.shipping?.name ?? null,
+        name: shipping?.name ?? null,
         city: address?.city ?? null,
         state: address?.state ?? null,
         zip: address?.postal_code ?? null,
