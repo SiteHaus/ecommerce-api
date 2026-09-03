@@ -61,7 +61,7 @@ export async function handleOrderConfirmed(job: Job, ctx: HandlerContext): Promi
       shippingState: order.shippingState,
       shippingZip: order.shippingZip ?? "",
       shippingCountry: order.shippingCountry ?? "",
-      supportEmail: "support@sitehaus.dev",
+      supportEmail: "hello@sitehaus.dev",
     }),
   );
 

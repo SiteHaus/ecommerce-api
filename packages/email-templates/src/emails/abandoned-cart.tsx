@@ -46,7 +46,7 @@ export const AbandonedCartEmail = ({
   cartTotal,
   currency,
   cartUrl,
-  supportEmail = "support@sitehaus.dev",
+  supportEmail = "hello@sitehaus.dev",
 }: AbandonedCartProps) => (
   <Html>
     <Head />
@@ -156,7 +156,7 @@ AbandonedCartEmail.PreviewProps = {
   ],
   cartTotal: 115.97,
   cartUrl: "https://sitehaus.dev/cart/recover/abc123",
-  supportEmail: "support@sitehaus.dev",
+  supportEmail: "hello@sitehaus.dev",
 } satisfies AbandonedCartProps;
 
 export default AbandonedCartEmail;

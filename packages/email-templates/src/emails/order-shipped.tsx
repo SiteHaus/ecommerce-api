@@ -66,7 +66,7 @@ export const OrderShippedEmail = ({
   shippingState,
   shippingZip,
   shippingCountry,
-  supportEmail = "support@sitehaus.dev",
+  supportEmail = "hello@sitehaus.dev",
 }: OrderShippedProps) => (
   <Html>
     <Head />
@@ -216,7 +216,9 @@ OrderShippedEmail.PreviewProps = {
   total: 114.45,
   currency: "USD",
   trackingNumber: "1Z999AA10123456784",
-  trackingUrl: "https://sitehaus.dev/track/1Z999AA10123456784",
+  // Kept null in the preview on purpose — the real handler doesn't have a
+  // carrier tracking URL to pass yet, so real emails never show this button.
+  trackingUrl: null,
   carrier: "UPS",
   estimatedDelivery: "May 7–9, 2026",
   shippingName: "Jane Doe",
@@ -226,7 +228,7 @@ OrderShippedEmail.PreviewProps = {
   shippingState: "UT",
   shippingZip: "84101",
   shippingCountry: "US",
-  supportEmail: "support@sitehaus.dev",
+  supportEmail: "hello@sitehaus.dev",
 } satisfies OrderShippedProps;
 
 export default OrderShippedEmail;

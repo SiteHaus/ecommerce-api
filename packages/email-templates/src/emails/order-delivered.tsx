@@ -245,8 +245,10 @@ OrderDeliveredEmail.PreviewProps = {
   shippingZip: "84101",
   shippingCountry: "US",
   trackingNumber: "1Z999AA10123456784",
-  reviewUrl: "https://sitehaus.dev/review/10492",
-  supportEmail: "support@sitehaus.dev",
+  // Kept null in the preview on purpose — there's no product review page
+  // built yet, so real emails never show this button.
+  reviewUrl: null,
+  supportEmail: "hello@sitehaus.dev",
 } satisfies OrderDeliveredProps;
 
 export default OrderDeliveredEmail;

@@ -61,7 +61,7 @@ export const OrderConfirmedEmail = ({
   shippingZip,
   shippingCountry,
   trackingNumber,
-  supportEmail = "support@sitehaus.dev",
+  supportEmail = "hello@sitehaus.dev",
 }: OrderConfirmedProps) => (
   <Html>
     <Head />
@@ -209,7 +209,7 @@ OrderConfirmedEmail.PreviewProps = {
   shippingZip: "84101",
   shippingCountry: "US",
   trackingNumber: null,
-  supportEmail: "support@sitehaus.dev",
+  supportEmail: "hello@sitehaus.dev",
 } satisfies OrderConfirmedProps;
 
 export default OrderConfirmedEmail;

@@ -11,7 +11,7 @@ export const Footer = () => {
           sitehaus.dev
         </Link>
       </Text>
-      <Text style={copyright}>© {new Date().getFullYear()} Sitehaus. All rights reserved.</Text>
+      <Text style={copyright}>© {new Date().getFullYear()} SiteHaus. All rights reserved.</Text>
     </Section>
   );
 };

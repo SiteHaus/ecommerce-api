@@ -50,7 +50,7 @@ export async function handleReturnRefunded(job: Job, ctx: HandlerContext): Promi
         year: "numeric",
       }).format(new Date()),
       estimatedDays: 5,
-      supportEmail: "support@sitehaus.dev",
+      supportEmail: "hello@sitehaus.dev",
     }),
   );
 

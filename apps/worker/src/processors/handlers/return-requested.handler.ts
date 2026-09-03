@@ -54,7 +54,7 @@ export async function handleReturnRequested(job: Job, ctx: HandlerContext): Prom
       // No client site has a /returns tracking page yet — omitting hides
       // the button instead of linking to a 404. See SIT-313.
       returnPortalUrl: null,
-      supportEmail: "support@sitehaus.dev",
+      supportEmail: "hello@sitehaus.dev",
     }),
   );
 

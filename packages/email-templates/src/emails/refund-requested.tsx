@@ -39,7 +39,7 @@ export const ReturnRequestedEmail = ({
   items,
   returnReason,
   returnPortalUrl,
-  supportEmail = "support@sitehaus.dev",
+  supportEmail = "hello@sitehaus.dev",
 }: ReturnRequestedProps) => (
   <Html>
     <Head />
@@ -128,8 +128,10 @@ ReturnRequestedEmail.PreviewProps = {
     },
   ],
   returnReason: "Item not as described",
-  returnPortalUrl: "https://sitehaus.dev/returns/10492",
-  supportEmail: "support@sitehaus.dev",
+  // Kept null in the preview on purpose — see the prop comment above. If this
+  // ever gets a real value, the actual returns page needs to exist first.
+  returnPortalUrl: null,
+  supportEmail: "hello@sitehaus.dev",
 } satisfies ReturnRequestedProps;
 
 export default ReturnRequestedEmail;

@@ -70,7 +70,7 @@ export async function handleOrderDelivered(job: Job, ctx: HandlerContext): Promi
       // No client site has a /review page yet — omitting hides the button
       // instead of linking to a 404. See SIT-313.
       reviewUrl: null,
-      supportEmail: "support@sitehaus.dev",
+      supportEmail: "hello@sitehaus.dev",
     }),
   );
 

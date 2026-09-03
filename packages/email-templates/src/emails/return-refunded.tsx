@@ -49,7 +49,7 @@ export const ReturnRefundedEmail = ({
   refundMethod,
   refundDate,
   estimatedDays,
-  supportEmail = "support@sitehaus.dev",
+  supportEmail = "hello@sitehaus.dev",
 }: ReturnRefundedProps) => (
   <Html>
     <Head />
@@ -139,7 +139,7 @@ ReturnRefundedEmail.PreviewProps = {
   refundMethod: "Original payment method",
   refundDate: "May 4, 2026",
   estimatedDays: 5,
-  supportEmail: "support@sitehaus.dev",
+  supportEmail: "hello@sitehaus.dev",
 } satisfies ReturnRefundedProps;
 
 export default ReturnRefundedEmail;

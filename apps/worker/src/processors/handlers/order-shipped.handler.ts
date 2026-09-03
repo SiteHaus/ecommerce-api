@@ -60,7 +60,7 @@ export async function handleOrderShipped(job: Job, ctx: HandlerContext): Promise
       shippingState: order.shippingState,
       shippingZip: order.shippingZip ?? "",
       shippingCountry: order.shippingCountry ?? "",
-      supportEmail: "support@sitehaus.dev",
+      supportEmail: "hello@sitehaus.dev",
     }),
   );
 
