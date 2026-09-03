@@ -108,6 +108,23 @@ export class RefundService {
           `Failed to enqueue order.refunded notification for ${data.orderId}: ${err instanceof Error ? err.message : String(err)}`,
         ),
       );
+    // Merchant-facing notification — own job, own dedupe, same reasoning as
+    // order.placed alongside order.confirmed.
+    void this.notificationsQueue
+      .add(
+        "refund.placed",
+        { orderId: data.orderId, storeId: data.storeId },
+        {
+          attempts: 3,
+          backoff: { type: "exponential", delay: 5000 },
+          jobId: `refund.placed-${data.orderId}`,
+        },
+      )
+      .catch((err: unknown) =>
+        this.logger.warn(
+          `Failed to enqueue refund.placed notification for ${data.orderId}: ${err instanceof Error ? err.message : String(err)}`,
+        ),
+      );
     void this.webhooksQueue
       .add("webhook.dispatch", {
         storeId: data.storeId,

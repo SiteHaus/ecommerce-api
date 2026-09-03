@@ -32,7 +32,7 @@ export async function handleOrderPlaced(job: Job, ctx: HandlerContext): Promise<
       .where(eq(orderItemsTable.orderId, orderId)),
     db.query.storesTable.findFirst({
       where: eq(storesTable.id, storeId),
-      columns: { name: true, notificationEmail: true, notificationPreferences: true },
+      columns: { name: true, slug: true, notificationEmail: true, notificationPreferences: true },
     }),
   ]);
 
@@ -44,7 +44,10 @@ export async function handleOrderPlaced(job: Job, ctx: HandlerContext): Promise<
     return;
   }
 
-  const storeUrl = `https://commerce.sitehaus.dev/${store?.name}/orders/${orderId}`;
+  // The admin app routes by slug (app/[storeSlug]/...), not by display name —
+  // store.name is a human-readable label like "OneHealth Clinics" and would
+  // produce a URL that 404s.
+  const storeUrl = `https://commerce.sitehaus.dev/${store.slug}/orders/${orderId}`;
 
   const ref = orderId.slice(0, 8).toUpperCase();
 

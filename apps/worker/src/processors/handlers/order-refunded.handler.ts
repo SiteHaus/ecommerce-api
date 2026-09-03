@@ -29,7 +29,7 @@ export async function handleOrderRefunded(job: Job, ctx: HandlerContext): Promis
       .where(eq(orderItemsTable.orderId, orderId)),
     db.query.storesTable.findFirst({
       where: eq(storesTable.id, storeId),
-      columns: { name: true, notificationEmail: true, notificationPreferences: true },
+      columns: { name: true },
     }),
   ]);
 
@@ -45,7 +45,7 @@ export async function handleOrderRefunded(job: Job, ctx: HandlerContext): Promis
       currency: order.currency,
       refundMethod: "Original payment method",
       estimatedDays: 5,
-      supportEmail: "support@sitehaus.dev",
+      supportEmail: "hello@sitehaus.dev",
     }),
   );
 
@@ -73,31 +73,6 @@ export async function handleOrderRefunded(job: Job, ctx: HandlerContext): Promis
       errorMessage: error instanceof Error ? error.message : String(error),
     });
   }
-
-  if (store?.notificationEmail && store.notificationPreferences?.paymentFailed !== false) {
-    try {
-      await email.send({
-        to: store.notificationEmail,
-        from: email.orderFrom(`${store.name} Orders`),
-        subject: `Refund issued — #${ref}`,
-        html,
-      });
-      await logNotification(ctx, {
-        storeId,
-        recipientEmail: store.notificationEmail,
-        event: "merchant.order_refunded",
-        status: "sent",
-      });
-      logger.log(`Merchant refund notification sent for ${orderId}`);
-    } catch (error) {
-      logger.error(`Failed to send merchant refund notification: ${error}`);
-      await logNotification(ctx, {
-        storeId,
-        recipientEmail: store.notificationEmail,
-        event: "merchant.order_refunded",
-        status: "failed",
-        errorMessage: error instanceof Error ? error.message : String(error),
-      });
-    }
-  }
+  // Merchant "refund placed" notification lives in refund-placed.handler.ts
+  // (its own job, own template — not a reuse of this customer-facing one).
 }

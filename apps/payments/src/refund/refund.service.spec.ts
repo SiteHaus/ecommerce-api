@@ -143,6 +143,22 @@ describe("RefundService", () => {
       );
     });
 
+    it("also enqueues refund.placed (merchant notification) as its own job", async () => {
+      db.query.ordersTable.findFirst.mockResolvedValue(mockOrder);
+      db.update.mockReturnValue(updateChain());
+      db.select
+        .mockReturnValueOnce(selectChain([{ itemCount: 1 }]))
+        .mockReturnValueOnce(selectChain(mockItems));
+
+      await service.refund({ storeId: STORE_ID, orderId: ORDER_ID, store: mockStore });
+
+      expect(mockNotificationsQueue.add).toHaveBeenCalledWith(
+        "refund.placed",
+        { orderId: ORDER_ID, storeId: STORE_ID },
+        expect.objectContaining({ jobId: `refund.placed-${ORDER_ID}` }),
+      );
+    });
+
     it("jobId contains no colon — BullMQ rejects a single ':' as invalid (only exempts its own internal 3-segment repeatable-job format)", async () => {
       db.query.ordersTable.findFirst.mockResolvedValue(mockOrder);
       db.update.mockReturnValue(updateChain());

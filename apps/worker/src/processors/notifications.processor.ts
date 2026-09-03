@@ -14,6 +14,7 @@ import { handleReturnRefunded } from "./handlers/return-refunded.handler";
 import { handleAbandonedCart } from "./handlers/abandoned-cart.handler";
 import { handleLowStock } from "./handlers/low-stock.handler";
 import { handleOrderPlaced } from "./handlers/order-placed.handler";
+import { handleRefundPlaced } from "./handlers/refund-placed.handler";
 
 @Injectable()
 @Processor("ecom-notifications")
@@ -44,6 +45,8 @@ export class NotificationsProcessor extends WorkerHost {
         return handleOrderDelivered(job, this.ctx);
       case "order.refunded":
         return handleOrderRefunded(job, this.ctx);
+      case "refund.placed":
+        return handleRefundPlaced(job, this.ctx);
       case "order.return_requested":
         return handleReturnRequested(job, this.ctx);
       case "order.return_refunded":

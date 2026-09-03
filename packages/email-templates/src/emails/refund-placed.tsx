@@ -195,7 +195,7 @@ RefundPlacedEmail.PreviewProps = {
   refundDate: "May 4, 2026",
   reason: "Customer reported the left earcup rattling.",
   initiatedBy: "ethan@onehealth.com",
-  dashboardUrl: "https://sitehaus.dev/dashboard/orders/10492",
+  dashboardUrl: "https://commerce.sitehaus.dev/onehealth/orders/10492",
 } satisfies RefundPlacedProps;
 
 export default RefundPlacedEmail;

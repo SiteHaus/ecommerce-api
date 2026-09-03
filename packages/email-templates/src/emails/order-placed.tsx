@@ -65,7 +65,7 @@ export const OrderPlacedEmail = ({
   shippingCountry,
   trackingNumber,
   supportEmail = "hello@sitehaus.dev",
-  storeUrl = "https://sitehaus.dev",
+  storeUrl = "https://commerce.sitehaus.dev",
 }: OrderPlacedProps) => {
   const orderUrl = `${storeUrl}/orders/${orderId}`;
 
@@ -224,7 +224,7 @@ OrderPlacedEmail.PreviewProps = {
   shippingZip: "84101",
   shippingCountry: "US",
   trackingNumber: null,
-  supportEmail: "support@sitehaus.dev",
+  supportEmail: "hello@sitehaus.dev",
 } satisfies OrderPlacedProps;
 
 export default OrderPlacedEmail;
