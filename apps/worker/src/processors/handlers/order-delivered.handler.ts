@@ -32,7 +32,7 @@ export async function handleOrderDelivered(job: Job, ctx: HandlerContext): Promi
       .where(eq(orderItemsTable.orderId, orderId)),
     db.query.storesTable.findFirst({
       where: eq(storesTable.id, storeId),
-      columns: { name: true, notificationEmail: true, notificationPreferences: true },
+      columns: { name: true },
     }),
   ]);
 
