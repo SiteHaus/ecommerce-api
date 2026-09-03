@@ -15,6 +15,7 @@ import {
 } from "react-email";
 import { Footer } from "../components/footer";
 import { Header } from "../components/header";
+import { tailwindConfig } from "../theme";
 import { OrderItemsTable, OrderItem } from "../components/order-items";
 
 interface OrderShippedProps {
@@ -70,115 +71,115 @@ export const OrderShippedEmail = ({
   <Html>
     <Head />
     <Header storeName={storeName} />
-    <Tailwind>
+    <Tailwind config={tailwindConfig}>
       <Preview>Your order #{orderNumber} is on its way!</Preview>
-      <Body className="bg-white">
+      <Body className="bg-parchment">
         <Container className="px-3 mx-auto">
-          <Heading className="text-[#333] text-2xl font-bold mt-10 mb-2 p-0">Order Shipped</Heading>
-          <Text className="text-[#333] text-sm m-0">
+          <Heading className="text-ink text-2xl font-bold mt-10 mb-2 p-0">Order Shipped</Heading>
+          <Text className="text-ink text-sm m-0">
             Hi {name}, your order #{orderNumber} has been picked up{carrier ? ` by ${carrier}` : ""}{" "}
             and is on its way!
           </Text>
 
-          <Hr className="border-[#eee] my-4" />
+          <Hr className="border-line my-4" />
 
-          <Text className="text-[#898989] text-[11px] font-bold uppercase tracking-wide mt-4 mb-2">
+          <Text className="text-clay-700 text-[11px] font-bold uppercase tracking-wide mt-4 mb-2">
             Shipment details
           </Text>
           <Row>
             <Column>
-              <Text className="text-[#898989] text-[11px] m-0 mb-0.5">Order number</Text>
-              <Text className="text-[#333] text-sm font-bold m-0">#{orderNumber}</Text>
+              <Text className="text-clay-700 text-[11px] m-0 mb-0.5">Order number</Text>
+              <Text className="text-ink text-sm font-bold m-0">#{orderNumber}</Text>
             </Column>
             {carrier && (
               <Column>
-                <Text className="text-[#898989] text-[11px] m-0 mb-0.5">Carrier</Text>
-                <Text className="text-[#333] text-sm font-bold m-0">{carrier}</Text>
+                <Text className="text-clay-700 text-[11px] m-0 mb-0.5">Carrier</Text>
+                <Text className="text-ink text-sm font-bold m-0">{carrier}</Text>
               </Column>
             )}
             {estimatedDelivery && (
               <Column>
-                <Text className="text-[#898989] text-[11px] m-0 mb-0.5">Est. delivery</Text>
-                <Text className="text-[#333] text-sm font-bold m-0">{estimatedDelivery}</Text>
+                <Text className="text-clay-700 text-[11px] m-0 mb-0.5">Est. delivery</Text>
+                <Text className="text-ink text-sm font-bold m-0">{estimatedDelivery}</Text>
               </Column>
             )}
           </Row>
 
-          <Hr className="border-[#eee] my-4" />
+          <Hr className="border-line my-4" />
 
-          <Text className="text-[#898989] text-[11px] font-bold uppercase tracking-wide mt-4 mb-2">
+          <Text className="text-clay-700 text-[11px] font-bold uppercase tracking-wide mt-4 mb-2">
             Tracking
           </Text>
-          <Text className="text-[#333] text-sm font-bold my-1">{trackingNumber}</Text>
+          <Text className="text-ink text-sm font-bold my-1">{trackingNumber}</Text>
           {trackingUrl && (
             <Button
               href={trackingUrl}
-              className="bg-[#333] text-white text-sm font-medium px-5 py-3 rounded mt-2"
+              className="bg-terracotta text-terracotta-foreground text-sm font-medium px-5 py-3 rounded mt-2"
             >
               Track Your Order
             </Button>
           )}
 
-          <Hr className="border-[#eee] my-4" />
+          <Hr className="border-line my-4" />
 
           <OrderItemsTable items={items} />
 
-          <Hr className="border-[#eee] my-4" />
+          <Hr className="border-line my-4" />
 
           <Row>
             <Column>
-              <Text className="text-[#333] text-sm my-1">Subtotal</Text>
+              <Text className="text-ink text-sm my-1">Subtotal</Text>
             </Column>
             <Column className="text-right">
-              <Text className="text-[#333] text-sm my-1">{formatAmount(subtotal, currency)}</Text>
+              <Text className="text-ink text-sm my-1">{formatAmount(subtotal, currency)}</Text>
             </Column>
           </Row>
           <Row>
             <Column>
-              <Text className="text-[#333] text-sm my-1">Shipping</Text>
+              <Text className="text-ink text-sm my-1">Shipping</Text>
             </Column>
             <Column className="text-right">
-              <Text className="text-[#333] text-sm my-1">
+              <Text className="text-ink text-sm my-1">
                 {shipping === 0 ? "Free" : formatAmount(shipping, currency)}
               </Text>
             </Column>
           </Row>
           <Row>
             <Column>
-              <Text className="text-[#333] text-sm my-1">Tax</Text>
+              <Text className="text-ink text-sm my-1">Tax</Text>
             </Column>
             <Column className="text-right">
-              <Text className="text-[#333] text-sm my-1">{formatAmount(tax, currency)}</Text>
+              <Text className="text-ink text-sm my-1">{formatAmount(tax, currency)}</Text>
             </Column>
           </Row>
           <Row>
             <Column>
-              <Text className="text-[#333] text-sm font-bold my-1">Total</Text>
+              <Text className="text-ink text-sm font-bold my-1">Total</Text>
             </Column>
             <Column className="text-right">
-              <Text className="text-[#333] text-sm font-bold my-1">
+              <Text className="text-ink text-sm font-bold my-1">
                 {formatAmount(total, currency)}
               </Text>
             </Column>
           </Row>
 
-          <Hr className="border-[#eee] my-4" />
+          <Hr className="border-line my-4" />
 
-          <Text className="text-[#898989] text-[11px] font-bold uppercase tracking-wide mt-4 mb-2">
+          <Text className="text-clay-700 text-[11px] font-bold uppercase tracking-wide mt-4 mb-2">
             Delivering to
           </Text>
-          <Text className="text-[#333] text-sm my-0">{shippingName}</Text>
-          <Text className="text-[#333] text-sm my-0">{shippingLine1}</Text>
-          {shippingLine2 && <Text className="text-[#333] text-sm my-0">{shippingLine2}</Text>}
-          <Text className="text-[#333] text-sm my-0">
+          <Text className="text-ink text-sm my-0">{shippingName}</Text>
+          <Text className="text-ink text-sm my-0">{shippingLine1}</Text>
+          {shippingLine2 && <Text className="text-ink text-sm my-0">{shippingLine2}</Text>}
+          <Text className="text-ink text-sm my-0">
             {shippingCity}
             {shippingState ? `, ${shippingState}` : ""} {shippingZip}
           </Text>
-          <Text className="text-[#333] text-sm my-0">{shippingCountry}</Text>
+          <Text className="text-ink text-sm my-0">{shippingCountry}</Text>
 
-          <Text className="text-[#898989] text-xs leading-[22px] mt-6 mb-6">
+          <Text className="text-clay-700 text-xs leading-[22px] mt-6 mb-6">
             Questions about your order?{" "}
-            <Link href={`mailto:${supportEmail}`} className="text-[#898989] underline">
+            <Link href={`mailto:${supportEmail}`} className="text-clay-700 underline">
               {supportEmail}
             </Link>
           </Text>
