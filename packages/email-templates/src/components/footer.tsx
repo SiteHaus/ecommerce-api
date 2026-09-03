@@ -1,4 +1,5 @@
-import { Hr, Link, Section, Text, Img } from "react-email";
+import { Hr, Link, Section, Text } from "react-email";
+import { sitehausColors } from "../theme";
 
 export const Footer = () => {
   return (
@@ -15,18 +16,22 @@ export const Footer = () => {
   );
 };
 
-const section = { textAlign: "center" as const };
-const hr = { borderColor: "#eee", margin: "20px 40px 16px" };
+const section = {
+  textAlign: "center" as const,
+  backgroundColor: sitehausColors.parchment,
+  paddingBottom: "24px",
+};
+const hr = { borderColor: sitehausColors.line, margin: "20px 40px 16px" };
 const text = {
-  color: "#444",
+  color: sitehausColors.ink700,
   fontSize: "12px",
   fontFamily: "HelveticaNeue,Helvetica,Arial,sans-serif",
   lineHeight: "20px",
   margin: "0",
 };
-const link = { color: "#0a85ea", textDecoration: "none" };
+const link = { color: sitehausColors.terracotta, textDecoration: "none" };
 const copyright = {
-  color: "#aaa",
+  color: sitehausColors.ink300,
   fontSize: "11px",
   fontFamily: "HelveticaNeue,Helvetica,Arial,sans-serif",
   lineHeight: "18px",

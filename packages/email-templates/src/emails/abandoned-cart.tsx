@@ -16,6 +16,7 @@ import {
 } from "react-email";
 import { Footer } from "../components/footer";
 import { Header } from "../components/header";
+import { tailwindConfig } from "../theme";
 
 interface CartItem {
   name: string;
@@ -50,21 +51,21 @@ export const AbandonedCartEmail = ({
   <Html>
     <Head />
     <Header storeName={storeName} />
-    <Tailwind>
+    <Tailwind config={tailwindConfig}>
       <Preview>You left something behind — your cart is waiting.</Preview>
-      <Body className="bg-white">
+      <Body className="bg-parchment">
         <Container className="px-3 mx-auto">
-          <Heading className="text-[#333] text-2xl font-bold mt-10 mb-2 p-0">
+          <Heading className="text-ink text-2xl font-bold mt-10 mb-2 p-0">
             You left something behind
           </Heading>
-          <Text className="text-[#333] text-sm m-0">
+          <Text className="text-ink text-sm m-0">
             Hi {name}, you left some items in your cart at {storeName}. Come back and complete your
             purchase before they sell out.
           </Text>
 
-          <Hr className="border-[#eee] my-4" />
+          <Hr className="border-line my-4" />
 
-          <Text className="text-[#898989] text-[11px] font-bold uppercase tracking-wide mt-4 mb-2">
+          <Text className="text-clay-700 text-[11px] font-bold uppercase tracking-wide mt-4 mb-2">
             Your cart
           </Text>
 
@@ -82,47 +83,47 @@ export const AbandonedCartEmail = ({
                 </Column>
               )}
               <Column>
-                <Text className="text-[#333] text-sm font-bold m-0">{item.name}</Text>
+                <Text className="text-ink text-sm font-bold m-0">{item.name}</Text>
                 {item.variant && (
-                  <Text className="text-[#898989] text-[11px] m-0">{item.variant}</Text>
+                  <Text className="text-clay-700 text-[11px] m-0">{item.variant}</Text>
                 )}
-                <Text className="text-[#898989] text-[11px] m-0">Qty: {item.quantity}</Text>
+                <Text className="text-clay-700 text-[11px] m-0">Qty: {item.quantity}</Text>
               </Column>
               <Column className="text-right">
-                <Text className="text-[#333] text-sm font-bold m-0">
+                <Text className="text-ink text-sm font-bold m-0">
                   {formatAmount(item.price * item.quantity, currency)}
                 </Text>
               </Column>
             </Row>
           ))}
 
-          <Hr className="border-[#eee] my-4" />
+          <Hr className="border-line my-4" />
 
           <Row>
             <Column>
-              <Text className="text-[#333] text-sm font-bold my-1">Cart total</Text>
+              <Text className="text-ink text-sm font-bold my-1">Cart total</Text>
             </Column>
             <Column className="text-right">
-              <Text className="text-[#333] text-sm font-bold my-1">
+              <Text className="text-ink text-sm font-bold my-1">
                 {formatAmount(cartTotal, currency)}
               </Text>
             </Column>
           </Row>
 
-          <Text className="text-[#898989] text-[11px] m-0 mt-1 mb-4">
+          <Text className="text-clay-700 text-[11px] m-0 mt-1 mb-4">
             Shipping and taxes calculated at checkout.
           </Text>
 
           <Button
             href={cartUrl}
-            className="bg-[#333] text-white text-sm font-medium px-5 py-3 rounded"
+            className="bg-terracotta text-terracotta-foreground text-sm font-medium px-5 py-3 rounded"
           >
             Return to Cart
           </Button>
 
-          <Text className="text-[#898989] text-xs leading-[22px] mt-6 mb-6">
+          <Text className="text-clay-700 text-xs leading-[22px] mt-6 mb-6">
             Need help?{" "}
-            <Link href={`mailto:${supportEmail}`} className="text-[#898989] underline">
+            <Link href={`mailto:${supportEmail}`} className="text-clay-700 underline">
               {supportEmail}
             </Link>
           </Text>

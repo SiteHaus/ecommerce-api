@@ -1,4 +1,5 @@
 import { Section, Text, Img, Row, Column } from "react-email";
+import { sitehausColors } from "../theme";
 
 export const Header = ({
   storeName = "OneHealth Store",
@@ -32,7 +33,8 @@ export const Header = ({
 
 const section = {
   padding: "24px 40px 20px",
-  borderBottom: "1px solid #eee",
+  backgroundColor: sitehausColors.parchment,
+  borderBottom: `1px solid ${sitehausColors.line}`,
 };
 
 const logoCol = { verticalAlign: "middle" as const };
@@ -45,7 +47,7 @@ const fromCol = {
 const logo = { display: "block" };
 
 const wordmark = {
-  color: "#111",
+  color: sitehausColors.ink,
   fontSize: "18px",
   fontFamily: "HelveticaNeue,Helvetica,Arial,sans-serif",
   fontWeight: "700",
@@ -54,7 +56,7 @@ const wordmark = {
 };
 
 const fromLabel = {
-  color: "#aaa",
+  color: sitehausColors.ink300,
   fontSize: "10px",
   fontFamily: "HelveticaNeue,Helvetica,Arial,sans-serif",
   textTransform: "uppercase" as const,
@@ -64,7 +66,7 @@ const fromLabel = {
 };
 
 const fromValue = {
-  color: "#444",
+  color: sitehausColors.ink700,
   fontSize: "12px",
   fontFamily: "HelveticaNeue,Helvetica,Arial,sans-serif",
   lineHeight: "18px",
@@ -72,6 +74,6 @@ const fromValue = {
 };
 
 const fromEmail = {
-  color: "#aaa",
+  color: sitehausColors.ink300,
   fontSize: "11px",
 };

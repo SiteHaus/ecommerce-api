@@ -1,4 +1,5 @@
 import { Row, Column, Text, Hr } from "react-email";
+import { sitehausColors } from "../theme";
 
 export interface OrderItem {
   productName: string;
@@ -18,7 +19,7 @@ export const OrderItemsTable = ({ items }: OrderItemsTableProps) => (
   <>
     <Text
       style={{
-        color: "#898989",
+        color: sitehausColors.clay700,
         fontSize: "11px",
         fontWeight: "bold",
         textTransform: "uppercase",
@@ -35,10 +36,10 @@ export const OrderItemsTable = ({ items }: OrderItemsTableProps) => (
       <Column style={{ width: "50%" }}>
         <Text
           style={{
-            color: "#898989",
+            color: sitehausColors.clay700,
             fontSize: "11px",
             margin: "0 0 6px 0",
-            borderBottom: "1px solid #eee",
+            borderBottom: `1px solid ${sitehausColors.line}`,
             paddingBottom: "6px",
           }}
         >
@@ -48,10 +49,10 @@ export const OrderItemsTable = ({ items }: OrderItemsTableProps) => (
       <Column style={{ width: "15%", textAlign: "center" }}>
         <Text
           style={{
-            color: "#898989",
+            color: sitehausColors.clay700,
             fontSize: "11px",
             margin: "0 0 6px 0",
-            borderBottom: "1px solid #eee",
+            borderBottom: `1px solid ${sitehausColors.line}`,
             paddingBottom: "6px",
           }}
         >
@@ -61,10 +62,10 @@ export const OrderItemsTable = ({ items }: OrderItemsTableProps) => (
       <Column style={{ width: "17%", textAlign: "right" }}>
         <Text
           style={{
-            color: "#898989",
+            color: sitehausColors.clay700,
             fontSize: "11px",
             margin: "0 0 6px 0",
-            borderBottom: "1px solid #eee",
+            borderBottom: `1px solid ${sitehausColors.line}`,
             paddingBottom: "6px",
           }}
         >
@@ -74,10 +75,10 @@ export const OrderItemsTable = ({ items }: OrderItemsTableProps) => (
       <Column style={{ width: "18%", textAlign: "right" }}>
         <Text
           style={{
-            color: "#898989",
+            color: sitehausColors.clay700,
             fontSize: "11px",
             margin: "0 0 6px 0",
-            borderBottom: "1px solid #eee",
+            borderBottom: `1px solid ${sitehausColors.line}`,
             paddingBottom: "6px",
           }}
         >
@@ -90,29 +91,29 @@ export const OrderItemsTable = ({ items }: OrderItemsTableProps) => (
     {items.map((item, i) => (
       <Row key={i}>
         <Column style={{ width: "50%", paddingTop: "8px", paddingBottom: "8px" }}>
-          <Text style={{ color: "#333", fontSize: "14px", margin: "0 0 2px 0", fontWeight: "500" }}>
+          <Text style={{ color: sitehausColors.ink, fontSize: "14px", margin: "0 0 2px 0", fontWeight: "500" }}>
             {item.productName}
           </Text>
-          <Text style={{ color: "#898989", fontSize: "11px", margin: "0" }}>
+          <Text style={{ color: sitehausColors.clay700, fontSize: "11px", margin: "0" }}>
             {item.variantName}
           </Text>
         </Column>
         <Column style={{ width: "15%", textAlign: "center", paddingTop: "8px" }}>
-          <Text style={{ color: "#333", fontSize: "14px", margin: "0" }}>{item.quantity}</Text>
+          <Text style={{ color: sitehausColors.ink, fontSize: "14px", margin: "0" }}>{item.quantity}</Text>
         </Column>
         <Column style={{ width: "17%", textAlign: "right", paddingTop: "8px" }}>
-          <Text style={{ color: "#333", fontSize: "14px", margin: "0" }}>
+          <Text style={{ color: sitehausColors.ink, fontSize: "14px", margin: "0" }}>
             {formatCents(item.unitPriceCents)}
           </Text>
         </Column>
         <Column style={{ width: "18%", textAlign: "right", paddingTop: "8px" }}>
-          <Text style={{ color: "#333", fontSize: "14px", margin: "0" }}>
+          <Text style={{ color: sitehausColors.ink, fontSize: "14px", margin: "0" }}>
             {formatCents(item.totalCents)}
           </Text>
         </Column>
       </Row>
     ))}
 
-    <Hr style={{ borderColor: "#eee", marginTop: "4px", marginBottom: "0" }} />
+    <Hr style={{ borderColor: sitehausColors.line, marginTop: "4px", marginBottom: "0" }} />
   </>
 );

@@ -5,5 +5,7 @@ export { default as OrderDelivered } from "./emails/order-delivered";
 export { default as OrderPlaced } from "./emails/order-placed";
 export { default as OrderShipped } from "./emails/order-shipped";
 export { default as RefundIssued } from "./emails/refund-issued";
+export { default as RefundPlaced } from "./emails/refund-placed";
 export { default as ReturnRefunded } from "./emails/return-refunded";
 export { default as ReturnRequested } from "./emails/refund-requested";
+export { sitehausColors, tailwindConfig } from "./theme";
