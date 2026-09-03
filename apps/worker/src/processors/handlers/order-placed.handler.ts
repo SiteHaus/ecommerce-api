@@ -36,6 +36,14 @@ export async function handleOrderPlaced(job: Job, ctx: HandlerContext): Promise<
     }),
   ]);
 
+  // Merchant notification — not the customer's. See order-confirmed.handler.ts
+  // for the customer-facing "Order confirmed" email; this is the "hey, you got
+  // a sale" email for the store owner, so it's gated by the same notification
+  // preference and simply skips when no notification email is on file.
+  if (!store?.notificationEmail || store.notificationPreferences?.newOrder === false) {
+    return;
+  }
+
   const storeUrl = `https://commerce.sitehaus.dev/${store?.name}/orders/${orderId}`;
 
   const ref = orderId.slice(0, 8).toUpperCase();
@@ -72,14 +80,14 @@ export async function handleOrderPlaced(job: Job, ctx: HandlerContext): Promise<
 
   try {
     await email.send({
-      to: order.email,
-      from: email.orderFrom(store?.name ?? "Your Store"),
+      to: store.notificationEmail,
+      from: email.orderFrom(`${store.name} Orders`),
       subject: `An order has been placed! — #${ref}`,
       html,
     });
     await logNotification(ctx, {
       storeId,
-      recipientEmail: order.email,
+      recipientEmail: store.notificationEmail,
       event: "order.placed",
       status: "sent",
     });
@@ -88,7 +96,7 @@ export async function handleOrderPlaced(job: Job, ctx: HandlerContext): Promise<
     logger.error(`Failed to send order placed email: ${error}`);
     await logNotification(ctx, {
       storeId,
-      recipientEmail: order.email,
+      recipientEmail: store.notificationEmail,
       event: "order.placed",
       status: "failed",
       errorMessage: error instanceof Error ? error.message : String(error),

@@ -32,7 +32,7 @@ export async function handleOrderConfirmed(job: Job, ctx: HandlerContext): Promi
       .where(eq(orderItemsTable.orderId, orderId)),
     db.query.storesTable.findFirst({
       where: eq(storesTable.id, storeId),
-      columns: { name: true, notificationEmail: true, notificationPreferences: true },
+      columns: { name: true },
     }),
   ]);
 
@@ -89,31 +89,6 @@ export async function handleOrderConfirmed(job: Job, ctx: HandlerContext): Promi
       errorMessage: error instanceof Error ? error.message : String(error),
     });
   }
-
-  if (store?.notificationEmail && store.notificationPreferences?.newOrder !== false) {
-    try {
-      await email.send({
-        to: store.notificationEmail,
-        from: email.orderFrom(`${store.name} Orders`),
-        subject: `New order received — #${ref}`,
-        html,
-      });
-      await logNotification(ctx, {
-        storeId,
-        recipientEmail: store.notificationEmail,
-        event: "merchant.new_order",
-        status: "sent",
-      });
-      logger.log(`Merchant new order notification sent for ${orderId}`);
-    } catch (error) {
-      logger.error(`Failed to send merchant new order notification: ${error}`);
-      await logNotification(ctx, {
-        storeId,
-        recipientEmail: store.notificationEmail,
-        event: "merchant.new_order",
-        status: "failed",
-        errorMessage: error instanceof Error ? error.message : String(error),
-      });
-    }
-  }
+  // Merchant "you got a sale" notification lives in order-placed.handler.ts
+  // (its own job, own template — not a reuse of this customer-facing one).
 }

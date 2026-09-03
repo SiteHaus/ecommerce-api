@@ -1,8 +1,8 @@
 import { of } from "rxjs";
 import { Logger } from "@nestjs/common";
 import type { Job } from "bullmq";
-import { OrderConfirmed } from "@sitehaus-ecom/email-templates";
-import { handleOrderConfirmed } from "./order-confirmed.handler";
+import { OrderPlaced } from "@sitehaus-ecom/email-templates";
+import { handleOrderPlaced } from "./order-placed.handler";
 import type { HandlerContext } from "./handler.context";
 
 jest.mock("@react-email/render", () => ({
@@ -10,10 +10,10 @@ jest.mock("@react-email/render", () => ({
 }));
 
 jest.mock("@sitehaus-ecom/email-templates", () => ({
-  OrderConfirmed: jest.fn().mockReturnValue("order-confirmed-element"),
+  OrderPlaced: jest.fn().mockReturnValue("order-placed-element"),
 }));
 
-describe("handleOrderConfirmed", () => {
+describe("handleOrderPlaced", () => {
   let dbFindFirst: jest.Mock;
   let storesFindFirst: jest.Mock;
   let emailSend: jest.Mock;
@@ -48,8 +48,8 @@ describe("handleOrderConfirmed", () => {
     dbFindFirst = jest.fn().mockResolvedValue(baseOrder);
     storesFindFirst = jest.fn().mockResolvedValue({
       name: "Test Store",
-      notificationEmail: null,
-      notificationPreferences: null,
+      notificationEmail: "owner@teststore.com",
+      notificationPreferences: { newOrder: true },
     });
     emailSend = jest.fn().mockResolvedValue(undefined);
     paymentsSend = jest.fn().mockReturnValue(of({ line1: null, line2: null }));
@@ -82,18 +82,40 @@ describe("handleOrderConfirmed", () => {
     job = { data: { orderId: "order-1", storeId: "store-1" } } as unknown as Job;
   });
 
-  it("renders the street fetched from Stripe, not the (now empty) column", async () => {
-    dbFindFirst.mockResolvedValue({
-      ...baseOrder,
-      shippingLine1: null, // new order — our DB has no street
-      shippingLine2: null,
+  it("sends to the store's notification email, not the customer's", async () => {
+    await handleOrderPlaced(job, ctx);
+
+    expect(emailSend).toHaveBeenCalledWith(expect.objectContaining({ to: "owner@teststore.com" }));
+  });
+
+  it("skips entirely when the store has no notification email on file", async () => {
+    storesFindFirst.mockResolvedValue({
+      name: "Test Store",
+      notificationEmail: null,
+      notificationPreferences: { newOrder: true },
     });
-    paymentsSend.mockReturnValue(of({ line1: "12 Baker St", line2: "Flat 4" }));
 
-    await handleOrderConfirmed(job, ctx);
+    await handleOrderPlaced(job, ctx);
 
-    const props = (OrderConfirmed as jest.Mock).mock.calls[0][0];
-    expect(props.shippingLine1).toBe("12 Baker St");
-    expect(props.shippingLine2).toBe("Flat 4");
+    expect(emailSend).not.toHaveBeenCalled();
+  });
+
+  it("skips when the merchant has turned off new-order notifications", async () => {
+    storesFindFirst.mockResolvedValue({
+      name: "Test Store",
+      notificationEmail: "owner@teststore.com",
+      notificationPreferences: { newOrder: false },
+    });
+
+    await handleOrderPlaced(job, ctx);
+
+    expect(emailSend).not.toHaveBeenCalled();
+  });
+
+  it("passes the customer's name through to the template — the email is about them, not to them", async () => {
+    await handleOrderPlaced(job, ctx);
+
+    const props = (OrderPlaced as jest.Mock).mock.calls[0][0];
+    expect(props.name).toBe("Ada Lovelace");
   });
 });

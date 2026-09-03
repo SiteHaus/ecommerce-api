@@ -163,6 +163,24 @@ export class WebhookService {
           `Failed to enqueue order.confirmed notification for ${orderId}: ${err instanceof Error ? err.message : String(err)}`,
         ),
       );
+    // Merchant-facing "you got a sale" email — separate job from the customer's
+    // order.confirmed above (own jobId, own dedupe) so one failing never blocks
+    // the other.
+    void this.notificationsQueue
+      .add(
+        "order.placed",
+        { orderId, storeId: order.storeId },
+        {
+          attempts: 3,
+          backoff: { type: "exponential", delay: 5000 },
+          jobId: `order.placed-${orderId}`,
+        },
+      )
+      .catch((err: unknown) =>
+        this.logger.warn(
+          `Failed to enqueue order.placed notification for ${orderId}: ${err instanceof Error ? err.message : String(err)}`,
+        ),
+      );
     void this.webhooksQueue
       .add("webhook.dispatch", {
         storeId: order.storeId,

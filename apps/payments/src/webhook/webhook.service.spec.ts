@@ -370,6 +370,23 @@ describe("WebhookService", () => {
         expect.objectContaining({ attempts: 3 }),
       );
     });
+
+    it("also enqueues order.placed (merchant notification) as its own job", async () => {
+      db.query.ordersTable.findFirst.mockResolvedValue(mockOrder);
+      mockUpdateFn.mockReturnValue(updateChain());
+      mockDeleteFn.mockReturnValue(deleteChain());
+
+      await service.handle({
+        type: "checkout.session.completed",
+        data: { object: makeSession() },
+      } as any);
+
+      expect(notificationsQueue.add).toHaveBeenCalledWith(
+        "order.placed",
+        { orderId: ORDER_ID, storeId: STORE_ID },
+        expect.objectContaining({ attempts: 3, jobId: `order.placed-${ORDER_ID}` }),
+      );
+    });
   });
 
   // ─── checkout.session.expired ─────────────────────────────────────────────
