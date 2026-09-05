@@ -67,8 +67,6 @@ export const OrderPlacedEmail = ({
   supportEmail = "hello@sitehaus.dev",
   storeUrl = "https://commerce.sitehaus.dev",
 }: OrderPlacedProps) => {
-  const orderUrl = `${storeUrl}/orders/${orderId}`;
-
   return (
     <Html>
       <Head />
@@ -77,13 +75,11 @@ export const OrderPlacedEmail = ({
         <Preview>Order #{orderNumber} has been placed!</Preview>
         <Body className="bg-parchment">
           <Container className="px-3 mx-auto">
-            <Heading className="text-ink text-2xl font-bold mt-10 mb-2 p-0">
-              Order Placed
-            </Heading>
+            <Heading className="text-ink text-2xl font-bold mt-10 mb-2 p-0">Order Placed</Heading>
             <Text className="text-ink text-sm m-0">{name}, just placed an order!</Text>
 
             <Link
-              href={orderUrl}
+              href={storeUrl}
               className="inline-block bg-terracotta text-terracotta-foreground text-sm font-bold px-4 py-2 rounded mt-4 no-underline"
             >
               View Order
