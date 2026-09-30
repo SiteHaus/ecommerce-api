@@ -85,4 +85,34 @@ export class CartController {
       return { status: 200 as const, body: result };
     });
   }
+
+  @Throttle({ mutation: { ttl: 60_000, limit: 30 } })
+  @TsRestHandler(contract.cart.addCollection)
+  addCollection(@Req() req: Request) {
+    return tsRestHandler(contract.cart.addCollection, async ({ body }) => {
+      await this.mergeIfNeeded(req);
+      const result = await firstValueFrom(
+        this.commerce.send("cart.addCollection", {
+          ...this.identity(req),
+          collectionId: body.collectionId,
+        }),
+      );
+      return { status: 200 as const, body: result };
+    });
+  }
+
+  @Throttle({ mutation: { ttl: 60_000, limit: 30 } })
+  @TsRestHandler(contract.cart.removeCollection)
+  removeCollection(@Req() req: Request) {
+    return tsRestHandler(contract.cart.removeCollection, async ({ params }) => {
+      await this.mergeIfNeeded(req);
+      const result = await firstValueFrom(
+        this.commerce.send("cart.removeCollection", {
+          ...this.identity(req),
+          collectionId: params.collectionId,
+        }),
+      );
+      return { status: 200 as const, body: result };
+    });
+  }
 }

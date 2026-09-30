@@ -1,0 +1,37 @@
+meta {
+  name: Add Whole Collection
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/v1/cart/collections
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "collectionId": "{{collectionId}}"
+  }
+}
+
+docs {
+  Adds a collection with sellAsWhole = true to the cart as a single line at the
+  collection's own price. Always quantity 1; adding it again is a no-op.
+  Returns 400 if the collection isn't sold as a whole or isn't live yet.
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("collection is one line at quantity 1", function() {
+    const lines = res.body.items.filter(i => i.collectionId === bru.getEnvVar("collectionId"));
+    expect(lines).to.have.length(1);
+    expect(lines[0].type).to.equal("collection");
+    expect(lines[0].variantId).to.equal(null);
+    expect(lines[0].quantity).to.equal(1);
+  });
+}

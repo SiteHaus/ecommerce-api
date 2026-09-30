@@ -32,6 +32,18 @@ export class CartHandlerController {
     return this.cartService.removeItem(identity, variantId);
   }
 
+  @MessagePattern("cart.addCollection")
+  addCollection(@Payload() data: Identity & { collectionId: string }) {
+    const { collectionId, ...identity } = data;
+    return this.cartService.addCollection(identity, collectionId);
+  }
+
+  @MessagePattern("cart.removeCollection")
+  removeCollection(@Payload() data: Identity & { collectionId: string }) {
+    const { collectionId, ...identity } = data;
+    return this.cartService.removeCollection(identity, collectionId);
+  }
+
   @MessagePattern("cart.merge")
   merge(@Payload() data: { storeId: string; sessionToken: string; userId: string }) {
     return this.cartService.merge(data.storeId, data.sessionToken, data.userId);

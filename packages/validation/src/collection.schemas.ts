@@ -10,6 +10,8 @@ export const collectionItem = z.object({
   scheduled: z.boolean(),
   goesLiveAt: z.date().nullable(),
   productCount: z.number(),
+  sellAsWhole: z.boolean(),
+  priceCents: z.number().int().nullable(),
 });
 
 export const collectionIdParams = z.object({
@@ -29,6 +31,11 @@ export const createCollectionSchema = z.object({
   slug: z.string().regex(/^[a-z0-9-]+$/),
   sortOrder: z.number().optional(),
   goesLiveAt: z.string().datetime().nullable().optional(),
+  // Sell the collection only as a bundle at priceCents; its products can't be
+  // bought individually. priceCents is required while sellAsWhole is true
+  // (enforced in the service so it also holds across partial updates).
+  sellAsWhole: z.boolean().optional(),
+  priceCents: z.number().int().min(1).nullable().optional(),
 });
 
 export const collectionListItem = z.object({
@@ -48,6 +55,9 @@ export const publicCollectionListSchema = z.object({
       slug: z.string(),
       description: z.string().nullable(),
       productCount: z.number(),
+      sellAsWhole: z.boolean(),
+      priceCents: z.number().int().nullable(),
+      coverImageUrl: z.string().nullable(),
     }),
   ),
 });
@@ -61,6 +71,8 @@ export const publicCollectionDetail = z.object({
   name: z.string(),
   slug: z.string(),
   description: z.string().nullable(),
+  sellAsWhole: z.boolean(),
+  priceCents: z.number().int().nullable(),
   products: z.array(productPublicDetail),
   total: z.number().int(),
 });

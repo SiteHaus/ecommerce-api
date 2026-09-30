@@ -2,6 +2,15 @@ import { BadRequestException } from "@nestjs/common";
 import { AuditService, DB_TOKEN } from "@sitehaus-ecom/shared";
 import { CheckoutService } from "./checkout.service";
 import { ReservationService } from "../inventory/reservation.service";
+import { findWholeOnlyProducts } from "../collections/sell-as-whole";
+
+jest.mock("../collections/sell-as-whole", () => ({
+  ...jest.requireActual("../collections/sell-as-whole"),
+  findWholeOnlyProducts: jest.fn(),
+}));
+const mockFindWholeOnly = findWholeOnlyProducts as jest.MockedFunction<
+  typeof findWholeOnlyProducts
+>;
 
 const STORE_ID = "aaaaaaaa-0000-0000-0000-000000000001";
 const SESSION_TOKEN = "session-abc";
@@ -27,6 +36,7 @@ const mockItems = [
   {
     variantId: VARIANT_ID,
     quantity: 2,
+    productId: "product-1",
     productName: "Test Product",
     variantName: "Default",
     sku: "SKU-001",
@@ -71,6 +81,8 @@ describe("CheckoutService", () => {
   let db: any;
   let reservations: jest.Mocked<ReservationService>;
   let audit: { log: jest.Mock };
+  // Rows returned by the whole-collection ("bundle") cart-lines query
+  let bundleRows: any[];
 
   const validPayload = {
     storeId: STORE_ID,
@@ -105,10 +117,97 @@ describe("CheckoutService", () => {
 
     audit = { log: jest.fn() };
 
-    service = new (CheckoutService as any)(db, reservations, audit);
+    bundleRows = [];
+    mockFindWholeOnly.mockResolvedValue(new Map());
+
+    // The bundle query is recognised by its selected fields, so the existing
+    // tests' queued db.select mocks keep lining up with the variant/rate queries.
+    const dbForService = {
+      ...db,
+      select: (fields?: Record<string, unknown>) =>
+        fields && "sellAsWhole" in fields && "collectionId" in fields
+          ? selectChain(bundleRows)
+          : db.select(fields),
+    };
+    service = new (CheckoutService as any)(dbForService, reservations, audit);
   });
 
   describe("createOrder", () => {
+    describe("whole collections (sellAsWhole)", () => {
+      const COLLECTION_ID = "aaaaaaaa-0000-0000-0000-000000000009";
+      const bundle = {
+        collectionId: COLLECTION_ID,
+        quantity: 1,
+        name: "Desert Bloom",
+        sellAsWhole: true,
+        priceCents: 4500,
+        goesLiveAt: null,
+      };
+
+      it("snapshots a bundle line with its collection price and reserves nothing for it", async () => {
+        db.query.cartsTable.findFirst.mockResolvedValue(mockCart);
+        db.select.mockReturnValue(selectChain([]));
+        bundleRows = [bundle];
+        db.query.storesTable.findFirst.mockResolvedValue(mockStore);
+        const itemsInsert = insertNoReturnChain();
+        db.insert.mockReturnValueOnce(insertChain([mockOrder])).mockReturnValueOnce(itemsInsert);
+
+        const result = await service.createOrder(validPayload);
+
+        expect(result.subtotalCents).toBe(4500);
+        expect(itemsInsert.values).toHaveBeenCalledWith([
+          expect.objectContaining({
+            variantId: null,
+            collectionId: COLLECTION_ID,
+            productName: "Desert Bloom",
+            variantName: "Full collection",
+            quantity: 1,
+            unitPriceCents: 4500,
+            totalCents: 4500,
+          }),
+        ]);
+        expect(reservations.reserve).not.toHaveBeenCalled();
+      });
+
+      it("adds bundles and single items into one subtotal", async () => {
+        db.query.cartsTable.findFirst.mockResolvedValue(mockCart);
+        db.select.mockReturnValue(selectChain(mockItems));
+        bundleRows = [bundle];
+        db.query.storesTable.findFirst.mockResolvedValue(mockStore);
+        db.insert
+          .mockReturnValueOnce(insertChain([mockOrder]))
+          .mockReturnValueOnce(insertNoReturnChain());
+        reservations.reserve.mockResolvedValue("reserved");
+
+        const result = await service.createOrder(validPayload);
+
+        expect(result.subtotalCents).toBe(2000 + 4500);
+        expect(reservations.reserve).toHaveBeenCalledTimes(1);
+      });
+
+      it("rejects a single item whose product is only sold as part of a collection", async () => {
+        db.query.cartsTable.findFirst.mockResolvedValue(mockCart);
+        db.select.mockReturnValue(selectChain(mockItems));
+        mockFindWholeOnly.mockResolvedValue(new Map([["product-1", "Desert Bloom"]]));
+
+        await expect(service.createOrder(validPayload)).rejects.toThrow(
+          "These items are only sold as part of a collection: Test Product (Desert Bloom)",
+        );
+        expect(db.insert).not.toHaveBeenCalled();
+      });
+
+      it("rejects a bundle whose collection is no longer sold as a whole", async () => {
+        db.query.cartsTable.findFirst.mockResolvedValue(mockCart);
+        db.select.mockReturnValue(selectChain([]));
+        bundleRows = [{ ...bundle, sellAsWhole: false }];
+
+        await expect(service.createOrder(validPayload)).rejects.toThrow(
+          "The following collections are no longer available: Desert Bloom",
+        );
+        expect(db.insert).not.toHaveBeenCalled();
+      });
+    });
+
     it("creates order, snapshots items, reserves inventory, and returns totals", async () => {
       db.query.cartsTable.findFirst.mockResolvedValue(mockCart);
       db.select.mockReturnValue(selectChain(mockItems));

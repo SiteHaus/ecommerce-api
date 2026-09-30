@@ -3,8 +3,13 @@ import { z } from "zod";
 export const availabilityEnum = z.enum(["in_stock", "low_stock", "out_of_stock"]);
 
 export const cartItemSchema = z.object({
-  variantId: z.string().uuid(),
-  productId: z.string().uuid(),
+  // "variant" = a single product variant; "collection" = a whole collection
+  // (sellAsWhole) sold as one bundle line. Exactly one of variantId /
+  // collectionId is set; productId is null for collection lines.
+  type: z.enum(["variant", "collection"]),
+  variantId: z.string().uuid().nullable(),
+  collectionId: z.string().uuid().nullable(),
+  productId: z.string().uuid().nullable(),
   productName: z.string(),
   variantName: z.string(),
   sku: z.string().nullable(),
@@ -37,6 +42,15 @@ export const cartVariantParam = z.object({
   variantId: z.string().uuid(),
 });
 
+export const addCartCollectionSchema = z.object({
+  collectionId: z.string().uuid(),
+});
+
+export const cartCollectionParam = z.object({
+  collectionId: z.string().uuid(),
+});
+
 export type CartSchema = z.infer<typeof cartSchema>;
 export type AddCartItemDto = z.infer<typeof addCartItemSchema>;
 export type UpdateCartItemDto = z.infer<typeof updateCartItemSchema>;
+export type AddCartCollectionDto = z.infer<typeof addCartCollectionSchema>;

@@ -1,7 +1,7 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { CollectionsHandlerService } from "./collections-handler.service";
 import { DB_TOKEN, AuditService } from "@sitehaus-ecom/shared";
-import { ConflictException, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, NotFoundException } from "@nestjs/common";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -55,6 +55,8 @@ const collectionRow = {
   sortOrder: 0,
   description: null,
   goesLiveAt: null,
+  sellAsWhole: false,
+  priceCents: null,
 };
 
 describe("CollectionsHandlerService", () => {
@@ -122,6 +124,25 @@ describe("CollectionsHandlerService", () => {
 
       await expect(service.create(payload)).rejects.toThrow(ConflictException);
     });
+
+    it("stores sellAsWhole and priceCents", async () => {
+      mockSelectFn.mockReturnValueOnce(selectChain([]));
+      const insert = insertChain([{ id: COLLECTION_ID }]);
+      mockInsertFn.mockReturnValueOnce(insert);
+
+      await service.create({ ...payload, sellAsWhole: true, priceCents: 4500 });
+
+      expect(insert.values).toHaveBeenCalledWith(
+        expect.objectContaining({ sellAsWhole: true, priceCents: 4500 }),
+      );
+    });
+
+    it("requires a price to sell a collection as a whole", async () => {
+      await expect(service.create({ ...payload, sellAsWhole: true })).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(mockInsertFn).not.toHaveBeenCalled();
+    });
   });
 
   // ─── delete ───────────────────────────────────────────────────────────────
@@ -166,6 +187,34 @@ describe("CollectionsHandlerService", () => {
       mockSelectFn.mockReturnValueOnce(selectChain([]));
 
       await expect(service.update(payload)).rejects.toThrow(NotFoundException);
+    });
+
+    it("rejects turning on sellAsWhole without a price", async () => {
+      mockSelectFn.mockReturnValueOnce(selectChain([collectionRow]));
+
+      await expect(service.update({ ...payload, sellAsWhole: true })).rejects.toThrow(
+        "A price is required to sell a collection as a whole",
+      );
+      expect(mockUpdateFn).not.toHaveBeenCalled();
+    });
+
+    it("allows turning on sellAsWhole when the collection already has a price", async () => {
+      mockSelectFn.mockReturnValueOnce(selectChain([{ ...collectionRow, priceCents: 4500 }]));
+      mockUpdateFn.mockReturnValueOnce(updateChain([{ ...collectionRow, sellAsWhole: true }]));
+
+      await expect(service.update({ ...payload, sellAsWhole: true })).resolves.toMatchObject({
+        sellAsWhole: true,
+      });
+    });
+
+    it("rejects clearing the price while sellAsWhole is on", async () => {
+      mockSelectFn.mockReturnValueOnce(
+        selectChain([{ ...collectionRow, sellAsWhole: true, priceCents: 4500 }]),
+      );
+
+      await expect(service.update({ ...payload, priceCents: null })).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 

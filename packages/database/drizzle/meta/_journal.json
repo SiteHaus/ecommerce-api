@@ -120,6 +120,13 @@
       "when": 1787384945280,
       "tag": "0016_stormy_master_chief",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1790788166708,
+      "tag": "0017_collection_sell_as_whole",
+      "breakpoints": true
     }
   ]
 }

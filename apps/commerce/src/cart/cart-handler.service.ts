@@ -3,6 +3,7 @@ import {
   and,
   cartItemsTable,
   cartsTable,
+  collectionsTable,
   Db,
   eq,
   inArray,
@@ -14,9 +15,17 @@ import {
 } from "@sitehaus-ecom/database";
 
 import { DB_TOKEN } from "@sitehaus-ecom/shared";
+import {
+  collectionCoverUrls,
+  findWholeOnlyProducts,
+  isCollectionSellable,
+  WHOLE_COLLECTION_VARIANT_NAME,
+} from "../collections/sell-as-whole";
 
 type CartIdentity = { storeId: string; sessionToken?: string; userId?: string };
 type Availability = "in_stock" | "low_stock" | "out_of_stock";
+
+const MAX_CART_LINES = 50;
 
 function toAvailability(stock: number, reserved: number, allowBackorder: boolean): Availability {
   if (allowBackorder) return "in_stock";
@@ -47,6 +56,36 @@ export class CartHandlerService {
     });
   }
 
+  private async findOrCreateCart(identity: CartIdentity) {
+    const existing = await this.findCart(identity);
+    if (existing) return existing;
+    const [newCart] = await this.db
+      .insert(cartsTable)
+      .values({
+        storeId: identity.storeId,
+        sessionToken: identity.sessionToken ?? null,
+        userId: identity.userId ?? null,
+        expiresAt: this.sevenDaysFromNow(),
+      })
+      .returning();
+    return newCart;
+  }
+
+  private async lineCount(cartId: string) {
+    const [{ count }] = await this.db
+      .select({ count: sql<number>`COUNT(*)::int` })
+      .from(cartItemsTable)
+      .where(eq(cartItemsTable.cartId, cartId));
+    return count;
+  }
+
+  private async touch(cartId: string) {
+    await this.db
+      .update(cartsTable)
+      .set({ expiresAt: this.sevenDaysFromNow() })
+      .where(eq(cartsTable.id, cartId));
+  }
+
   private async enrichCart(cartId: string | null) {
     if (!cartId) {
       return { id: null, items: [], subtotalCents: 0, itemCount: 0, expiresAt: null };
@@ -63,6 +102,7 @@ export class CartHandlerService {
       .select({
         variantId: cartItemsTable.variantId,
         quantity: cartItemsTable.quantity,
+        addedAt: cartItemsTable.addedAt,
         productId: productVariantsTable.productId,
         productName: productsTable.name,
         variantName: productVariantsTable.name,
@@ -77,6 +117,20 @@ export class CartHandlerService {
       .innerJoin(productVariantsTable, eq(cartItemsTable.variantId, productVariantsTable.id))
       .innerJoin(productsTable, eq(productVariantsTable.productId, productsTable.id))
       .innerJoin(inventoryTable, eq(cartItemsTable.variantId, inventoryTable.variantId))
+      .where(eq(cartItemsTable.cartId, cartId));
+
+    const collectionRows = await this.db
+      .select({
+        collectionId: collectionsTable.id,
+        quantity: cartItemsTable.quantity,
+        addedAt: cartItemsTable.addedAt,
+        name: collectionsTable.name,
+        sellAsWhole: collectionsTable.sellAsWhole,
+        priceCents: collectionsTable.priceCents,
+        goesLiveAt: collectionsTable.goesLiveAt,
+      })
+      .from(cartItemsTable)
+      .innerJoin(collectionsTable, eq(cartItemsTable.collectionId, collectionsTable.id))
       .where(eq(cartItemsTable.cartId, cartId));
 
     // Fetch primary images for all products in one query
@@ -94,9 +148,16 @@ export class CartHandlerService {
         : [];
 
     const imageMap = new Map(images.map((img) => [img.productId, img.cdnUrl]));
+    const coverMap = await collectionCoverUrls(
+      this.db,
+      collectionRows.map((r) => r.collectionId),
+    );
 
-    const items = rows.map((row) => ({
+    const variantItems = rows.map((row) => ({
+      addedAt: row.addedAt,
+      type: "variant" as const,
       variantId: row.variantId,
+      collectionId: null,
       productId: row.productId,
       productName: row.productName,
       variantName: row.variantName,
@@ -108,6 +169,31 @@ export class CartHandlerService {
       lineTotalCents: row.priceCents * row.quantity,
       availability: toAvailability(row.stock, row.reserved, row.allowBackorder),
     }));
+
+    const collectionItems = collectionRows.map((row) => {
+      const priceCents = row.priceCents ?? 0;
+      return {
+        addedAt: row.addedAt,
+        type: "collection" as const,
+        variantId: null,
+        collectionId: row.collectionId,
+        productId: null,
+        productName: row.name,
+        variantName: WHOLE_COLLECTION_VARIANT_NAME,
+        sku: null,
+        priceCents,
+        compareAtCents: null,
+        primaryImageUrl: coverMap.get(row.collectionId) ?? null,
+        quantity: row.quantity,
+        lineTotalCents: priceCents * row.quantity,
+        // No inventory for a bundle; it's unavailable only if it stopped being sold whole
+        availability: (isCollectionSellable(row) ? "in_stock" : "out_of_stock") as Availability,
+      };
+    });
+
+    const items = [...variantItems, ...collectionItems]
+      .sort((a, b) => a.addedAt.getTime() - b.addedAt.getTime())
+      .map(({ addedAt: _addedAt, ...item }) => item);
 
     return {
       id: cart.id,
@@ -138,6 +224,8 @@ export class CartHandlerService {
     const [variantRow] = await this.db
       .select({
         variantId: productVariantsTable.id,
+        productId: productVariantsTable.productId,
+        productName: productsTable.name,
         isActive: productVariantsTable.isActive,
         productStatus: productsTable.status,
         goesLiveAt: productsTable.goesLiveAt,
@@ -160,33 +248,25 @@ export class CartHandlerService {
       throw new BadRequestException("Product is not yet available");
     }
 
-    // Find or lazy-create cart
-    let cart = await this.findCart(identity);
-    if (!cart) {
-      const [newCart] = await this.db
-        .insert(cartsTable)
-        .values({
-          storeId,
-          sessionToken: identity.sessionToken ?? null,
-          userId: identity.userId ?? null,
-          expiresAt: this.sevenDaysFromNow(),
-        })
-        .returning();
-      cart = newCart;
+    const wholeOnly = await findWholeOnlyProducts(this.db, storeId, [variantRow.productId]);
+    const bundleName = wholeOnly.get(variantRow.productId);
+    if (bundleName) {
+      throw new BadRequestException(
+        `"${variantRow.productName}" is only sold as part of the "${bundleName}" collection`,
+      );
     }
 
-    // Check max 50 distinct line items
-    const [{ count }] = await this.db
-      .select({ count: sql<number>`COUNT(*)::int` })
-      .from(cartItemsTable)
-      .where(eq(cartItemsTable.cartId, cart.id));
+    // Find or lazy-create cart
+    const cart = await this.findOrCreateCart(identity);
+
+    const count = await this.lineCount(cart.id);
 
     const existing = await this.db.query.cartItemsTable.findFirst({
-      where: (ci) => and(eq(ci.cartId, cart!.id), eq(ci.variantId, variantId)),
+      where: (ci) => and(eq(ci.cartId, cart.id), eq(ci.variantId, variantId)),
     });
 
-    if (!existing && count >= 50) {
-      throw new BadRequestException("Cart cannot exceed 50 distinct items");
+    if (!existing && count >= MAX_CART_LINES) {
+      throw new BadRequestException(`Cart cannot exceed ${MAX_CART_LINES} distinct items`);
     }
 
     const newTotalQuantity = (existing?.quantity ?? 0) + quantity;
@@ -209,11 +289,55 @@ export class CartHandlerService {
     }
 
     // Reset expiry on every mutation
-    await this.db
-      .update(cartsTable)
-      .set({ expiresAt: this.sevenDaysFromNow() })
-      .where(eq(cartsTable.id, cart.id));
+    await this.touch(cart.id);
 
+    return this.enrichCart(cart.id);
+  }
+
+  /** Add a whole collection (sellAsWhole) as one line. Always quantity 1; adding twice is a no-op. */
+  async addCollection(identity: CartIdentity, collectionId: string) {
+    const { storeId } = identity;
+
+    const collection = await this.db.query.collectionsTable.findFirst({
+      where: (c) => and(eq(c.id, collectionId), eq(c.storeId, storeId)),
+    });
+    if (!collection) throw new NotFoundException("Collection not found");
+    if (!collection.sellAsWhole) {
+      throw new BadRequestException("This collection isn't sold as a whole");
+    }
+    if (!isCollectionSellable(collection)) {
+      throw new BadRequestException("This collection isn't available yet");
+    }
+
+    const cart = await this.findOrCreateCart(identity);
+
+    const existing = await this.db.query.cartItemsTable.findFirst({
+      where: (ci) => and(eq(ci.cartId, cart.id), eq(ci.collectionId, collectionId)),
+    });
+
+    if (!existing) {
+      if ((await this.lineCount(cart.id)) >= MAX_CART_LINES) {
+        throw new BadRequestException(`Cart cannot exceed ${MAX_CART_LINES} distinct items`);
+      }
+      await this.db.insert(cartItemsTable).values({ cartId: cart.id, collectionId, quantity: 1 });
+    }
+
+    await this.touch(cart.id);
+    return this.enrichCart(cart.id);
+  }
+
+  async removeCollection(identity: CartIdentity, collectionId: string) {
+    const cart = await this.findCart(identity);
+    if (!cart) throw new NotFoundException("Cart not found");
+
+    const deleted = await this.db
+      .delete(cartItemsTable)
+      .where(and(eq(cartItemsTable.cartId, cart.id), eq(cartItemsTable.collectionId, collectionId)))
+      .returning();
+
+    if (deleted.length === 0) throw new NotFoundException("Collection not in cart");
+
+    await this.touch(cart.id);
     return this.enrichCart(cart.id);
   }
 
@@ -234,10 +358,7 @@ export class CartHandlerService {
       if (!updated) throw new NotFoundException("Item not in cart");
     }
 
-    await this.db
-      .update(cartsTable)
-      .set({ expiresAt: this.sevenDaysFromNow() })
-      .where(eq(cartsTable.id, cart.id));
+    await this.touch(cart.id);
 
     return this.enrichCart(cart.id);
   }
@@ -253,10 +374,7 @@ export class CartHandlerService {
 
     if (deleted.length === 0) throw new NotFoundException("Item not in cart");
 
-    await this.db
-      .update(cartsTable)
-      .set({ expiresAt: this.sevenDaysFromNow() })
-      .where(eq(cartsTable.id, cart.id));
+    await this.touch(cart.id);
 
     return this.enrichCart(cart.id);
   }
@@ -280,14 +398,30 @@ export class CartHandlerService {
       return;
     }
 
-    // Merge: sum quantities for matching variants, then delete anon cart
+    // Merge: sum quantities for matching variants, keep one of each collection,
+    // then delete anon cart
     const anonItems = await this.db.query.cartItemsTable.findMany({
       where: (ci) => eq(ci.cartId, anonCart.id),
     });
 
     for (const item of anonItems) {
+      if (item.collectionId) {
+        const collectionId = item.collectionId;
+        const existing = await this.db.query.cartItemsTable.findFirst({
+          where: (ci) => and(eq(ci.cartId, userCart.id), eq(ci.collectionId, collectionId)),
+        });
+        if (!existing) {
+          await this.db
+            .insert(cartItemsTable)
+            .values({ cartId: userCart.id, collectionId, quantity: 1 });
+        }
+        continue;
+      }
+
+      if (!item.variantId) continue;
+      const variantId = item.variantId;
       const existing = await this.db.query.cartItemsTable.findFirst({
-        where: (ci) => and(eq(ci.cartId, userCart.id), eq(ci.variantId, item.variantId)),
+        where: (ci) => and(eq(ci.cartId, userCart.id), eq(ci.variantId, variantId)),
       });
       if (existing) {
         await this.db
@@ -297,7 +431,7 @@ export class CartHandlerService {
       } else {
         await this.db
           .insert(cartItemsTable)
-          .values({ cartId: userCart.id, variantId: item.variantId, quantity: item.quantity });
+          .values({ cartId: userCart.id, variantId, quantity: item.quantity });
       }
     }
 

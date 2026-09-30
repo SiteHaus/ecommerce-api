@@ -1,4 +1,5 @@
 import {
+  boolean,
   index,
   integer,
   pgTable,
@@ -21,6 +22,10 @@ export const collectionsTable = pgTable(
     description: text("description"),
     slug: varchar("slug", { length: 128 }),
     sortOrder: integer("sort_order").notNull().default(0),
+    // Sell the collection only as a whole, at priceCents. Its products can't be
+    // bought individually while this is on.
+    sellAsWhole: boolean("sell_as_whole").notNull().default(false),
+    priceCents: integer("price_cents"),
     goesLiveAt: timestamp("goes_live_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
