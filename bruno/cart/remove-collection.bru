@@ -1,0 +1,22 @@
+meta {
+  name: Remove Whole Collection
+  type: http
+  seq: 6
+}
+
+delete {
+  url: {{baseUrl}}/v1/cart/collections/{{collectionId}}
+  body: none
+  auth: none
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("collection removed from cart", function() {
+    const line = res.body.items.find(i => i.collectionId === bru.getEnvVar("collectionId"));
+    expect(line).to.be.undefined;
+  });
+}

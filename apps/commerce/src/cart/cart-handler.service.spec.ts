@@ -2,6 +2,18 @@ import { Test, TestingModule } from "@nestjs/testing";
 import { BadRequestException, NotFoundException } from "@nestjs/common";
 import { DB_TOKEN } from "@sitehaus-ecom/shared";
 import { CartHandlerService } from "./cart-handler.service";
+import { collectionCoverUrls, findWholeOnlyProducts } from "../collections/sell-as-whole";
+
+jest.mock("../collections/sell-as-whole", () => ({
+  ...jest.requireActual("../collections/sell-as-whole"),
+  findWholeOnlyProducts: jest.fn(),
+  collectionCoverUrls: jest.fn(),
+}));
+const mockFindWholeOnly = findWholeOnlyProducts as jest.MockedFunction<
+  typeof findWholeOnlyProducts
+>;
+const mockCoverUrls = collectionCoverUrls as jest.MockedFunction<typeof collectionCoverUrls>;
+const COLLECTION_ID = "collection-uuid-1";
 
 const STORE_ID = "store-uuid-1";
 const SESSION_TOKEN = "session-token-abc";
@@ -112,6 +124,7 @@ const variantRow = {
 const enrichedItemRow = {
   variantId: VARIANT_ID,
   quantity: 2,
+  addedAt: new Date("2024-01-01T00:00:00Z"),
   productId: "product-uuid-1",
   productName: "Test Product",
   variantName: "Default",
@@ -135,6 +148,9 @@ describe("CartHandlerService", () => {
   let mockCartsTableFindFirst: jest.Mock;
   let mockCartItemFindFirst: jest.Mock;
   let mockCartItemFindMany: jest.Mock;
+  let mockCollectionFindFirst: jest.Mock;
+  // Rows returned by enrichCart's whole-collection lines query
+  let collectionLineRows: any[];
 
   beforeEach(async () => {
     mockSelectFn = jest.fn();
@@ -146,9 +162,18 @@ describe("CartHandlerService", () => {
     mockCartsTableFindFirst = jest.fn();
     mockCartItemFindFirst = jest.fn();
     mockCartItemFindMany = jest.fn();
+    mockCollectionFindFirst = jest.fn();
+    collectionLineRows = [];
+    mockFindWholeOnly.mockResolvedValue(new Map());
+    mockCoverUrls.mockResolvedValue(new Map());
 
     mockDb = {
-      select: mockSelectFn,
+      // enrichCart's collection-lines query is recognised by its selected
+      // fields, so each test's queued select mocks keep lining up as before.
+      select: (fields?: Record<string, unknown>) =>
+        fields && "sellAsWhole" in fields && "collectionId" in fields
+          ? selectChain(collectionLineRows)
+          : mockSelectFn(fields),
       selectDistinctOn: mockSelectDistinctOnFn,
       insert: mockInsertFn,
       update: mockUpdateFn,
@@ -160,6 +185,9 @@ describe("CartHandlerService", () => {
         cartItemsTable: {
           findFirst: mockCartItemFindFirst,
           findMany: mockCartItemFindMany,
+        },
+        collectionsTable: {
+          findFirst: mockCollectionFindFirst,
         },
       },
     };
@@ -356,6 +384,145 @@ describe("CartHandlerService", () => {
   });
 
   // ─── updateItem ───────────────────────────────────────────────────────────
+
+  // ─── whole collections (sellAsWhole) ──────────────────────────────────────
+
+  describe("whole collections", () => {
+    const sellableCollection = {
+      id: COLLECTION_ID,
+      storeId: STORE_ID,
+      name: "Desert Bloom",
+      sellAsWhole: true,
+      priceCents: 4500,
+      goesLiveAt: null,
+    };
+    const identity = { storeId: STORE_ID, sessionToken: SESSION_TOKEN };
+
+    it("addItem rejects a product that is only sold as part of a collection", async () => {
+      mockSelectFn.mockReturnValueOnce(
+        selectChain([{ ...variantRow, productId: "product-uuid-1", productName: "Photo 1" }], true),
+      );
+      mockFindWholeOnly.mockResolvedValue(new Map([["product-uuid-1", "Desert Bloom"]]));
+
+      await expect(service.addItem(identity, VARIANT_ID, 1)).rejects.toThrow(
+        '"Photo 1" is only sold as part of the "Desert Bloom" collection',
+      );
+      expect(mockInsertFn).not.toHaveBeenCalled();
+    });
+
+    it("addCollection throws NotFound for an unknown collection", async () => {
+      mockCollectionFindFirst.mockResolvedValue(undefined);
+      await expect(service.addCollection(identity, COLLECTION_ID)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it("addCollection rejects a collection that isn't sold as a whole", async () => {
+      mockCollectionFindFirst.mockResolvedValue({ ...sellableCollection, sellAsWhole: false });
+      await expect(service.addCollection(identity, COLLECTION_ID)).rejects.toThrow(
+        "This collection isn't sold as a whole",
+      );
+    });
+
+    it("addCollection rejects a collection scheduled for the future", async () => {
+      mockCollectionFindFirst.mockResolvedValue({
+        ...sellableCollection,
+        goesLiveAt: new Date(Date.now() + 86_400_000),
+      });
+      await expect(service.addCollection(identity, COLLECTION_ID)).rejects.toThrow(
+        "This collection isn't available yet",
+      );
+    });
+
+    it("addCollection inserts one line at quantity 1 and returns it priced from the collection", async () => {
+      mockCollectionFindFirst.mockResolvedValue(sellableCollection);
+      mockCartFindFirst.mockResolvedValue(cartRow);
+      mockCartItemFindFirst.mockResolvedValue(undefined); // not in cart yet
+      mockSelectFn
+        .mockReturnValueOnce(selectChain([{ count: 0 }])) // line count
+        .mockReturnValueOnce(selectChain([], true)); // enrichCart variant rows
+      const insert = insertNoReturningChain();
+      mockInsertFn.mockReturnValueOnce(insert);
+      mockUpdateFn.mockReturnValue(updateNoReturningChain());
+      collectionLineRows = [
+        {
+          collectionId: COLLECTION_ID,
+          quantity: 1,
+          addedAt: new Date(),
+          name: "Desert Bloom",
+          sellAsWhole: true,
+          priceCents: 4500,
+          goesLiveAt: null,
+        },
+      ];
+      mockCoverUrls.mockResolvedValue(new Map([[COLLECTION_ID, "https://cdn/cover.jpg"]]));
+
+      const cart = await service.addCollection(identity, COLLECTION_ID);
+
+      expect(insert.values).toHaveBeenCalledWith({
+        cartId: CART_ID,
+        collectionId: COLLECTION_ID,
+        quantity: 1,
+      });
+      expect(cart.items).toEqual([
+        expect.objectContaining({
+          type: "collection",
+          variantId: null,
+          collectionId: COLLECTION_ID,
+          productId: null,
+          productName: "Desert Bloom",
+          variantName: "Full collection",
+          priceCents: 4500,
+          lineTotalCents: 4500,
+          quantity: 1,
+          primaryImageUrl: "https://cdn/cover.jpg",
+          availability: "in_stock",
+        }),
+      ]);
+      expect(cart.subtotalCents).toBe(4500);
+    });
+
+    it("addCollection is a no-op when the collection is already in the cart", async () => {
+      mockCollectionFindFirst.mockResolvedValue(sellableCollection);
+      mockCartFindFirst.mockResolvedValue(cartRow);
+      mockCartItemFindFirst.mockResolvedValue({ id: "line-1", collectionId: COLLECTION_ID });
+      mockSelectFn.mockReturnValueOnce(selectChain([], true)); // enrichCart variant rows
+      mockUpdateFn.mockReturnValue(updateNoReturningChain());
+
+      await service.addCollection(identity, COLLECTION_ID);
+
+      expect(mockInsertFn).not.toHaveBeenCalled();
+    });
+
+    it("marks a carted collection out_of_stock once it stops being sold whole", async () => {
+      mockCartFindFirst.mockResolvedValue(cartRow);
+      mockSelectFn.mockReturnValueOnce(selectChain([], true));
+      collectionLineRows = [
+        {
+          collectionId: COLLECTION_ID,
+          quantity: 1,
+          addedAt: new Date(),
+          name: "Desert Bloom",
+          sellAsWhole: false,
+          priceCents: 4500,
+          goesLiveAt: null,
+        },
+      ];
+
+      const cart = await service.get(identity);
+
+      expect(cart.items[0].availability).toBe("out_of_stock");
+    });
+
+    it("removeCollection throws NotFound when the collection isn't in the cart", async () => {
+      mockCartFindFirst.mockResolvedValue(cartRow);
+      mockDeleteFn.mockReturnValueOnce(deleteReturningChain([]));
+
+      await expect(service.removeCollection(identity, COLLECTION_ID)).rejects.toThrow(
+        "Collection not in cart",
+      );
+    });
+  });
 
   describe("updateItem", () => {
     it("throws NotFoundException when cart does not exist", async () => {

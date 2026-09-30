@@ -1,6 +1,8 @@
 import {
+  addCartCollectionSchema,
   addCartItemSchema,
   apiError,
+  cartCollectionParam,
   cartSchema,
   cartVariantParam,
   updateCartItemSchema,
@@ -44,6 +46,29 @@ export const cartContract = c.router({
     method: "DELETE",
     path: "/v1/cart/items/:variantId",
     pathParams: cartVariantParam,
+    body: c.noBody(),
+    responses: {
+      200: cartSchema,
+      404: apiError,
+    },
+    metadata: { openApiTags: ["Cart"] } as const,
+  },
+  // Whole collections (collections with sellAsWhole) — always quantity 1
+  addCollection: {
+    method: "POST",
+    path: "/v1/cart/collections",
+    body: addCartCollectionSchema,
+    responses: {
+      200: cartSchema,
+      400: apiError,
+      404: apiError,
+    },
+    metadata: { openApiTags: ["Cart"] } as const,
+  },
+  removeCollection: {
+    method: "DELETE",
+    path: "/v1/cart/collections/:collectionId",
+    pathParams: cartCollectionParam,
     body: c.noBody(),
     responses: {
       200: cartSchema,

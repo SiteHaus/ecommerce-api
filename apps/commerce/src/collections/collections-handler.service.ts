@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { Inject } from "@nestjs/common";
 import { DB_TOKEN } from "@sitehaus-ecom/shared";
 import {
@@ -23,6 +23,7 @@ import {
 } from "@sitehaus-ecom/validation";
 import { and, asc, eq, inArray, isNull, lte, or, sql } from "@sitehaus-ecom/database";
 import { ConflictException } from "@nestjs/common";
+import { collectionCoverUrls } from "./sell-as-whole";
 
 @Injectable()
 export class CollectionsHandlerService {
@@ -31,7 +32,15 @@ export class CollectionsHandlerService {
     private readonly audit: AuditService,
   ) {}
 
+  private assertPriceForSellAsWhole(sellAsWhole: boolean, priceCents: number | null | undefined) {
+    if (sellAsWhole && !priceCents) {
+      throw new BadRequestException("A price is required to sell a collection as a whole");
+    }
+  }
+
   async create(data: CreateCollectionDto & { storeId: string }) {
+    this.assertPriceForSellAsWhole(data.sellAsWhole ?? false, data.priceCents);
+
     const existing = await this.db
       .select()
       .from(collectionsTable)
@@ -49,6 +58,8 @@ export class CollectionsHandlerService {
         description: data.description,
         sortOrder: data.sortOrder,
         goesLiveAt: data.goesLiveAt ? new Date(data.goesLiveAt) : null,
+        sellAsWhole: data.sellAsWhole ?? false,
+        priceCents: data.priceCents ?? null,
       })
       .returning();
 
@@ -89,6 +100,11 @@ export class CollectionsHandlerService {
       .limit(1);
 
     if (!oldCollection) throw new NotFoundException("Collection not found");
+
+    this.assertPriceForSellAsWhole(
+      data.sellAsWhole ?? oldCollection.sellAsWhole,
+      data.priceCents !== undefined ? data.priceCents : oldCollection.priceCents,
+    );
 
     const { storeId, collectionId, goesLiveAt, ...rest } = data;
     const [updated] = await this.db
@@ -168,6 +184,8 @@ export class CollectionsHandlerService {
       scheduled: c.goesLiveAt ? new Date(c.goesLiveAt) > now : false,
       goesLiveAt: c.goesLiveAt ?? null,
       productCount: countMap[c.id] ?? 0,
+      sellAsWhole: c.sellAsWhole,
+      priceCents: c.priceCents ?? null,
     }));
   }
 
@@ -195,6 +213,8 @@ export class CollectionsHandlerService {
       scheduled: collection.goesLiveAt ? new Date(collection.goesLiveAt) > now : false,
       goesLiveAt: collection.goesLiveAt ?? null,
       productCount: products.length,
+      sellAsWhole: collection.sellAsWhole,
+      priceCents: collection.priceCents ?? null,
       products: products.map((p) => ({ id: p.id })),
     };
   }
@@ -227,12 +247,17 @@ export class CollectionsHandlerService {
 
     const countMap = Object.fromEntries(counts.map((r) => [r.collectionId, r.count]));
 
+    const coverMap = await collectionCoverUrls(this.db, ids);
+
     return collections.map((c) => ({
       id: c.id,
       name: c.name,
       slug: c.slug,
       description: c.description ?? null,
       productCount: countMap[c.id] ?? 0,
+      sellAsWhole: c.sellAsWhole,
+      priceCents: c.priceCents ?? null,
+      coverImageUrl: coverMap.get(c.id) ?? null,
     }));
   }
 
@@ -269,6 +294,8 @@ export class CollectionsHandlerService {
         name: collection.name,
         slug: collection.slug,
         description: collection.description ?? null,
+        sellAsWhole: collection.sellAsWhole,
+        priceCents: collection.priceCents ?? null,
         products: [],
         total: 0,
       };
@@ -291,6 +318,8 @@ export class CollectionsHandlerService {
         name: collection.name,
         slug: collection.slug,
         description: collection.description ?? null,
+        sellAsWhole: collection.sellAsWhole,
+        priceCents: collection.priceCents ?? null,
         products: [],
         total: 0,
       };
@@ -396,6 +425,8 @@ export class CollectionsHandlerService {
       name: collection.name,
       slug: collection.slug,
       description: collection.description ?? null,
+      sellAsWhole: collection.sellAsWhole,
+      priceCents: collection.priceCents ?? null,
       products: items,
       total: items.length,
     };
@@ -440,6 +471,8 @@ export class CollectionsHandlerService {
       scheduled: collection.goesLiveAt ? new Date(collection.goesLiveAt) > now : false,
       goesLiveAt: collection.goesLiveAt ?? null,
       productCount: count,
+      sellAsWhole: collection.sellAsWhole,
+      priceCents: collection.priceCents ?? null,
     };
   }
 }

@@ -3,6 +3,7 @@ import {
   and,
   cartItemsTable,
   cartsTable,
+  collectionsTable,
   eq,
   inventoryTable,
   orderItemsTable,
@@ -16,6 +17,11 @@ import {
 } from "@sitehaus-ecom/database";
 import { AuditService, DB_TOKEN } from "@sitehaus-ecom/shared";
 import { ReservationService } from "../inventory/reservation.service";
+import {
+  findWholeOnlyProducts,
+  isCollectionSellable,
+  WHOLE_COLLECTION_VARIANT_NAME,
+} from "../collections/sell-as-whole";
 
 @Injectable()
 export class CheckoutService {
@@ -50,8 +56,9 @@ export class CheckoutService {
     // 2. Fetch items with product/variant snapshots + inventory availability
     const items = await this.db
       .select({
-        variantId: cartItemsTable.variantId,
+        variantId: productVariantsTable.id,
         quantity: cartItemsTable.quantity,
+        productId: productsTable.id,
         productName: productsTable.name,
         variantName: productVariantsTable.name,
         sku: productVariantsTable.sku,
@@ -70,10 +77,51 @@ export class CheckoutService {
       )
       .where(eq(cartItemsTable.cartId, cart.id));
 
-    if (items.length === 0) throw new BadRequestException("Cart is empty");
+    // Whole-collection lines (collections sold as a bundle at their own price)
+    const bundles = await this.db
+      .select({
+        collectionId: collectionsTable.id,
+        quantity: cartItemsTable.quantity,
+        name: collectionsTable.name,
+        sellAsWhole: collectionsTable.sellAsWhole,
+        priceCents: collectionsTable.priceCents,
+        goesLiveAt: collectionsTable.goesLiveAt,
+      })
+      .from(cartItemsTable)
+      .innerJoin(collectionsTable, eq(cartItemsTable.collectionId, collectionsTable.id))
+      .where(and(eq(cartItemsTable.cartId, cart.id), eq(collectionsTable.storeId, data.storeId)));
+
+    if (items.length === 0 && bundles.length === 0) {
+      throw new BadRequestException("Cart is empty");
+    }
+
+    // Products inside a sell-as-whole collection can't be bought on their own,
+    // even if they were carted before the collection was switched to whole-only.
+    const wholeOnly = await findWholeOnlyProducts(this.db, data.storeId, [
+      ...new Set(items.map((i) => i.productId)),
+    ]);
+    const blocked = items.filter((i) => wholeOnly.has(i.productId));
+    if (blocked.length > 0) {
+      throw new BadRequestException(
+        `These items are only sold as part of a collection: ${blocked
+          .map((i) => `${i.productName} (${wholeOnly.get(i.productId)})`)
+          .join(", ")}`,
+      );
+    }
+
+    const unavailable = bundles.filter((b) => !isCollectionSellable(b));
+    if (unavailable.length > 0) {
+      throw new BadRequestException(
+        `The following collections are no longer available: ${unavailable
+          .map((b) => b.name)
+          .join(", ")}`,
+      );
+    }
 
     // 3. Calculate subtotal
-    const subtotalCents = items.reduce((sum, i) => sum + i.priceCents * i.quantity, 0);
+    const subtotalCents =
+      items.reduce((sum, i) => sum + i.priceCents * i.quantity, 0) +
+      bundles.reduce((sum, b) => sum + b.priceCents! * b.quantity, 0);
 
     // 4. Resolve shipping rate
     let shippingCents = 0;
@@ -158,8 +206,8 @@ export class CheckoutService {
       .returning();
 
     // 5. Snapshot cart items into order_items
-    await this.db.insert(orderItemsTable).values(
-      items.map((item) => ({
+    await this.db.insert(orderItemsTable).values([
+      ...items.map((item) => ({
         orderId: order.id,
         variantId: item.variantId,
         productName: item.productName,
@@ -169,9 +217,21 @@ export class CheckoutService {
         unitPriceCents: item.priceCents,
         totalCents: item.priceCents * item.quantity,
       })),
-    );
+      ...bundles.map((b) => ({
+        orderId: order.id,
+        variantId: null,
+        collectionId: b.collectionId,
+        productName: b.name,
+        variantName: WHOLE_COLLECTION_VARIANT_NAME,
+        sku: null,
+        quantity: b.quantity,
+        unitPriceCents: b.priceCents!,
+        totalCents: b.priceCents! * b.quantity,
+      })),
+    ]);
 
-    // 6. Reserve inventory — rollback if any item is sold out
+    // 6. Reserve inventory — rollback if any item is sold out.
+    //    Whole-collection lines carry no inventory of their own, so nothing to reserve.
     const soldOut: string[] = [];
     for (const item of items) {
       const result = await this.reservations.reserve(
