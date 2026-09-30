@@ -191,8 +191,10 @@ export class CollectionsHandlerService {
       name: collection.name,
       slug: collection.slug,
       description: collection.description ?? null,
+      sortOrder: collection.sortOrder,
       scheduled: collection.goesLiveAt ? new Date(collection.goesLiveAt) > now : false,
-      goesLiveAt: collection.goesLiveAt ? new Date(collection.goesLiveAt) > now : null,
+      goesLiveAt: collection.goesLiveAt ?? null,
+      productCount: products.length,
       products: products.map((p) => ({ id: p.id })),
     };
   }

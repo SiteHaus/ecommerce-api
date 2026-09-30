@@ -97,6 +97,7 @@ export const collectionContract = c.router({
     path: "/v1/catalog/collections",
     responses: {
       200: publicCollectionListSchema,
+      404: apiError,
     },
     metadata: { openApiTags: ["Catalog"] } as const,
   },

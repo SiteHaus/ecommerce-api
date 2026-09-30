@@ -52,13 +52,7 @@ export const publicCollectionListSchema = z.object({
   ),
 });
 
-export const collectionDetail = z.object({
-  id: z.uuid(),
-  name: z.string(),
-  description: z.string().nullable(),
-  slug: z.string(),
-  scheduled: z.boolean(),
-  goesLiveAt: z.boolean().nullable(),
+export const collectionDetail = collectionItem.extend({
   products: z.array(z.object({ id: z.string() })),
 });
 
