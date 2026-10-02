@@ -94,6 +94,8 @@ export class WebhooksHandlerService {
 
     if (deleted.length === 0)
       throw new RpcException({ status: 404, message: "Webhook endpoint not found" });
+
+    return { message: "Webhook endpoint deleted" };
   }
 
   async listDeliveries(storeId: string, endpointId: string) {

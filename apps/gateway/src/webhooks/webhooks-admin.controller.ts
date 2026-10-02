@@ -57,13 +57,13 @@ export class WebhooksAdminController {
   @TsRestHandler(contract.webhooks.adminDeleteEndpoint)
   adminDeleteEndpoint(@Req() req: Request) {
     return tsRestHandler(contract.webhooks.adminDeleteEndpoint, async ({ params }) => {
-      await firstValueFrom(
+      const result = await firstValueFrom(
         this.commerce.send("webhooks.delete", {
           storeId: req.store!.id,
           endpointId: params.endpointId,
         }),
       );
-      return { status: 204 as const, body: {} };
+      return { status: 200 as const, body: result };
     });
   }
 

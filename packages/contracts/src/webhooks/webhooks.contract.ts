@@ -1,6 +1,7 @@
 import {
   apiError,
   createWebhookEndpointSchema,
+  deleteWebhookEndpointResponse,
   updateWebhookEndpointSchema,
   webhookDeliverySchema,
   webhookEndpointSchema,
@@ -45,9 +46,9 @@ export const webhooksContract = c.router({
     method: "DELETE",
     path: "/v1/admin/webhooks/:endpointId",
     pathParams: z.object({ endpointId: z.string().uuid() }),
-    body: z.object({}),
+    body: c.noBody(),
     responses: {
-      204: z.object({}),
+      200: deleteWebhookEndpointResponse,
       404: apiError,
     },
     metadata: { openApiTags: ["Webhooks Admin"] } as const,

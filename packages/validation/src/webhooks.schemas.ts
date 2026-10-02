@@ -40,6 +40,10 @@ export const webhookEndpointWithSecretSchema = webhookEndpointSchema.extend({
   secret: z.string(),
 });
 
+export const deleteWebhookEndpointResponse = z.object({
+  message: z.string(),
+});
+
 export const webhookDeliverySchema = z.object({
   id: z.string().uuid(),
   endpointId: z.string().uuid(),
