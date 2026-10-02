@@ -10,6 +10,8 @@ export const webhookEventSchema = z.enum([
   "return.refunded",
   "inventory.low",
   "product.published",
+  "product.updated",
+  "product.removed",
 ]);
 
 export const createWebhookEndpointSchema = z.object({

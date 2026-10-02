@@ -1,5 +1,7 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, Logger, NotFoundException } from "@nestjs/common";
+import { InjectQueue } from "@nestjs/bullmq";
 import { RpcException } from "@nestjs/microservices";
+import type { Queue } from "bullmq";
 import { AuditService, DB_TOKEN } from "@sitehaus-ecom/shared";
 import { Inject } from "@nestjs/common";
 import {
@@ -25,10 +27,41 @@ import {
 
 @Injectable()
 export class ProductsHandlerService {
+  private readonly logger = new Logger(ProductsHandlerService.name);
+
   constructor(
     @Inject(DB_TOKEN) private readonly db: Db,
     private readonly audit: AuditService,
+    @InjectQueue("ecom-webhooks") private readonly webhooksQueue: Queue,
   ) {}
+
+  /**
+   * Enqueues a product merchant webhook. Each product write sends at most one
+   * of these, the most specific that applies:
+   *
+   * - `product.published`: the product became `active` (created active, or
+   *   moved to active from draft, scheduled or archived).
+   * - `product.removed`: the product became `archived` (deleted, or updated to
+   *   archived).
+   * - `product.updated`: any other successful edit.
+   *
+   * Fire-and-forget: a Redis hiccup must not fail the write that triggered it.
+   */
+  private dispatchProductEvent(
+    event: "product.published" | "product.updated" | "product.removed",
+    product: { id: string; storeId: string; name: string; status: string },
+  ) {
+    const data: Record<string, unknown> = { productId: product.id, name: product.name };
+    if (event === "product.updated") data.status = product.status;
+
+    void this.webhooksQueue
+      .add("webhook.dispatch", { storeId: product.storeId, event, data })
+      .catch((err: unknown) =>
+        this.logger.warn(
+          `Failed to enqueue ${event} webhook dispatch for ${product.id}: ${err instanceof Error ? err.message : String(err)}`,
+        ),
+      );
+  }
 
   async create(data: CreateProductDto & { storeId: string }) {
     const goesLiveAt = data.goesLiveAt ? new Date(data.goesLiveAt) : null;
@@ -55,6 +88,8 @@ export class ProductsHandlerService {
       targetType: "product",
       targetId: product.id,
     });
+
+    if (product.status === "active") this.dispatchProductEvent("product.published", product);
 
     return product;
   }
@@ -114,6 +149,16 @@ export class ProductsHandlerService {
       targetId: product.id,
     });
 
+    // Publish/remove only on the transition into active/archived. Editing an
+    // already-live (or already-archived) product is just an update.
+    if (existing.status !== "active" && product.status === "active") {
+      this.dispatchProductEvent("product.published", product);
+    } else if (existing.status !== "archived" && product.status === "archived") {
+      this.dispatchProductEvent("product.removed", product);
+    } else {
+      this.dispatchProductEvent("product.updated", product);
+    }
+
     return product;
   }
 
@@ -134,6 +179,11 @@ export class ProductsHandlerService {
       targetType: "product",
       targetId: data.id,
     });
+
+    // Deleting an already-archived product removes nothing new.
+    if (existing.status !== "archived") {
+      this.dispatchProductEvent("product.removed", { ...existing, status: "archived" });
+    }
 
     return { message: "The product was successfully archived" };
   }
