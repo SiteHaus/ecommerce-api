@@ -1,5 +1,7 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, Logger, NotFoundException } from "@nestjs/common";
+import { InjectQueue } from "@nestjs/bullmq";
 import { RpcException } from "@nestjs/microservices";
+import type { Queue } from "bullmq";
 import { AuditService, DB_TOKEN } from "@sitehaus-ecom/shared";
 import { Inject } from "@nestjs/common";
 import {
@@ -25,10 +27,33 @@ import {
 
 @Injectable()
 export class ProductsHandlerService {
+  private readonly logger = new Logger(ProductsHandlerService.name);
+
   constructor(
     @Inject(DB_TOKEN) private readonly db: Db,
     private readonly audit: AuditService,
+    @InjectQueue("ecom-webhooks") private readonly webhooksQueue: Queue,
   ) {}
+
+  /**
+   * Fires the `product.published` merchant webhook. Called whenever a product
+   * becomes `active`: created active, or moved to active from draft, scheduled
+   * or archived. Scheduled products that go live on their own are dispatched
+   * by the worker's PublishScheduledProcessor instead.
+   */
+  private dispatchProductPublished(product: { id: string; storeId: string; name: string }) {
+    void this.webhooksQueue
+      .add("webhook.dispatch", {
+        storeId: product.storeId,
+        event: "product.published",
+        data: { productId: product.id, name: product.name },
+      })
+      .catch((err: unknown) =>
+        this.logger.warn(
+          `Failed to enqueue product.published webhook dispatch for ${product.id}: ${err instanceof Error ? err.message : String(err)}`,
+        ),
+      );
+  }
 
   async create(data: CreateProductDto & { storeId: string }) {
     const goesLiveAt = data.goesLiveAt ? new Date(data.goesLiveAt) : null;
@@ -55,6 +80,8 @@ export class ProductsHandlerService {
       targetType: "product",
       targetId: product.id,
     });
+
+    if (product.status === "active") this.dispatchProductPublished(product);
 
     return product;
   }
@@ -113,6 +140,12 @@ export class ProductsHandlerService {
       targetType: "product",
       targetId: product.id,
     });
+
+    // Only on the transition into active. Editing an already-live product
+    // isn't a publish.
+    if (existing.status !== "active" && product.status === "active") {
+      this.dispatchProductPublished(product);
+    }
 
     return product;
   }
